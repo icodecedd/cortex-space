@@ -1,4 +1,7 @@
-import { Terminal, Square, RotateCcw, Maximize2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Square, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TerminalPane } from "./TerminalPane";
 
 interface SpaceViewProps {
   config: any;
@@ -6,9 +9,19 @@ interface SpaceViewProps {
 }
 
 export function SpaceView({ config, onStop }: SpaceViewProps) {
+  const [focusedPaneId, setFocusedPaneId] = useState<number | null>(config.panes[0]?.id || null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const getGridTemplate = () => {
+    if (isMobile) return '1fr / 1fr';
     switch (config.layout) {
-      case '1x1': return '1fr';
+      case '1x1': return '1fr / 1fr';
       case '1x2': return '1fr / 1fr 1fr';
       case '2x1': return '1fr 1fr / 1fr';
       case '2x2': return '1fr 1fr / 1fr 1fr';
@@ -18,55 +31,95 @@ export function SpaceView({ config, onStop }: SpaceViewProps) {
   };
 
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, padding: '0 1rem 1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '0 1rem' }}>
-        <div>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Root: </span>
-          <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{config.rootPath || 'Not set'}</span>
+    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, padding: 0 }}>
+      {/* HEADER SECTION IN-SPACE */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        padding: '0.5rem 1rem',
+        borderBottom: '1px solid var(--border-color)',
+        background: 'var(--surface-color)',
+        zIndex: 10
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Activity 
+              size={12} 
+              color="var(--accent-primary)" 
+              className="pulse-animation"
+              style={{ filter: 'drop-shadow(0 0 4px var(--accent-primary))' }}
+            />
+            <span style={{ fontSize: '0.65rem', fontWeight: 700, fontFamily: 'JetBrains Mono', letterSpacing: '0.05em' }}>ACTIVE SESSION</span>
+          </div>
         </div>
-        <button onClick={onStop} style={{ padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)', color: '#ef4444' }}>
-          <Square size={14} fill="#ef4444" />
-          Stop Space
-        </button>
+        
+        <Button 
+          onClick={onStop} 
+          variant="destructive"
+          size="sm"
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            fontWeight: 700,
+            height: '24px',
+            fontSize: '0.65rem',
+            padding: '0 0.75rem'
+          }}
+        >
+          <Square size={10} fill="currentColor" />
+          TERMINATE SPACE
+        </Button>
       </div>
 
-      <div className="layout-grid" style={{ gridTemplate: getGridTemplate() }}>
-        {config.panes.slice(0, getPaneCount(config.layout)).map((pane: any) => (
-          <div key={pane.id} className="pane glass">
-            <div className="pane-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Terminal size={14} className="accent-text" style={{ color: 'var(--accent-primary)' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{pane.name}</span>
-                <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>- {pane.command}</span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <RotateCcw size={12} style={{ cursor: 'pointer', opacity: 0.7 }} />
-                <Maximize2 size={12} style={{ cursor: 'pointer', opacity: 0.7 }} />
-              </div>
-            </div>
-            <div className="pane-content">
-              <div style={{ color: 'var(--accent-secondary)' }}>$ {pane.command}</div>
-              <div style={{ marginTop: '0.5rem', color: '#888' }}>
-                [Cortex] Starting process...<br />
-                [Cortex] Process attached to PTY.<br />
-                <br />
-                <span style={{ color: '#aaa' }}>{pane.name} output will appear here.</span>
-              </div>
-            </div>
-          </div>
+      <div className="layout-grid" style={{ 
+        gridTemplate: getGridTemplate(), 
+        gap: '1px', 
+        background: 'var(--border-color)', 
+        flex: 1,
+        overflowY: isMobile ? 'auto' : 'hidden'
+      }}>
+        {config.panes.map((pane: any) => (
+          <TerminalPane 
+            key={pane.id}
+            pane={pane}
+            isFocused={focusedPaneId === pane.id}
+            onFocus={() => setFocusedPaneId(pane.id)}
+            rootPath={config.rootPath}
+          />
         ))}
+      </div>
+
+      {/* SESSION STATUS BAR */}
+      <div style={{ 
+        padding: '0.4rem 1rem', 
+        background: 'var(--surface-color)', 
+        borderTop: '1px solid var(--border-color)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: '0.65rem',
+        fontFamily: 'JetBrains Mono',
+        color: 'var(--text-secondary)',
+        zIndex: 10
+      }}>
+        <div style={{ display: 'flex', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ opacity: 0.5 }}>ROOT:</span>
+            <span style={{ color: 'var(--text-primary)' }}>{config.rootPath || 'DEFAULT DIR'}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ opacity: 0.5 }}>LAYOUT:</span>
+            <span style={{ color: 'var(--text-primary)' }}>{isMobile ? 'MOBILE STACK' : config.layout}</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+           <span style={{ color: 'var(--accent-primary)', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', boxShadow: '0 0 8px currentColor' }} className="pulse-animation" />
+             SYSTEM READY
+           </span>
+        </div>
       </div>
     </div>
   );
-}
-
-function getPaneCount(layout: string) {
-  switch (layout) {
-    case '1x1': return 1;
-    case '1x2':
-    case '2x1': return 2;
-    case '2x2': return 4;
-    case '3x3': return 9;
-    default: return 4;
-  }
 }
