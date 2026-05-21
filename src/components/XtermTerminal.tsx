@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { useTheme } from '../hooks/useTheme';
@@ -17,20 +17,37 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const { theme } = useTheme();
+  
+  const [dimensions, setDimensions] = useState({ rows: 24, cols: 80 });
 
-  // Handle data coming from the PTY
+  // Data from Backend -> Frontend
   const handlePtyData = useCallback((data: string) => {
+    console.log(`[XtermTerminal ${id}] Received data length: ${data.length}`, { preview: data.slice(0, 100) });
     if (xtermRef.current) {
       xtermRef.current.write(data);
     }
-  }, []);
+  }, [id]);
 
-  const { write: writeToPty, resize: resizePty } = usePty(id, handlePtyData, { command, cwd });
+  const ptyConfig = useMemo(() => ({ 
+    command, 
+    cwd, 
+    rows: dimensions.rows, 
+    cols: dimensions.cols 
+  }), [command, cwd, dimensions.rows, dimensions.cols]);
 
+  const { write: writeToPty, resize: resizePty, isReady } = usePty(id, handlePtyData, ptyConfig);
+
+  // Bridge for xterm.js event handlers to always use latest PTY callbacks
+  const writeRef = useRef(writeToPty);
+  const resizeRef = useRef(resizePty);
+  
+  useEffect(() => { writeRef.current = writeToPty; }, [writeToPty]);
+  useEffect(() => { resizeRef.current = resizePty; }, [resizePty]);
+
+  // Main Terminal Lifecycle
   useEffect(() => {
     if (!terminalRef.current) return;
 
-    // Initialize xterm.js
     const term = new Terminal({
       cursorBlink: true,
       fontSize: 12,
@@ -42,28 +59,44 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
         selectionBackground: 'rgba(255, 255, 255, 0.3)',
       },
       allowTransparency: true,
+      scrollback: 10000,
+      convertEol: true,
+      allowProposedApi: true,
     });
 
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
-
     term.open(terminalRef.current);
+    
+    // Initial size sync
     fitAddon.fit();
+    setDimensions({ rows: term.rows, cols: term.cols });
 
-    // Send user input to the PTY
-    term.onData((data) => {
-      writeToPty(data);
+    // Give xterm focus immediately after mount
+    requestAnimationFrame(() => {
+      fitAddon.fit();
+      term.focus();
     });
 
-    // Handle terminal resizing
+    // Keystrokes -> PTY
+    term.onData((data) => {
+      writeRef.current(data);
+    });
+
+    // Forward binary data (required for some CLIs)
+    term.onBinary((data) => {
+      writeRef.current(data);
+    });
+
+    // xterm resize -> PTY resize
     term.onResize(({ rows, cols }) => {
-      resizePty(rows, cols);
+      resizeRef.current(rows, cols);
     });
 
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    // Handle container resize
+    // Dynamic UI Resize Handling
     const resizeObserver = new ResizeObserver(() => {
       if (fitAddonRef.current) {
         fitAddonRef.current.fit();
@@ -75,9 +108,9 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
       term.dispose();
       resizeObserver.disconnect();
     };
-  }, [writeToPty, resizePty]);
+  }, []);
 
-  // Update theme dynamically
+  // Theme Sync
   useEffect(() => {
     if (xtermRef.current) {
       xtermRef.current.options.theme = {
@@ -89,15 +122,17 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
     }
   }, [theme]);
 
+  // Focus Handling
   useEffect(() => {
-    if (xtermRef.current && isFocused) {
+    if (xtermRef.current && isFocused && isReady) {
       xtermRef.current.focus();
     }
-  }, [isFocused]);
+  }, [isFocused, isReady]);
 
   return (
     <div 
       ref={terminalRef} 
+      className="terminal-container"
       style={{ 
         width: '100%', 
         height: '100%', 

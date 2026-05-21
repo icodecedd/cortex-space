@@ -6,13 +6,18 @@ interface TerminalPaneProps {
   isFocused: boolean;
   onFocus: () => void;
   rootPath?: string;
+  onMaximize?: () => void;
 }
 
-export function TerminalPane({ pane, isFocused, onFocus, rootPath }: TerminalPaneProps) {
+export function TerminalPane({ pane, isFocused, onFocus, rootPath, onMaximize }: TerminalPaneProps) {
   return (
     <div 
       className="pane" 
-      onClick={onFocus}
+      onClick={() => {
+        onFocus();
+        // The XtermTerminal component already handles focus when isFocused changes,
+        // but ensuring onFocus is called on click is key.
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') onFocus();
       }}
@@ -67,7 +72,14 @@ export function TerminalPane({ pane, isFocused, onFocus, rootPath }: TerminalPan
             <RotateCcw size={12} />
             <span className="custom-tooltip">Restart Process</span>
           </button>
-          <button className="icon-action-button" aria-label="Expand Pane">
+          <button 
+            className="icon-action-button" 
+            aria-label="Expand Pane"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMaximize?.();
+            }}
+          >
             <Maximize2 size={12} />
             <span className="custom-tooltip">Expand Pane</span>
           </button>
@@ -81,6 +93,8 @@ export function TerminalPane({ pane, isFocused, onFocus, rootPath }: TerminalPan
           position: 'relative',
           overflow: 'hidden',
           flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
           background: isFocused ? 'rgba(255,255,255,0.01)' : 'transparent',
           transition: 'background var(--duration-normal) var(--ease-out)'
         }}
