@@ -2,17 +2,18 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { SetupView } from "./components/SetupView";
 import { SpaceView } from "./components/SpaceView";
-import { 
-  Terminal, 
-  Users, 
-  Cpu, 
-  Palette, 
-  Keyboard, 
-  Settings, 
-  Minus, 
-  Square, 
-  X, 
-  Plus, 
+import {
+  Terminal,
+  Users,
+  Cpu,
+  Palette,
+  Keyboard,
+  Settings,
+  Minus,
+  Square,
+  X,
+  Plus,
+  Play,
   Trash2
 } from "lucide-react";
 import { useTheme, ThemeName } from "./hooks/useTheme";
@@ -62,12 +63,37 @@ function App() {
   const [splashKey, setSplashKey] = useState(0);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
-  
+
   // Font family and size settings that synchronize with xterm
   const [fontSize, setFontSize] = useState<number>(12);
   const [fontFamily, setFontFamily] = useState<string>('JetBrains Mono');
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [isWindowMaximized, setIsWindowMaximized] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const checkMaximized = async () => {
+      if (window.__TAURI_INTERNALS__) {
+        try {
+          const { getCurrentWindow } = await import("@tauri-apps/api/window");
+          const isMax = await getCurrentWindow().isMaximized();
+          if (active) setIsWindowMaximized(isMax);
+        } catch (err) {
+          console.error("Failed to check if window is maximized:", err);
+        }
+      }
+    };
+
+    checkMaximized();
+    window.addEventListener("resize", checkMaximized);
+
+    return () => {
+      active = false;
+      window.removeEventListener("resize", checkMaximized);
+    };
+  }, []);
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
@@ -108,11 +134,11 @@ function App() {
     const root = document.documentElement;
     root.style.setProperty('--terminal-font-size', `${fontSize}`);
     root.style.setProperty(
-      '--terminal-font-family', 
-      fontFamily === 'JetBrains Mono' 
-        ? '"JetBrains Mono", monospace' 
-        : fontFamily === 'Fira Code' 
-          ? '"Fira Code", monospace' 
+      '--terminal-font-family',
+      fontFamily === 'JetBrains Mono'
+        ? '"JetBrains Mono", monospace'
+        : fontFamily === 'Fira Code'
+          ? '"Fira Code", monospace'
           : '"SF Mono", monospace'
     );
     window.dispatchEvent(new Event('cortex-settings-changed'));
@@ -120,7 +146,7 @@ function App() {
 
   const handleLaunch = (newConfig: any) => {
     const rootName = newConfig.rootPath.split(/[/\\]/).filter(Boolean).pop() || newConfig.rootPath;
-    
+
     setWorkspaces(prev => prev.map(w => {
       if (w.id === activeWorkspaceId) {
         return {
@@ -132,8 +158,8 @@ function App() {
       }
       return w;
     }));
-    
-    // We can't use activeWorkspace.mode here immediately because activeWorkspace is from the previous render, 
+
+    // We can't use activeWorkspace.mode here immediately because activeWorkspace is from the previous render,
     // but we can find it in the current workspaces array.
     const currentWs = workspaces.find(w => w.id === activeWorkspaceId);
     const m = currentWs ? currentWs.mode : 'normal';
@@ -154,9 +180,9 @@ function App() {
   const handleCloseWorkspace = (id: string) => {
     const index = workspaces.findIndex(w => w.id === id);
     if (index === -1) return;
-    
+
     const updated = workspaces.filter(w => w.id !== id);
-    
+
     if (activeWorkspaceId === id) {
       if (updated.length > 0) {
         const nextActive = updated[Math.max(0, index - 1)];
@@ -176,7 +202,7 @@ function App() {
         setActiveWorkspaceId(newId);
       }
     }
-    
+
     setWorkspaces(updated);
 
     toast.warning("Workspace Closed", {
@@ -213,7 +239,7 @@ function App() {
         handleNewWorkspaceFlow();
         toast.info("New Workflow Initiated", { description: "Configure your new separate workspace." });
       }
-      
+
       // 2. Terminate active workspace (Ctrl + Shift + W)
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'w') {
         e.preventDefault();
@@ -270,6 +296,7 @@ function App() {
         console.error("Failed to maximize window:", err);
       }
     } else {
+      setIsWindowMaximized(prev => !prev);
       toast.info("Simulated OS Action", { description: "Maximize window (Web Mode)" });
     }
   };
@@ -289,21 +316,23 @@ function App() {
 
 
   return (
-    <div id="root" className="h-screen w-screen flex flex-col overflow-hidden bg-[#09090E]">
-      
+    <div id="root" className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--bg-color)]">
+
       {/* 1. Global App Chrome Title & Tab Bar */}
       {appState === 'running' && (
-        <div 
+        <div
           data-tauri-drag-region
-          className="h-10 bg-[#1C1C22] flex items-center justify-between px-4 border-b border-[#2A2A35] select-none flex-shrink-0 z-50 cursor-default"
-          style={{ 
+          className="h-9 bg-[var(--header-bg)] flex items-center justify-between border-b border-[var(--border-color)] select-none flex-shrink-0 z-50 cursor-default"
+          style={{
             boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-            WebkitAppRegion: 'drag'
+            WebkitAppRegion: 'drag',
+            paddingLeft: '8px',
+            paddingRight: '8px'
           } as any}
         >
           {/* Left Area: Workspace Tabs */}
           <div className="flex items-center gap-3 overflow-hidden flex-1 h-full mr-4">
-            <div 
+            <div
               style={{ WebkitAppRegion: 'no-drag' } as any}
               className="flex items-center h-full gap-1.5 overflow-x-auto scrollbar-none"
             >
@@ -316,29 +345,29 @@ function App() {
                     key={ws.id}
                     onClick={() => handleSwitchWorkspace(ws.id)}
                     style={{ WebkitAppRegion: 'no-drag' } as any}
-                    className={`btn-tactile group h-7 px-2.5 rounded-md flex items-center gap-2 text-[10px] font-mono tracking-wide cursor-pointer transition-all duration-150 border select-none ${
+                    className={`btn-tactile group h-7 px-2.5 rounded-md flex items-center gap-2 text-[10px] font-mono tracking-wide cursor-pointer transition-all duration-150 border select-none min-w-[140px] ${
                       isActive && !isDraft
-                        ? "bg-[#09090E] border-[var(--accent-primary)] text-[var(--text-primary)] font-bold shadow-[0_0_8px_rgba(63,185,80,0.1)]"
+                        ? "bg-[var(--bg-color)] border-[var(--accent-primary)] text-[var(--text-primary)] font-bold shadow-[0_0_8px_rgba(63,185,80,0.1)]"
                         : isActive && isDraft
-                          ? "bg-[#09090E] border-dashed border-[var(--accent-primary)] text-[var(--accent-primary)] font-bold shadow-[0_0_8px_rgba(63,185,80,0.1)]"
+                          ? "bg-[var(--bg-color)] border-dashed border-[var(--accent-primary)] text-[var(--accent-primary)] font-bold shadow-[0_0_8px_rgba(63,185,80,0.1)]"
                         : isDraft
-                          ? "bg-[#141418] border-dashed border-[#2A2A35] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[#1C1C22]"
-                          : "bg-[#141418] border-[#2A2A35] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[#1C1C22]"
+                          ? "bg-[var(--surface-color)] border-dashed border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--header-bg)]"
+                          : "bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--header-bg)]"
                     }`}
                   >
                     {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_4px_var(--accent-primary)] shrink-0 animate-in fade-in zoom-in duration-300" />}
-                    {isDraft && !isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#2A2A35] shrink-0" />}
-                    
-                    <Terminal size={10} className={isActive ? "text-[var(--accent-primary)]" : "text-[var(--text-secondary)]"} />
-                    <span className="max-w-[120px] truncate">{ws.name ? `Workspace ${idx + 1} - ${ws.name}` : `Workspace ${idx + 1}`}</span>
+                    {isDraft && !isActive && <div className="w-1.5 h-1.5 rounded-full bg-[var(--border-color)] shrink-0" />}
+
+                    <Terminal size={10} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0"} />
+                    <span className="flex-1 truncate text-left">{ws.name ? `Workspace ${idx + 1} - ${ws.name}` : `Workspace ${idx + 1}`}</span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCloseWorkspace(ws.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 hover:bg-[#2A2A35] hover:text-[#F85149] rounded p-0.5 transition-all text-xs flex items-center justify-center w-3.5 h-3.5 text-[var(--text-secondary)] cursor-pointer"
+                      className="opacity-0 group-hover:opacity-100 hover:bg-[var(--border-color)] hover:text-[#F85149] rounded p-1 transition-all flex items-center justify-center w-5 h-5 text-[var(--text-secondary)] cursor-pointer shrink-0 ml-auto"
                     >
-                      <X size={8} />
+                      <X size={12} strokeWidth={2.5} />
                     </button>
                   </div>
                 );
@@ -350,7 +379,7 @@ function App() {
                 size="icon-sm"
                 onClick={handleNewWorkspaceFlow}
                 style={{ WebkitAppRegion: 'no-drag' } as any}
-                className="w-6 h-6 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[#2A2A35] rounded-md transition-all cursor-pointer ml-1"
+                className="w-6 h-6 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded-md transition-all cursor-pointer ml-1"
                 title="Configure New Workspace (Ctrl+Alt+N)"
               >
                 <Plus size={13} />
@@ -360,13 +389,13 @@ function App() {
 
           {/* Right Area: Workspace Configuration, Settings & OS Window Buttons */}
           <div className="flex items-center gap-2 flex-shrink-0 h-full" style={{ WebkitAppRegion: 'no-drag' } as any}>
-            
+
             {/* Keyboard Shortcuts Dialog Trigger */}
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => setShortcutsOpen(true)}
-              className="btn-tactile w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[#2A2A35] rounded cursor-pointer"
+              className="btn-tactile w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded cursor-pointer"
               title="Keyboard Shortcuts (Ctrl+/)"
             >
               <Keyboard size={13} />
@@ -378,31 +407,31 @@ function App() {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="btn-tactile w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[#2A2A35] rounded cursor-pointer"
+                  className="btn-tactile w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded cursor-pointer"
                   title="Terminal Layout Settings"
                 />
               }>
                 <Settings size={13} />
               </DropdownMenuTrigger>
-              
-              <DropdownMenuContent 
-                align="end" 
+
+              <DropdownMenuContent
+                align="end"
                 className="w-56 bg-[var(--surface-color)] border-[var(--border-color)] animate-in p-1.5"
                 style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.6)', zIndex: 1100 }}
               >
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel style={{ 
-                    fontSize: '0.6rem', 
-                    color: 'var(--text-secondary)', 
+                  <DropdownMenuLabel style={{
+                    fontSize: '0.6rem',
+                    color: 'var(--text-secondary)',
                     letterSpacing: '0.12em',
                     padding: '0.75rem 0.75rem 0.5rem',
                     fontWeight: 700
                   }}>
                     TERMINAL CONFIG
                   </DropdownMenuLabel>
-                  
+
                   <DropdownMenuSeparator className="bg-[var(--border-color)] opacity-50 mx-2 mb-1" />
-                  
+
                   <DropdownMenuLabel style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', padding: '0.25rem 0.75rem' }}>FONT SIZE</DropdownMenuLabel>
                   {[12, 13, 14, 16].map(sz => (
                     <DropdownMenuItem
@@ -450,9 +479,9 @@ function App() {
                       {fontFamily === ff && <div className="w-1 h-1 rounded-full bg-[var(--accent-primary)] shadow-[0_0_4px_var(--accent-primary)]" />}
                     </DropdownMenuItem>
                   ))}
-                  
+
                   <DropdownMenuSeparator className="bg-[var(--border-color)] opacity-50 mx-2 my-1" />
-                  
+
                   <DropdownMenuItem
                     onClick={() => {
                       window.dispatchEvent(new Event('cortex-purge-scrollback'));
@@ -482,17 +511,24 @@ function App() {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={handleMinimize}
-                className="w-7 h-7 flex items-center justify-center hover:bg-[#2A2A35] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-all cursor-pointer"
+                className="w-7 h-7 flex items-center justify-center hover:bg-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-all cursor-pointer"
                 title="Minimize"
               >
                 <Minus size={13} />
               </button>
               <button
                 onClick={handleMaximize}
-                className="w-7 h-7 flex items-center justify-center hover:bg-[#2A2A35] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-all cursor-pointer"
-                title="Maximize"
+                className="w-7 h-7 flex items-center justify-center hover:bg-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-all cursor-pointer"
+                title={isWindowMaximized ? "Restore" : "Maximize"}
               >
-                <Square size={11} />
+                {isWindowMaximized ? (
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
+                    <path d="M2.5 1.5h6v6" />
+                    <rect x="1.5" y="2.5" width="6" height="6" />
+                  </svg>
+                ) : (
+                  <Square size={11} />
+                )}
               </button>
               <button
                 onClick={handleClose}
@@ -509,29 +545,29 @@ function App() {
       )}
 
       {/* 2. Main Workspace/Client Shell Container */}
-      <main style={{ 
-        flex: 1, 
-        display: 'flex', 
+      <main style={{
+        flex: 1,
+        display: 'flex',
         flexDirection: 'column',
         justifyContent: activeWorkspace?.status === 'active' ? 'stretch' : 'center',
         alignItems: activeWorkspace?.status === 'active' ? 'stretch' : 'center',
         overflow: 'hidden'
       }}>
         {appState === 'splash' && (
-          <div style={{ 
-            flex: 1, 
-            width: '100%', 
-            position: 'relative', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center' 
+          <div style={{
+            flex: 1,
+            width: '100%',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
             {/* Splash Screen */}
-            <div style={{ 
-              position: 'absolute', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
+            <div style={{
+              position: 'absolute',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
               justifyContent: 'center',
               transition: 'opacity 800ms var(--ease-out), transform 800ms var(--ease-out), filter 800ms var(--ease-out)',
               opacity: 1,
@@ -554,7 +590,7 @@ function App() {
 
           if (ws.status === 'mode-select') {
             return (
-              <div key={ws.id} style={{ 
+              <div key={ws.id} style={{
                 display: isCurrent ? 'flex' : 'none',
                 width: '100%',
                 maxWidth: '600px',
@@ -566,9 +602,9 @@ function App() {
               }}>
                 <div className="step-container" style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: '3rem', alignItems: 'center', width: '100%' }}>
                   <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-                    <div 
+                    <div
                       className="animate-in"
-                      style={{ 
+                      style={{
                         background: 'var(--accent-primary)',
                         width: '64px',
                         height: '64px',
@@ -580,9 +616,9 @@ function App() {
                         transitionDelay: '100ms'
                       }}
                     >
-                      <img 
-                        src="/logo.png" 
-                        alt="Cortex Logo" 
+                      <img
+                        src="/cortex-logo (2).png"
+                        alt="Cortex Logo"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={(e) => {
                           e.currentTarget.src = "/tauri.svg";
@@ -602,7 +638,7 @@ function App() {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-                    <div className="mode-card animate-in" onClick={() => { 
+                    <div className="mode-card animate-in" onClick={() => {
                       setWorkspaces(prev => prev.map(w => w.id === ws.id ? { ...w, mode: 'normal', status: 'setup' } : w));
                     }} style={{ flexDirection: 'row', padding: '1.5rem 2rem', justifyContent: 'flex-start', gap: '1.5rem', borderRadius: 'var(--radius-md)', transitionDelay: '500ms', cursor: 'pointer' }}>
                       <Terminal size={32} color="var(--text-secondary)" />
@@ -614,7 +650,7 @@ function App() {
                       </div>
                     </div>
 
-                    <div className="mode-card animate-in" onClick={() => { 
+                    <div className="mode-card animate-in" onClick={() => {
                       setWorkspaces(prev => prev.map(w => w.id === ws.id ? { ...w, mode: 'agents', status: 'setup' } : w));
                     }} style={{ flexDirection: 'row', padding: '1.5rem 2rem', justifyContent: 'flex-start', gap: '1.5rem', borderRadius: 'var(--radius-md)', borderColor: 'var(--accent-primary)', background: 'rgba(255,255,255,0.02)', transitionDelay: '600ms', cursor: 'pointer' }}>
                       <div style={{ position: 'relative' }}>
@@ -637,12 +673,12 @@ function App() {
           if (ws.status === 'setup') {
             return (
               <div key={ws.id} style={{ display: isCurrent ? 'block' : 'none', width: '100%', maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
-                <SetupView 
-                  mode={ws.mode} 
-                  onLaunch={handleLaunch} 
+                <SetupView
+                  mode={ws.mode}
+                  onLaunch={handleLaunch}
                   onBack={() => {
                     setWorkspaces(prev => prev.map(w => w.id === ws.id ? { ...w, status: 'mode-select' } : w));
-                  }} 
+                  }}
                 />
               </div>
             );
@@ -650,9 +686,9 @@ function App() {
 
           if (ws.status === 'active') {
             return (
-              <div 
-                key={ws.id} 
-                style={{ 
+              <div
+                key={ws.id}
+                style={{
                   display: isCurrent ? 'flex' : 'none',
                   flex: 1,
                   flexDirection: 'column',
@@ -661,12 +697,12 @@ function App() {
                   overflow: 'hidden'
                 }}
               >
-                <SpaceView 
-                  config={ws.config} 
-                  mode={ws.mode} 
-                  theme={ws.theme} 
-                  setTheme={(t) => handleSetWorkspaceTheme(ws.id, t)} 
-                  onStop={() => handleCloseWorkspace(ws.id)} 
+                <SpaceView
+                  config={ws.config}
+                  mode={ws.mode}
+                  theme={ws.theme}
+                  setTheme={(t) => handleSetWorkspaceTheme(ws.id, t)}
+                  onStop={() => handleCloseWorkspace(ws.id)}
                 />
               </div>
             );
@@ -675,7 +711,7 @@ function App() {
           return null;
         })}
       </main>
-      
+
       {/* Dynamic bottom absolute overlay shortcuts list */}
       <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
         <DialogPortal>
@@ -714,12 +750,12 @@ function App() {
                   <kbd className="px-2 py-0.5 bg-[#141418] border border-[var(--border-color)] rounded text-[9px] text-[var(--accent-primary)] font-bold">Ctrl + /</kbd>
                 </div>
               </div>
-              
+
               <div className="mt-6 flex justify-end">
                 <DialogClose render={
-                  <Button 
-                    variant="outline" 
-                    className="h-8 text-[10px] font-mono border-[var(--border-color)] hover:bg-[#2A2A35] text-[var(--text-primary)] cursor-pointer"
+                  <Button
+                    variant="outline"
+                    className="h-8 text-[10px] font-mono border-[var(--border-color)] hover:bg-[var(--border-color)] text-[var(--text-primary)] cursor-pointer"
                   />
                 }>
                   CLOSE
@@ -730,65 +766,69 @@ function App() {
         </DialogPortal>
       </Dialog>
 
-      {/* Global Fallback Footer for Splash Screen / Setup flow */}
-      {appState === 'running' && activeWorkspace?.status !== 'active' && (
-        <footer className="h-9 bg-[#1C1C22] border-t border-[#2A2A35] flex items-center justify-between px-4 flex-shrink-0 select-none">
-          {/* Left Side: Version, Engine, Active UI & Replay Action */}
-          <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#6B6B80] tracking-wider">
-            <span>Cortex Space v0.1.0</span>
-            <span className="opacity-40">//</span>
-            <span>Engine: {activeWorkspace?.mode.toUpperCase()} MODE</span>
-            <span className="opacity-40">//</span>
-            <span>UI: {theme.toUpperCase().replace('-', ' ')}</span>
-            <button 
+      {/* Global Application Footer */}
+      {appState === 'running' && (
+        <footer
+          className="h-8 bg-[var(--footer-bg)] border-t border-[var(--border-color)] flex items-center justify-between flex-shrink-0 select-none z-50"
+          style={{
+            paddingLeft: '8px',
+            paddingRight: '8px'
+          }}
+        >
+          {/* Left Side: Replay Action */}
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={() => setAppState('splash')}
-              className="ml-2.5 px-2 py-0.5 bg-[#1F1F28] hover:bg-[#2A2A35] hover:text-[#E2E2EC] transition-all border border-[#2A2A35] rounded text-[10px] text-[#6B6B80] cursor-pointer"
+              className="btn-tactile h-6 px-2 flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded cursor-pointer text-[11px]"
             >
-              [REPLAY SPLASH]
-            </button>
+              <Play size={11} className="fill-current" />
+              <span>Replay Splash</span>
+            </Button>
           </div>
 
           {/* Right Side: Theme Switcher */}
           <div className="flex items-center gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger render={
-                <button 
-                  className="h-6 px-2.5 bg-[#1F1F28] hover:bg-[#2A2A35] transition-all border border-[#2A2A35] rounded-md text-[10px] font-mono text-[#E2E2EC] flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Palette size={12} className="text-[#3FB950]" />
-                  <span>THEME</span>
-                </button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="btn-tactile h-6 px-2 flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded cursor-pointer text-[11px]"
+                  title="Theme Settings"
+                />
               }>
+                <Palette size={12} />
+                <span>{theme.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
               </DropdownMenuTrigger>
-              
-              <DropdownMenuContent 
-                align="end" 
+
+              <DropdownMenuContent
+                align="end"
                 className="w-56 bg-[var(--surface-color)] border-[var(--border-color)] animate-in p-1.5"
                 style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.6)' }}
               >
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel style={{ 
-                    fontSize: '0.6rem', 
-                    color: 'var(--text-secondary)', 
-                    letterSpacing: '0.12em',
-                    padding: '0.75rem 0.75rem 0.5rem',
-                    fontWeight: 700
+                  <DropdownMenuLabel style={{
+                    fontSize: '0.65rem',
+                    color: 'var(--text-secondary)',
+                    fontWeight: 600,
+                    padding: '0.75rem 0.85rem 0.5rem',
                   }}>
-                    INTERFACE THEME
+                    Interface Theme
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-[var(--border-color)] opacity-50 mx-2 mb-1" />
-                  {(['ayu', 'catppuccin', 'iceberg', 'nvim', 'monochrome', 'soft-monochrome'] as ThemeName[]).map(t => (
-                    <DropdownMenuItem 
+                  {(['ayu', 'catppuccin', 'iceberg', 'nvim', 'monochrome', 'soft-monochrome', 'cortex'] as ThemeName[]).map(t => (
+                    <DropdownMenuItem
                       key={t}
                       onClick={() => setTheme(t)}
-                      style={{ 
-                        fontSize: '0.7rem', 
-                        fontFamily: 'JetBrains Mono',
+                      style={{
+                        fontSize: '0.75rem',
                         color: theme === t ? 'var(--accent-primary)' : 'var(--text-primary)',
                         background: theme === t ? 'rgba(255,255,255,0.04)' : 'transparent',
                         cursor: 'pointer',
-                        padding: '0.6rem 0.75rem',
-                        margin: '0.1rem 0',
+                        padding: '0.6rem 0.85rem',
+                        margin: '0.15rem 0',
                         borderRadius: 'var(--radius-sm)',
                         display: 'flex',
                         alignItems: 'center',
@@ -796,15 +836,9 @@ function App() {
                         transition: 'all 150ms ease'
                       }}
                     >
-                      <span>{t.toUpperCase().replace('-', ' ')}</span>
+                      <span>{t.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
                       {theme === t && (
-                        <div className="animate-in" style={{ 
-                          width: '5px', 
-                          height: '5px', 
-                          borderRadius: '50%', 
-                          background: 'var(--accent-primary)',
-                          boxShadow: '0 0 8px var(--accent-primary)'
-                        }} />
+                        <div className="w-1 h-1 rounded-full bg-[var(--accent-primary)] shadow-[0_0_4px_var(--accent-primary)]" />
                       )}
                     </DropdownMenuItem>
                   ))}

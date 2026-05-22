@@ -20,26 +20,26 @@ interface SetupHeaderProps {
 
 export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
   return (
-    <div 
-      className="animate-in" 
-      style={{ 
-        marginBottom: step > 1 ? '1.5rem' : '3rem', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
+    <div
+      className="animate-in"
+      style={{
+        marginBottom: step > 1 ? '1.5rem' : '3rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        transitionDelay: '0ms' 
+        transitionDelay: '0ms'
       }}
     >
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: step > 1 ? 'row' : 'column', 
+      <div style={{
+        display: 'flex',
+        flexDirection: step > 1 ? 'row' : 'column',
         alignItems: step > 1 ? 'center' : 'flex-start',
-        gap: step > 1 ? '1.5rem' : '1.5rem' 
+        gap: step > 1 ? '1.5rem' : '1.5rem'
       }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
           gap: step > 1 ? '0.75rem' : '1rem',
           transition: 'all 0.4s ease'
         }}>
@@ -55,7 +55,7 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
             transition: 'all 0.4s ease'
           }}>
             <img
-              src="/logo.png"
+              src="/cortex-logo (2).png"
               alt="Cortex"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => {
@@ -64,9 +64,9 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
             />
           </div>
           <div style={{ transition: 'all 0.4s ease' }}>
-            <h2 style={{ 
-              fontSize: step > 1 ? '1rem' : '1.5rem', 
-              marginBottom: step > 1 ? '0' : '0.25rem', 
+            <h2 style={{
+              fontSize: step > 1 ? '1rem' : '1.5rem',
+              marginBottom: step > 1 ? '0' : '0.25rem',
               letterSpacing: '0.1em',
               transition: 'all 0.4s ease'
             }}>
@@ -79,7 +79,7 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
             )}
           </div>
         </div>
-        
+
         <AlertDialog>
           <AlertDialogTrigger
             render={
@@ -109,19 +109,19 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
             <ChevronLeft size={14} />
             {step > 1 ? 'SWITCH MODE' : 'CHANGE OPERATION MODE'}
           </AlertDialogTrigger>
-          <AlertDialogContent 
+          <AlertDialogContent
             className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-2xl"
-            style={{ 
-              padding: '1.5rem', 
-              maxWidth: '400px', 
-              width: 'calc(100% - 2rem)' 
+            style={{
+              padding: '1.5rem',
+              maxWidth: '400px',
+              width: 'calc(100% - 2rem)'
             }}
           >
             <AlertDialogHeader className="gap-2 text-left sm:text-left">
               <AlertDialogTitle className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
                 Confirm Mode Change
               </AlertDialogTitle>
-              <AlertDialogDescription 
+              <AlertDialogDescription
                 className="text-sm leading-relaxed"
                 style={{ color: 'rgba(255, 255, 255, 0.7)' }}
               >
@@ -129,18 +129,18 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter
-              style={{ 
+              style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: '0.75rem',
-                margin: '1.5rem -1.5rem -1.5rem -1.5rem', 
+                margin: '1.5rem -1.5rem -1.5rem -1.5rem',
                 padding: '1.25rem 1.5rem',
                 borderTop: '1px solid var(--border-color)',
                 background: 'rgba(255, 255, 255, 0.015)'
               }}
             >
-              <AlertDialogCancel 
-                variant="ghost" 
+              <AlertDialogCancel
+                variant="ghost"
                 className="btn-tactile"
                 style={{
                   fontSize: '0.85rem',
@@ -152,7 +152,7 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
               >
                 Stay Here
               </AlertDialogCancel>
-              <AlertDialogAction 
+              <AlertDialogAction
                 onClick={onBack}
                 className="primary btn-tactile"
                 style={{
@@ -170,8 +170,8 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
         </AlertDialog>
       </div>
 
-      <div className="stepper-nav" style={{ 
-        margin: 0, 
+      <div className="stepper-nav" style={{
+        margin: 0,
         border: 'none',
         gap: step > 1 ? '1.5rem' : '2rem',
         transition: 'all 0.4s ease'
@@ -188,7 +188,7 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
               fontSize: step > 1 ? '0.6rem' : '0.7rem',
               transition: 'all 0.4s ease'
             }}>{i}</span>
-            <span style={{ 
+            <span style={{
               fontSize: step > 1 ? '0.65rem' : 'inherit',
               transition: 'all 0.4s ease'
             }}>

@@ -485,7 +485,6 @@ input[type="text"]:focus, select:focus {
   --stagger-delay: 50ms;
 }
 
-/* Premium Emil-inspired entrance animation for layout panels on mount */
 .animate-in:not([data-slot]) {
   opacity: 1;
   transform: translateY(0) scale(1);
@@ -493,6 +492,13 @@ input[type="text"]:focus, select:focus {
   transition: opacity var(--duration-normal) var(--ease-out),
               transform var(--duration-normal) var(--ease-out),
               filter var(--duration-normal) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    filter: blur(4px);
+  }
+}
 
 @keyframes dot-blink {
   0%, 20% { opacity: 0; }
@@ -505,13 +511,6 @@ input[type="text"]:focus, select:focus {
 
 .animate-dots span:nth-child(2) { animation-delay: 0.2s; }
 .animate-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@starting-style {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-    filter: blur(4px);
-  }
-}
 
 /* Stepper specific */
 .step-container {

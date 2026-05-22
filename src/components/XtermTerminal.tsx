@@ -73,9 +73,11 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
     setDimensions({ rows: term.rows, cols: term.cols });
 
     // Give xterm focus immediately after mount
-    requestAnimationFrame(() => {
-      fitAddon.fit();
-      term.focus();
+    const rafId = requestAnimationFrame(() => {
+      if (fitAddonRef.current && xtermRef.current) {
+        fitAddonRef.current.fit();
+        xtermRef.current.focus();
+      }
     });
 
     // Keystrokes -> PTY
@@ -105,6 +107,7 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
     resizeObserver.observe(terminalRef.current);
 
     return () => {
+      cancelAnimationFrame(rafId);
       term.dispose();
       resizeObserver.disconnect();
     };

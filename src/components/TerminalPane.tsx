@@ -50,7 +50,7 @@ export function TerminalPane({ pane, isFocused, onFocus, rootPath, onMaximize }:
       <div className="pane-header" style={{ 
         background: isFocused ? 'rgba(255,255,255,0.03)' : 'var(--surface-color)', 
         borderRadius: 0, 
-        padding: '0.4rem 0.75rem',
+        padding: '0.25rem 0.6rem',
         borderBottom: isFocused ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
         opacity: isFocused ? 1 : 0.8,
         position: 'relative',

@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 
-export type ThemeName = 'ayu' | 'catppuccin' | 'iceberg' | 'nvim' | 'monochrome' | 'soft-monochrome';
+export type ThemeName = 'ayu' | 'catppuccin' | 'iceberg' | 'nvim' | 'monochrome' | 'soft-monochrome' | 'cortex';
 
 interface ThemeDefinition {
   name: string;
   bg: string;
+  headerBg: string;
+  footerBg: string;
   surface: string;
   border: string;
   textPrimary: string;
@@ -15,7 +17,9 @@ interface ThemeDefinition {
 const THEMES: Record<ThemeName, ThemeDefinition> = {
   ayu: {
     name: "Ayu Mirage",
-    bg: "#1f2430",
+    bg: "#1a1f29",
+    headerBg: "#232a36",
+    footerBg: "#1f2430",
     surface: "#191e2a",
     border: "#33415e",
     textPrimary: "#cbccc6",
@@ -24,7 +28,9 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
   },
   catppuccin: {
     name: "Catppuccin Mocha",
-    bg: "#1e1e2e",
+    bg: "#181825",
+    headerBg: "#242434",
+    footerBg: "#1e1e2e",
     surface: "#181825",
     border: "#313244",
     textPrimary: "#cdd6f4",
@@ -33,7 +39,9 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
   },
   iceberg: {
     name: "Iceberg Dark",
-    bg: "#161821",
+    bg: "#11131a",
+    headerBg: "#1b1e28",
+    footerBg: "#161821",
     surface: "#1e2132",
     border: "#242940",
     textPrimary: "#c6c8d1",
@@ -42,7 +50,9 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
   },
   nvim: {
     name: "Nvim Dark",
-    bg: "#14161b",
+    bg: "#101115",
+    headerBg: "#191b21",
+    footerBg: "#14161b",
     surface: "#07080d",
     border: "#2a2d37",
     textPrimary: "#e0e2ea",
@@ -52,6 +62,8 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
   monochrome: {
     name: "Monochromatic Luxe",
     bg: "#050505",
+    headerBg: "#151515",
+    footerBg: "#0d0d0d",
     surface: "#0f0f0f",
     border: "#1f1f1f",
     textPrimary: "#ffffff",
@@ -61,11 +73,24 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
   'soft-monochrome': {
     name: "Soft Monochrome",
     bg: "#121212",
+    headerBg: "#1e1e1e",
+    footerBg: "#161616",
     surface: "#1a1a1a",
     border: "#2a2a2a",
     textPrimary: "#e5e5e5",
     textSecondary: "#8a8a8a",
     accent: "#e5e5e5",
+  },
+  cortex: {
+    name: "Cortex Default",
+    bg: "#090B0C",
+    headerBg: "#161B1D",
+    footerBg: "#111416",
+    surface: "#121517",
+    border: "#252B2E",
+    textPrimary: "#E2E2EC",
+    textSecondary: "#6B6B80",
+    accent: "#FF3399",
   }
 };
 
@@ -77,6 +102,8 @@ export function useTheme() {
     const root = document.documentElement;
 
     root.style.setProperty('--bg-color', config.bg);
+    root.style.setProperty('--header-bg', config.headerBg);
+    root.style.setProperty('--footer-bg', config.footerBg);
     root.style.setProperty('--surface-color', config.surface);
     root.style.setProperty('--border-color', config.border);
     root.style.setProperty('--text-primary', config.textPrimary);
