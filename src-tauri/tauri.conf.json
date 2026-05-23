@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "cortex-space",
-        "width": 1200,
-        "height": 800,
+        "width": 1440,
+        "height": 960,
         "decorations": false
       }
     ],

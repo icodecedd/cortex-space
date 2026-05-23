@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { getSetting, setSetting } from '@/lib/store';
 
 export type ThemeName = 'ayu' | 'catppuccin' | 'iceberg' | 'nvim' | 'monochrome' | 'soft-monochrome' | 'cortex';
 
@@ -95,10 +96,13 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
 };
 
 export function useTheme() {
-  const [theme, setTheme] = useState<ThemeName>('soft-monochrome');
+  const [theme, setThemeState] = useState<ThemeName>('soft-monochrome');
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const applyTheme = useCallback((name: ThemeName) => {
     const config = THEMES[name];
+    if (!config) return;
+    
     const root = document.documentElement;
 
     root.style.setProperty('--bg-color', config.bg);
@@ -118,8 +122,24 @@ export function useTheme() {
   }, []);
 
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme, applyTheme]);
+    async function init() {
+      const saved = await getSetting<ThemeName>("cortex_theme", 'soft-monochrome');
+      setThemeState(saved);
+      setIsInitialized(true);
+    }
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (isInitialized) {
+      applyTheme(theme);
+      setSetting("cortex_theme", theme);
+    }
+  }, [theme, applyTheme, isInitialized]);
+
+  const setTheme = (newTheme: ThemeName) => {
+    setThemeState(newTheme);
+  };
 
   return { theme, setTheme };
 }

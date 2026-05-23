@@ -8,6 +8,7 @@ import { getGridTemplate } from "@/lib/setup-utils";
 import { ThemeName } from "@/hooks/useTheme";
 
 interface SpaceViewProps {
+  workspaceId: string;
   config: any;
   mode: 'normal' | 'agents';
   theme: string;
@@ -15,7 +16,7 @@ interface SpaceViewProps {
   onStop: () => void;
 }
 
-export function SpaceView({ config, mode, theme, setTheme, onStop }: SpaceViewProps) {
+export function SpaceView({ workspaceId, config }: SpaceViewProps) {
   const [focusedPaneId, setFocusedPaneId] = useState<number | null>(config.panes[0]?.id || null);
   const [isMaximized, setIsMaximized] = useState(false);
   const isMobile = useIsMobile();
@@ -44,8 +45,10 @@ export function SpaceView({ config, mode, theme, setTheme, onStop }: SpaceViewPr
               </button>
             </div>
             <TerminalPane
+              workspaceId={workspaceId}
               pane={focusedPane}
               isFocused={true}
+              isMultiPane={false}
               onFocus={() => {}}
               rootPath={config.rootPath}
             />
@@ -60,15 +63,13 @@ export function SpaceView({ config, mode, theme, setTheme, onStop }: SpaceViewPr
           }}>
             {config.panes.map((pane: any) => (
               <TerminalPane
+                workspaceId={workspaceId}
                 key={pane.id}
                 pane={pane}
                 isFocused={focusedPaneId === pane.id}
+                isMultiPane={config.panes.length > 1}
                 onFocus={() => setFocusedPaneId(pane.id)}
                 rootPath={config.rootPath}
-                onMaximize={() => {
-                  setFocusedPaneId(pane.id);
-                  setIsMaximized(true);
-                }}
               />
             ))}
           </div>

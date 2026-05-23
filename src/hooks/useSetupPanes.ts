@@ -1,10 +1,27 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { LayoutType, AGENT_PRESETS, PaneConfig } from "@/lib/setup-constants";
 import { getPaneCount } from "@/lib/setup-utils";
+import { getSetting, setSetting } from "@/lib/store";
 
 export function useSetupPanes(mode: 'normal' | 'agents') {
   const [layout, setLayout] = useState<LayoutType>("2x2");
+  const [isInitialized, setIsInitialized] = useState(false);
   
+  useEffect(() => {
+    async function init() {
+      const saved = await getSetting<LayoutType>("cortex_layout", "2x2");
+      setLayout(saved);
+      setIsInitialized(true);
+    }
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (isInitialized) {
+      setSetting("cortex_layout", layout);
+    }
+  }, [layout, isInitialized]);
+
   const [panes, setPanes] = useState<PaneConfig[]>([
     { id: 1, name: "Pane 1", command: mode === 'agents' ? AGENT_PRESETS[0].command : "npm run dev", isCustom: false },
     { id: 2, name: "Pane 2", command: mode === 'agents' ? AGENT_PRESETS[1].command : "npm run start", isCustom: false },

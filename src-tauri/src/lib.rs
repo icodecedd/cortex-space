@@ -12,7 +12,7 @@ use once_cell::sync::Lazy;
 #[derive(Serialize, Clone)]
 struct PtyOutputPayload {
     id: String,
-    data: String,
+    data: Vec<u8>,
 }
 
 struct PtySession {
@@ -73,56 +73,102 @@ fn spawn_pty<R: Runtime>(
         })
         .map_err(|e| format!("Failed to open PTY: {}", e))?;
 
-    let is_windows = cfg!(target_os = "windows");
-    let shell = if is_windows {
-        "powershell.exe".to_string()
-    } else {
-        std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
-    };
+    let env = get_shell_env();
 
-    let mut cmd = CommandBuilder::new(&shell);
-    
-    if is_windows {
-        // Bypass execution policy so npm/scripts work, and NoLogo for cleaner start
-        cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
-        if let Some(cmd_str) = command {
-            if !cmd_str.trim().is_empty() {
-                cmd.args(["-NoExit", "-Command", &cmd_str]);
+    let child = if cfg!(target_os = "windows") {
+        // Try spawning pwsh.exe first, fallback to powershell.exe
+        let mut pwsh_cmd = CommandBuilder::new("pwsh.exe");
+        if let Some(ref cmd_str) = command {
+            pwsh_cmd.args([
+                "-NoLogo",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-NoExit",
+                "-Command",
+                &format!("pwsh.exe -NoLogo -ExecutionPolicy Bypass -Command {}", cmd_str),
+            ]);
+        } else {
+            pwsh_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
+        }
+        if let Some(ref path) = cwd {
+            if !path.trim().is_empty() && std::path::Path::new(path).exists() {
+                pwsh_cmd.cwd(path);
+            } else if let Some(home_dir) = home::home_dir() {
+                pwsh_cmd.cwd(home_dir);
+            }
+        } else if let Some(home_dir) = home::home_dir() {
+            pwsh_cmd.cwd(home_dir);
+        }
+        for (key, val) in &env {
+            pwsh_cmd.env(key, val);
+        }
+        pwsh_cmd.env("TERM", "xterm-256color");
+        pwsh_cmd.env("COLORTERM", "truecolor");
+
+        match pty_pair.slave.spawn_command(pwsh_cmd) {
+            Ok(c) => c,
+            Err(_) => {
+                // Fallback to powershell.exe
+                let mut ps_cmd = CommandBuilder::new("powershell.exe");
+                if let Some(ref cmd_str) = command {
+                    ps_cmd.args([
+                        "-NoLogo",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-NoExit",
+                        "-Command",
+                        &format!("powershell.exe -NoLogo -ExecutionPolicy Bypass -Command {}", cmd_str),
+                    ]);
+                } else {
+                    ps_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
+                }
+                if let Some(ref path) = cwd {
+                    if !path.trim().is_empty() && std::path::Path::new(path).exists() {
+                        ps_cmd.cwd(path);
+                    } else if let Some(home_dir) = home::home_dir() {
+                        ps_cmd.cwd(home_dir);
+                    }
+                } else if let Some(home_dir) = home::home_dir() {
+                    ps_cmd.cwd(home_dir);
+                }
+                for (key, val) in &env {
+                    ps_cmd.env(key, val);
+                }
+                ps_cmd.env("TERM", "xterm-256color");
+                ps_cmd.env("COLORTERM", "truecolor");
+
+                pty_pair.slave.spawn_command(ps_cmd).map_err(|e| format!("Failed to spawn powershell: {}", e))?
             }
         }
     } else {
-        // Run as interactive login shell so PATH is fully loaded
-        cmd.arg("-l");
-        cmd.arg("-i");
-        cmd.arg("-c");
-        if let Some(cmd_str) = command {
-            cmd.arg(format!("exec {}", cmd_str));
+        // Unix shell
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+        let mut unix_cmd = CommandBuilder::new(&shell);
+        unix_cmd.arg("-l");
+        unix_cmd.arg("-i");
+        unix_cmd.arg("-c");
+        if let Some(ref cmd_str) = command {
+            unix_cmd.arg(format!("exec {}", cmd_str));
         } else {
-            cmd.arg("exec $SHELL");
+            unix_cmd.arg("exec $SHELL");
         }
-    }
-
-    if let Some(path) = cwd {
-        if !path.trim().is_empty() && std::path::Path::new(&path).exists() {
-            cmd.cwd(path);
+        if let Some(ref path) = cwd {
+            if !path.trim().is_empty() && std::path::Path::new(path).exists() {
+                unix_cmd.cwd(path);
+            } else if let Some(home_dir) = home::home_dir() {
+                unix_cmd.cwd(home_dir);
+            }
         } else if let Some(home_dir) = home::home_dir() {
-            cmd.cwd(home_dir);
+            unix_cmd.cwd(home_dir);
         }
-    } else if let Some(home_dir) = home::home_dir() {
-        cmd.cwd(home_dir);
-    }
+        for (key, val) in &env {
+            unix_cmd.env(key, val);
+        }
+        unix_cmd.env("TERM", "xterm-256color");
+        unix_cmd.env("COLORTERM", "truecolor");
 
-    // Apply inherited full environment
-    let env = get_shell_env();
-    for (key, val) in &env {
-        cmd.env(key, val);
-    }
-
-    // Ensure TERM and COLORTERM are set correctly
-    cmd.env("TERM", "xterm-256color");
-    cmd.env("COLORTERM", "truecolor");
-
-    let child = pty_pair.slave.spawn_command(cmd).map_err(|e| format!("Failed to spawn command: {}", e))?;
+        pty_pair.slave.spawn_command(unix_cmd).map_err(|e| format!("Failed to spawn command: {}", e))?
+    };
     let reader = pty_pair.master.try_clone_reader().map_err(|e| format!("Failed to clone reader: {}", e))?;
     let writer = pty_pair.master.take_writer().map_err(|e| format!("Failed to take writer: {}", e))?;
 
@@ -141,6 +187,8 @@ fn spawn_pty<R: Runtime>(
         },
     );
 
+
+
     let app_clone = app.clone();
     let id_clone = id.clone();
     thread::spawn(move || {
@@ -149,16 +197,17 @@ fn spawn_pty<R: Runtime>(
         loop {
             match reader.read(&mut buffer) {
                 Ok(n) if n > 0 => {
-                    let data = String::from_utf8_lossy(&buffer[..n]).to_string();
+                    let data = buffer[..n].to_vec();
                     let _ = app_clone.emit("pty-output", PtyOutputPayload {
                         id: id_clone.clone(),
                         data,
                     });
                 }
-                Ok(_) => break, // EOF
-                Err(_) => break,
+                _ => break, // EOF or error
             }
         }
+        // Notify frontend that this PTY session has terminated
+        let _ = app_clone.emit("pty-exit", id_clone.clone());
     });
 
     Ok(())
@@ -234,6 +283,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
             spawn_pty,
             write_pty,

@@ -256,7 +256,7 @@ input[type="text"]:focus, select:focus {
 
 .pane-content {
   flex: 1;
-  padding: 1rem;
+  padding: 0;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.8rem;
   overflow: auto;
@@ -591,4 +591,13 @@ main {
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+}
+
+/* Custom xterm.js aesthetic overrides for full space maximization */
+.xterm .xterm-screen {
+  padding: 0 !important;
+}
+
+.terminal-container .xterm-viewport {
+  background-color: transparent !important;
 }
