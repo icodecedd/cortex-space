@@ -1,22 +1,26 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { DEFAULT_PRESETS } from "@/lib/setup-constants";
+import { getSetting, setSetting } from "@/lib/store";
 
 export function usePresets(rootPath: string, isValidDir: boolean | null) {
   const [presets, setPresets] = useState<{label: string, path: string}[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("cortex_presets");
-    if (saved) {
-      setPresets(JSON.parse(saved));
-    } else {
-      setPresets(DEFAULT_PRESETS);
+    async function init() {
+      const saved = await getSetting("cortex_presets", DEFAULT_PRESETS);
+      setPresets(saved);
+      setIsInitialized(true);
     }
+    init();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("cortex_presets", JSON.stringify(presets));
-  }, [presets]);
+    if (isInitialized) {
+      setSetting("cortex_presets", presets);
+    }
+  }, [presets, isInitialized]);
 
   const addPreset = () => {
     if (!rootPath) return;
