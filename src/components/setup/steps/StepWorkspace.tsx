@@ -1,5 +1,6 @@
 import { FolderOpen, Grid3X3, Lock, X, BookmarkPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { LayoutType } from "@/lib/setup-constants";
 import { LayoutSelector } from "../ui-parts/LayoutSelector";
 import { PresetManager } from "../ui-parts/PresetManager";
@@ -50,7 +51,7 @@ export function StepWorkspace({
           transition: 'border-color 200ms ease'
         }}>
           <Lock size={14} color="var(--text-secondary)" />
-          <input
+          <Input
             type="text"
             value={rootPath}
             onChange={(e) => setRootPath(e.target.value)}
@@ -63,8 +64,10 @@ export function StepWorkspace({
               border: 'none',
               color: rootPath ? 'var(--text-primary)' : 'var(--text-secondary)',
               fontFamily: 'JetBrains Mono',
-              outline: 'none'
+              outline: 'none',
+              boxShadow: 'none'
             }}
+            className="focus-visible:ring-0 focus-visible:ring-offset-0 h-auto"
           />
           {rootPath && (
              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -117,7 +120,9 @@ export function StepWorkspace({
           >
             {rootPath.split(/[\\/]/).filter(Boolean).map((part, i, arr) => (
               <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <button
+                <Button
+                  variant="ghost"
+                  className="h-auto p-0 hover:bg-transparent"
                   onClick={() => handleBreadcrumbClick(i)}
                   style={{
                     padding: '0.1rem 0.3rem',
@@ -129,7 +134,7 @@ export function StepWorkspace({
                   }}
                 >
                   {part.toUpperCase()}
-                </button>
+                </Button>
                 {i < arr.length - 1 && <span>/</span>}
               </span>
             ))}

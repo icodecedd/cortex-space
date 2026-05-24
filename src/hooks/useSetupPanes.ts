@@ -23,10 +23,10 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
   }, [layout, isInitialized]);
 
   const [panes, setPanes] = useState<PaneConfig[]>([
-    { id: 1, name: "Pane 1", command: mode === 'agents' ? AGENT_PRESETS[0].command : "npm run dev", isCustom: false },
-    { id: 2, name: "Pane 2", command: mode === 'agents' ? AGENT_PRESETS[1].command : "npm run start", isCustom: false },
-    { id: 3, name: "Pane 3", command: mode === 'agents' ? AGENT_PRESETS[2].command : "ls -la", isCustom: false },
-    { id: 4, name: "Pane 4", command: mode === 'agents' ? AGENT_PRESETS[3].command : "git status", isCustom: false },
+    { id: 1, name: "Pane 1", command: mode === 'agents' ? AGENT_PRESETS[0].command : "", isCustom: false },
+    { id: 2, name: "Pane 2", command: mode === 'agents' ? AGENT_PRESETS[1].command : "", isCustom: false },
+    { id: 3, name: "Pane 3", command: mode === 'agents' ? AGENT_PRESETS[2].command : "", isCustom: false },
+    { id: 4, name: "Pane 4", command: mode === 'agents' ? AGENT_PRESETS[3].command : "", isCustom: false },
     { id: 5, name: "Pane 5", command: mode === 'agents' ? AGENT_PRESETS[0].command : "", isCustom: false },
     { id: 6, name: "Pane 6", command: mode === 'agents' ? AGENT_PRESETS[0].command : "", isCustom: false },
     { id: 7, name: "Pane 7", command: mode === 'agents' ? AGENT_PRESETS[0].command : "", isCustom: false },

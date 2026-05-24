@@ -19,33 +19,15 @@ interface ConfirmModeChangeDialogProps {
 export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDialogProps) {
   return (
     <Dialog>
-      <DialogTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="xs"
-            className="btn-tactile"
-            style={{
-              fontSize: '0.65rem',
-              padding: '0.4rem 0.8rem',
-              opacity: 0.9,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              border: '1px solid var(--border-color)',
-              background: 'var(--surface-color)',
-              height: '32px',
-              minWidth: '120px',
-              justifyContent: 'center',
-              letterSpacing: '0.04em',
-              fontWeight: 600,
-              transition: 'all 0.3s var(--ease-out)'
-            }}
-          />
-        }
-      >
-        <ChevronLeft size={14} />
-        {step > 1 ? 'SWITCH MODE' : 'CHANGE OPERATION MODE'}
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="xs"
+          className="btn-tactile text-[0.65rem] py-[0.4rem] px-[0.8rem] opacity-90 flex items-center justify-center gap-2 border border-[var(--border-color)] bg-[var(--surface-color)] h-8 min-w-[120px] tracking-[0.04em] font-semibold transition-all duration-300 ease-[var(--ease-out)]"
+        >
+          <ChevronLeft size={14} />
+          {step > 1 ? 'SWITCH MODE' : 'CHANGE OPERATION MODE'}
+        </Button>
       </DialogTrigger>
       <DialogContent
         showCloseButton={true}
@@ -78,39 +60,35 @@ export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDi
             background: 'rgba(255, 255, 255, 0.015)'
           }}
         >
-          <DialogClose
-            render={
-              <Button
-                variant="ghost"
-                className="btn-tactile"
-                style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  height: '40px',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--text-secondary)'
-                }}
-              />
-            }
-          >
-            Stay Here
+          <DialogClose asChild>
+            <Button
+              variant="ghost"
+              className="btn-tactile"
+              style={{
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                height: '40px',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-secondary)'
+              }}
+            >
+              Stay Here
+            </Button>
           </DialogClose>
-          <DialogClose
-            render={
-              <Button
-                onClick={onConfirm}
-                className="primary btn-tactile"
-                style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  height: '40px',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--accent-contrast)'
-                }}
-              />
-            }
-          >
-            Confirm & Reset
+          <DialogClose asChild>
+            <Button
+              onClick={onConfirm}
+              className="primary btn-tactile"
+              style={{
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                height: '40px',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--accent-contrast)'
+              }}
+            >
+              Confirm & Reset
+            </Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

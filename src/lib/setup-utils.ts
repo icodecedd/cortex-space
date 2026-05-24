@@ -38,3 +38,35 @@ export function getGridTemplate(layout: string, isMobile: boolean) {
     default: return '1fr 1fr / 1fr 1fr';
   }
 }
+
+import { LayoutNode, PaneNode } from "@/types";
+import { PaneConfig } from "./setup-constants";
+
+export function flattenLayoutToGrid(layout: LayoutNode): { panes: PaneConfig[], layout: string } {
+  const panes: PaneConfig[] = [];
+  
+  const traverse = (node: LayoutNode) => {
+    if (node.type === 'pane') {
+      const paneNode = node as PaneNode;
+      panes.push({
+        id: parseInt(paneNode.id) || panes.length + 1,
+        name: paneNode.name,
+        command: paneNode.command,
+        isCustom: true
+      });
+    } else {
+      node.children.forEach(traverse);
+    }
+  };
+
+  traverse(layout);
+
+  // Map count back to rigid grid strings
+  let layoutStr = '2x2';
+  if (panes.length === 1) layoutStr = '1x1';
+  else if (panes.length === 2) layoutStr = '1x2'; // Default to 2 columns
+  else if (panes.length <= 4) layoutStr = '2x2';
+  else layoutStr = '3x3';
+
+  return { panes, layout: layoutStr };
+}

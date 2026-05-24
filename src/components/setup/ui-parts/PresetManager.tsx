@@ -55,7 +55,9 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath, is
                 transitionDelay: `${index * 40}ms`
               }}
             >
-              <button
+              <Button
+                variant="ghost"
+                className="h-auto p-0 hover:bg-transparent"
                 onClick={() => onSelect(preset.path)}
                 style={{
                   fontSize: '0.65rem',
@@ -64,31 +66,24 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath, is
                   color: 'var(--text-primary)',
                   letterSpacing: '0.05em',
                   fontWeight: 600,
-                  padding: 0,
-                  marginRight: '0.75rem',
-                  cursor: 'pointer'
+                  marginRight: '0.75rem'
                 }}
               >
                 {preset.label}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-[22px] h-[22px] rounded-full hover:bg-[rgba(255,255,255,0.1)] hover:text-[var(--text-primary)]"
                 onClick={() => onRemove(preset.path)}
                 style={{
-                  width: '22px',
-                  height: '22px',
-                  borderRadius: '50%',
                   background: 'rgba(255,255,255,0.05)',
                   border: 'none',
-                  color: 'var(--text-secondary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 150ms ease',
-                  cursor: 'pointer'
+                  color: 'var(--text-secondary)'
                 }}
               >
                 <X size={12} />
-              </button>
+              </Button>
             </div>
           ))}
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { exists } from "@tauri-apps/plugin-fs";
+import { invoke } from "@tauri-apps/api/core";
 
 export function useWorkspaceDirectory() {
   const [rootPath, setRootPath] = useState("");
@@ -14,7 +14,7 @@ export function useWorkspaceDirectory() {
         return;
       }
       try {
-        const isDir = await exists(rootPath);
+        const isDir = await invoke<boolean>("validate_directory", { path: rootPath });
         if (isMounted) setIsValidDir(isDir);
       } catch (err) {
         console.error("Path validation error:", err);

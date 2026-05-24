@@ -9,6 +9,7 @@ interface UseAppShortcutsProps {
   onCloseWorkspace: (id: string) => void;
   onSwitchWorkspace: (id: string) => void;
   onToggleShortcuts: () => void;
+  onToggleTemplates: () => void;
 }
 
 export function useAppShortcuts({
@@ -18,6 +19,7 @@ export function useAppShortcuts({
   onCloseWorkspace,
   onSwitchWorkspace,
   onToggleShortcuts,
+  onToggleTemplates
 }: UseAppShortcutsProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -55,9 +57,15 @@ export function useAppShortcuts({
         e.preventDefault();
         onToggleShortcuts();
       }
+
+      // 5. Space Templates (Ctrl + T)
+      if (e.ctrlKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        onToggleTemplates();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [workspaces, activeWorkspaceId, onNewWorkspaceFlow, onCloseWorkspace, onSwitchWorkspace, onToggleShortcuts]);
+  }, [workspaces, activeWorkspaceId, onNewWorkspaceFlow, onCloseWorkspace, onSwitchWorkspace, onToggleShortcuts, onToggleTemplates]);
 }

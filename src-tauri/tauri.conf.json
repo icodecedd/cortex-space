@@ -15,6 +15,7 @@
         "title": "cortex-space",
         "width": 1440,
         "height": 960,
+        "center": true,
         "decorations": false
       }
     ],

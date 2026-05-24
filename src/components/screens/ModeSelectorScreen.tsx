@@ -1,11 +1,16 @@
 import { Terminal, Users, Cpu } from "lucide-react";
 import { Mode } from "@/types";
+import { setSetting } from "@/lib/store";
 
 interface ModeSelectorScreenProps {
   onSelectMode: (mode: Mode) => void;
 }
 
 export function ModeSelectorScreen({ onSelectMode }: ModeSelectorScreenProps) {
+  const handleSelectMode = async (mode: Mode) => {
+    await setSetting('startup.lastMode', mode);
+    onSelectMode(mode);
+  };
   return (
     <div style={{
       display: 'flex',
@@ -55,7 +60,7 @@ export function ModeSelectorScreen({ onSelectMode }: ModeSelectorScreenProps) {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-          <div className="mode-card animate-in" onClick={() => onSelectMode('normal')} style={{ flexDirection: 'row', padding: '1.5rem 2rem', justifyContent: 'flex-start', gap: '1.5rem', borderRadius: 'var(--radius-md)', transitionDelay: '500ms', cursor: 'pointer' }}>
+          <div className="mode-card animate-in" onClick={() => handleSelectMode('normal')} style={{ flexDirection: 'row', padding: '1.5rem 2rem', justifyContent: 'flex-start', gap: '1.5rem', borderRadius: 'var(--radius-md)', transitionDelay: '500ms', cursor: 'pointer' }}>
             <Terminal size={32} color="var(--text-secondary)" />
             <div style={{ textAlign: 'left' }}>
               <h3 style={{ fontSize: '1.1rem', letterSpacing: '0.1em', color: 'var(--text-primary)' }}>NORMAL MODE</h3>
@@ -65,7 +70,7 @@ export function ModeSelectorScreen({ onSelectMode }: ModeSelectorScreenProps) {
             </div>
           </div>
 
-          <div className="mode-card animate-in" onClick={() => onSelectMode('agents')} style={{ flexDirection: 'row', padding: '1.5rem 2rem', justifyContent: 'flex-start', gap: '1.5rem', borderRadius: 'var(--radius-md)', borderColor: 'var(--accent-primary)', background: 'rgba(255,255,255,0.02)', transitionDelay: '600ms', cursor: 'pointer' }}>
+          <div className="mode-card animate-in" onClick={() => handleSelectMode('agents')} style={{ flexDirection: 'row', padding: '1.5rem 2rem', justifyContent: 'flex-start', gap: '1.5rem', borderRadius: 'var(--radius-md)', borderColor: 'var(--accent-primary)', background: 'rgba(255,255,255,0.02)', transitionDelay: '600ms', cursor: 'pointer' }}>
             <div style={{ position: 'relative' }}>
               <Users size={32} color="var(--accent-primary)" />
               <Cpu size={16} color="var(--accent-primary)" style={{ position: 'absolute', bottom: -2, right: -2, background: 'var(--bg-color)', borderRadius: '50%', padding: '1px' }} />
