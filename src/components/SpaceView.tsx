@@ -3,6 +3,7 @@ import {
   Minimize2
 } from "lucide-react";
 import { TerminalPane } from "./TerminalPane";
+import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { getGridTemplate } from "@/lib/setup-utils";
 import { ThemeName } from "@/hooks/useTheme";
@@ -37,12 +38,14 @@ export function SpaceView({ workspaceId, config }: SpaceViewProps) {
               <span className="text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--header-bg)]/80 px-2 py-0.5 rounded border border-[var(--border-color)]">
                 MAXIMIZED VIEW
               </span>
-              <button
+              <Button
+                variant="outline"
+                size="icon-xs"
                 onClick={() => setIsMaximized(false)}
-                className="p-1 bg-[var(--header-bg)] border border-[var(--border-color)] hover:bg-[var(--border-color)] transition-colors rounded text-[var(--text-primary)]"
+                className="p-1 bg-[var(--header-bg)] border-[var(--border-color)] hover:bg-[var(--border-color)] transition-colors rounded text-[var(--text-primary)]"
               >
                 <Minimize2 size={11} />
-              </button>
+              </Button>
             </div>
             <TerminalPane
               workspaceId={workspaceId}

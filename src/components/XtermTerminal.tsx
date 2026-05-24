@@ -5,6 +5,8 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useTheme } from '../hooks/useTheme';
 import { usePty } from '../hooks/usePty';
+import { Button } from "@/components/ui/button";
+import { getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings } from '@/lib/store';
 import '@xterm/xterm/css/xterm.css';
 
 interface XtermTerminalProps {
@@ -54,13 +56,24 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
     if (!terminalRef.current) return;
 
     const root = document.documentElement;
-    const initialFontSize = parseInt(getComputedStyle(root).getPropertyValue('--terminal-font-size').trim(), 10) || 12;
-    const initialFontFamily = getComputedStyle(root).getPropertyValue('--terminal-font-family').trim() || '"JetBrains Mono", monospace';
+    const initialFontSize = parseInt(getComputedStyle(root).getPropertyValue('--terminal-font-size').trim(), 10) || TERMINAL_DEFAULTS.fontSize;
+    const initialFontFamily = getComputedStyle(root).getPropertyValue('--terminal-font-family').trim() || TERMINAL_DEFAULTS.fontFamily;
+    const initialLineHeight = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-line-height').trim()) || TERMINAL_DEFAULTS.lineHeight;
+    const initialLetterSpacing = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-letter-spacing').trim()) || TERMINAL_DEFAULTS.letterSpacing;
+
+    // Load full settings from store for fields not covered by CSS vars
+    let initialSettings = { ...TERMINAL_DEFAULTS };
+    getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS).then((saved) => {
+      initialSettings = saved;
+    });
 
     const term = new Terminal({
-      cursorBlink: true,
+      cursorBlink: initialSettings.cursorBlink,
+      cursorStyle: initialSettings.cursorStyle,
       fontSize: initialFontSize,
       fontFamily: initialFontFamily,
+      lineHeight: initialLineHeight,
+      letterSpacing: initialLetterSpacing,
       theme: {
         background: 'transparent',
         foreground: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#ffffff',
@@ -68,7 +81,7 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
         selectionBackground: 'rgba(255, 255, 255, 0.3)',
       },
       allowTransparency: true,
-      scrollback: 10000,
+      scrollback: initialSettings.scrollbackLines,
       convertEol: true,
       allowProposedApi: true,
     });
@@ -176,31 +189,40 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
     }
   }, [theme]);
 
-  // Settings Dynamic Sync (Font Size & Family)
+  // Settings Dynamic Sync (Full terminal settings via event payload)
   useEffect(() => {
-    const handleSettingsChange = () => {
-      if (xtermRef.current) {
+    const handleSettingsChange = (e: Event) => {
+      const evt = e as CustomEvent<{ terminal?: TerminalSettings }>;
+      const ts = evt.detail?.terminal;
+
+      if (!xtermRef.current) return;
+
+      if (ts) {
+        // Apply all terminal settings from event payload
+        xtermRef.current.options.fontSize = ts.fontSize;
+        // Construct full CSS font-family string from plain stored name
+        xtermRef.current.options.fontFamily = `"${ts.fontFamily}", monospace`;
+        xtermRef.current.options.cursorBlink = ts.cursorBlink;
+        xtermRef.current.options.cursorStyle = ts.cursorStyle as 'block' | 'underline' | 'bar';
+        xtermRef.current.options.lineHeight = ts.lineHeight;
+        xtermRef.current.options.letterSpacing = ts.letterSpacing;
+        // scrollback requires re-init; mark for next session if changed
+      } else {
+        // Legacy: fallback to CSS var reading
         const root = document.documentElement;
         const fontSizeStr = getComputedStyle(root).getPropertyValue('--terminal-font-size').trim();
         const fontFamilyStr = getComputedStyle(root).getPropertyValue('--terminal-font-family').trim();
-        
-        if (fontSizeStr) {
-          xtermRef.current.options.fontSize = parseInt(fontSizeStr, 10);
-        }
-        if (fontFamilyStr) {
-          xtermRef.current.options.fontFamily = fontFamilyStr;
-        }
-        
-        // Wait for font loading to ensure accurate character width measurements
-        if ('fonts' in document) {
-          document.fonts.ready.then(() => {
-            if (fitAddonRef.current) {
-              try {
-                fitAddonRef.current.fit();
-              } catch (e) {}
-            }
-          });
-        }
+        if (fontSizeStr) xtermRef.current.options.fontSize = parseInt(fontSizeStr, 10);
+        if (fontFamilyStr) xtermRef.current.options.fontFamily = fontFamilyStr;
+      }
+
+      // Re-fit after font changes
+      if ('fonts' in document) {
+        document.fonts.ready.then(() => {
+          if (fitAddonRef.current) {
+            try { fitAddonRef.current.fit(); } catch (e) {}
+          }
+        });
       }
     };
 
@@ -289,17 +311,18 @@ export function XtermTerminal({ id, isFocused, command, cwd }: XtermTerminalProp
           <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em' }}>
             SESSION TERMINATED
           </span>
-          <button 
+          <Button 
             onClick={() => relaunch()}
-            className="btn-tactile primary"
+            className="primary btn-tactile"
             style={{
               padding: '0.4rem 1rem',
               fontSize: '0.7rem',
-              letterSpacing: '0.05em'
+              letterSpacing: '0.05em',
+              borderRadius: 'var(--radius-sm)'
             }}
           >
             RELAUNCH SESSION
-          </button>
+          </Button>
         </div>
       )}
     </div>

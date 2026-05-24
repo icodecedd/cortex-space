@@ -3,6 +3,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/inter";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -21,10 +22,10 @@
   --duration-fast: 160ms;
   --duration-normal: 250ms;
 
-  /* Modern Geometry */
+  /* Modern Geometry (Hierarchy: 8px UI Primitives, 12px Macro Layouts) */
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-lg: 12px;
 
   font-family: 'SF Pro Display', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -43,50 +44,58 @@
   transition: background-color var(--duration-normal) var(--ease-out),
               color var(--duration-normal) var(--ease-out),
               border-color var(--duration-normal) var(--ease-out);
-  --background: var(--bg-color);
-  --foreground: var(--text-primary);
-  --card: var(--surface-color);
-  --card-foreground: var(--text-primary);
-  --popover: var(--surface-color);
-  --popover-foreground: var(--text-primary);
-  --primary: var(--accent-primary);
-  --primary-foreground: var(--accent-contrast);
-  --secondary: var(--surface-color);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--border-color);
-  --muted-foreground: var(--text-secondary);
-  --accent: rgba(255, 255, 255, 0.05);
-  --accent-foreground: var(--text-primary);
+
+  /* Terminal settings defaults (overridden by useTerminalSettings hook) */
+  --terminal-font-size: 12;
+  --terminal-font-family: "JetBrains Mono", monospace;
+  --terminal-line-height: 1.2;
+  --terminal-letter-spacing: 0px;
+
+  /* UI font scale (1 = 100%). Overridden by useColorScheme hook */
+  --ui-font-scale: 1;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: var(--border-color);
-  --input: var(--border-color);
-  --ring: var(--accent-primary);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: var(--surface-color);
-  --sidebar-foreground: var(--text-primary);
-  --sidebar-primary: var(--accent-primary);
-  --sidebar-primary-foreground: var(--accent-contrast);
-  --sidebar-accent: rgba(255, 255, 255, 0.05);
-  --sidebar-accent-foreground: var(--text-primary);
-  --sidebar-border: var(--border-color);
-  --sidebar-ring: var(--accent-primary);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 body {
-  min-height: 100vh;
-  overflow-x: hidden;
+  height: 100vh;
+  overflow: hidden;
   background-color: var(--bg-color);
 }
 
@@ -105,7 +114,7 @@ body::after {
 }
 
 #root {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -119,7 +128,7 @@ body::after {
 
 /* Buttons: Tactile Feedback */
 .btn-tactile {
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 1rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   font-size: 0.85rem;
@@ -171,14 +180,26 @@ body::after {
   color: var(--accent-contrast);
 }
 
-/* Fix Dropdown Menu items turning black on hover/focus */
-[data-slot="dropdown-menu-item"] {
+/* Fix Dropdown and Select Menu items turning black on hover/focus */
+[data-slot="dropdown-menu-item"],
+[data-slot="dropdown-menu-checkbox-item"],
+[data-slot="dropdown-menu-radio-item"],
+[data-slot="dropdown-menu-sub-trigger"],
+[data-slot="select-item"] {
   color: var(--text-primary) !important;
   transition: background-color 150ms var(--ease-out);
 }
 
 [data-slot="dropdown-menu-item"]:focus,
-[data-slot="dropdown-menu-item"][data-highlighted] {
+[data-slot="dropdown-menu-item"][data-highlighted],
+[data-slot="dropdown-menu-checkbox-item"]:focus,
+[data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+[data-slot="dropdown-menu-radio-item"]:focus,
+[data-slot="dropdown-menu-radio-item"][data-highlighted],
+[data-slot="dropdown-menu-sub-trigger"]:focus,
+[data-slot="dropdown-menu-sub-trigger"][data-highlighted],
+[data-slot="select-item"]:focus,
+[data-slot="select-item"][data-highlighted] {
   background-color: rgba(255, 255, 255, 0.05) !important;
   color: var(--accent-primary) !important;
   outline: none;
@@ -199,7 +220,7 @@ h1, h2, h3, h4 {
 /* Inputs */
 input[type="text"], select {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border-color);
@@ -446,7 +467,7 @@ input[type="text"]:focus, select:focus {
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.6rem;
   font-family: 'JetBrains Mono', monospace;
   color: var(--text-primary);
@@ -517,7 +538,7 @@ input[type="text"]:focus, select:focus {
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.25rem;
   background: transparent;
   border-radius: 0;
   border: none;
@@ -556,7 +577,7 @@ main {
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: 'Inter Variable', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -589,8 +610,12 @@ main {
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
+  --radius-md: var(--radius-sm);
+  --radius-lg: var(--radius-sm);
+  --radius-xl: var(--radius-md);
+  --radius-2xl: var(--radius-md);
+  --radius-3xl: var(--radius-md);
+  --radius-4xl: var(--radius-md);
 }
 
 /* Custom xterm.js aesthetic overrides for full space maximization */
@@ -600,4 +625,65 @@ main {
 
 .terminal-container .xterm-viewport {
   background-color: transparent !important;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+html {
+  overflow: hidden;
+  font-size: calc(16px * var(--ui-font-scale, 1));
+}
+
+body, #root {
+  overflow: visible;
+  height: 100vh;
+  width: 100vw;
+}
+
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
 }

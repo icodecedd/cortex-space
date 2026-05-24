@@ -42,7 +42,7 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
 
   const isStepValid = useMemo(() => {
     if (step === 1) return rootPath.trim() !== "";
-    if (step === 2) return activePanes.every(p => p.command.trim() !== "");
+    if (step === 2) return true; // Allow proceeding even if command inputs are empty
     return true;
   }, [step, rootPath, activePanes]);
 
