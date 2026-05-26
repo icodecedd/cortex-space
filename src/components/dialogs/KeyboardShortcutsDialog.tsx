@@ -57,6 +57,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={true}
+        open={open}
         className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-2xl overflow-y-auto max-h-[90vh]"
         style={{
           padding: '2rem 1.5rem 1.5rem',

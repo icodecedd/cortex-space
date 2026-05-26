@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { 
   Dialog, 
-  DialogContent, 
+  DialogContent,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Workspace, SpaceTemplate } from "@/types";
+import { Workspace, SpaceTemplate, Snippet } from "@/types";
 import { LayoutPreviewIcon } from "@/components/ui/layout-preview-icon";
 import { Search, Folder, Terminal, Bot, Zap, Rocket, Settings, Keyboard, Maximize, Palette, ChevronRightSquare, Code, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -142,7 +142,9 @@ export function WorkspaceSwitcherDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
         showCloseButton={false}
-        className="bg-[#0c0c0e]/80 border-[var(--border-color)] shadow-2xl flex flex-col p-0 gap-0 overflow-hidden fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 backdrop-blur-xl"
+        isDeep={true}
+        open={isOpen}
+        className="fixed inset-0 m-auto bg-[#0c0c0e]/80 border-[var(--border-color)] shadow-2xl flex flex-col p-0 gap-0 overflow-hidden backdrop-blur-xl"
         style={{
           maxWidth: "640px",
           width: "calc(100% - 2rem)",
@@ -194,19 +196,19 @@ export function WorkspaceSwitcherDialog({
                       <div className="relative shrink-0">
                         {item.type === 'workspace' && (
                           <div className="relative">
-                             {item.data.config?.layout ? (
+                            {item.data.config?.layout ? (
                                 <LayoutPreviewIcon 
                                   layout={item.data.config.layout} 
                                   className={cn("w-12 h-9 border bg-black/40", isSelected ? "border-[var(--accent-primary)]/40" : "border-white/10")} 
                                 />
-                             ) : (
+                            ) : (
                                 <div className="w-12 h-9 border border-white/5 bg-white/[0.03] rounded-md flex items-center justify-center">
                                   {item.data.mode === 'agents' ? <Bot size={18} className="opacity-20" /> : <Terminal size={18} className="opacity-20" />}
                                 </div>
-                             )}
-                             {activeWorkspaceId === item.data.id && (
+                            )}
+                            {activeWorkspaceId === item.data.id && (
                                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[var(--accent-primary)] rounded-full border-2 border-[#0c0c0e]" />
-                             )}
+                            )}
                           </div>
                         )}
                         {item.type === 'template' && (
@@ -240,9 +242,9 @@ export function WorkspaceSwitcherDialog({
                             isSelected ? "text-white" : "text-white/70"
                           )}>
                             {item.type === 'workspace' ? (item.data.customName || item.data.name || "UNNAMED WORKSPACE") : 
-                             item.type === 'template' ? item.data.name : 
-                             item.type === 'snippet' ? item.data.label :
-                             item.label}
+                            item.type === 'template' ? item.data.name : 
+                            item.type === 'snippet' ? item.data.label :
+                            item.label}
                           </span>
                           <span className={cn(
                             "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border transition-colors",
@@ -273,8 +275,8 @@ export function WorkspaceSwitcherDialog({
 
                     <div className="flex items-center gap-3 shrink-0 ml-4">
                       {isSelected ? (
-                         <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--accent-primary)] animate-in fade-in slide-in-from-right-1 duration-200">
-                           {item.type === 'snippet' && (
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--accent-primary)] animate-in fade-in slide-in-from-right-1 duration-200">
+                          {item.type === 'snippet' && (
                               <button 
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -285,12 +287,12 @@ export function WorkspaceSwitcherDialog({
                                 <Play size={10} fill="currentColor" />
                                 <span>RUN</span>
                               </button>
-                           )}
-                           <div className="flex items-center gap-1.5 px-1">
-                             <span className="opacity-50 font-mono text-[12px]">⌘</span>
-                             <span>{item.type === 'workspace' ? 'SWITCH' : item.type === 'template' ? 'LAUNCH' : item.type === 'snippet' ? 'INJECT' : 'EXECUTE'}</span>
-                           </div>
-                         </div>
+                          )}
+                          <div className="flex items-center gap-1.5 px-1">
+                            <span className="opacity-50 font-mono text-[12px]">⌘</span>
+                            <span>{item.type === 'workspace' ? 'SWITCH' : item.type === 'template' ? 'LAUNCH' : item.type === 'snippet' ? 'INJECT' : 'EXECUTE'}</span>
+                          </div>
+                        </div>
                       ) : item.shortcut && (
                         <span className="text-[12px] font-mono text-white/10 group-hover:text-white/20 transition-colors">
                           {item.shortcut}
@@ -320,7 +322,7 @@ export function WorkspaceSwitcherDialog({
             </div>
           </div>
           <div className="flex items-center gap-1">
-             <span>{filteredItems.length} COMMANDS AVAILABLE</span>
+            <span>{filteredItems.length} COMMANDS AVAILABLE</span>
           </div>
         </div>
       </DialogContent>

@@ -6,7 +6,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { useTheme, THEMES, ThemeName } from '../hooks/useTheme';
 import { usePty } from '../hooks/usePty';
 import { Button } from "@/components/ui/button";
-import { getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings, SHORTCUT_DEFAULTS, ShortcutSettings } from '@/lib/store';
+import { getSetting, getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings, SHORTCUT_DEFAULTS, ShortcutSettings, DemoSettings } from '@/lib/store';
 import { RotateCw } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { toast } from "sonner";
@@ -34,12 +34,16 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
   const [dimensions, setDimensions] = useState({ rows: 24, cols: 80 });
   const [defaultShell, setDefaultShell] = useState<string>('');
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
+  const [enableHighlight, setEnableHighlight] = useState(true);
+  const [showShortcuts, setShowShortcuts] = useState(true);
 
   useEffect(() => {
     getSettingsGroup<TerminalSettings>('startup', { defaultShell: '' } as any).then((saved: any) => {
       setDefaultShell(saved.defaultShell || '');
     });
     getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
+    getSetting('demo.enableTerminalButtonHighlight', true).then(setEnableHighlight);
+    getSetting('demo.showTerminalShortcutHints', true).then(setShowShortcuts);
   }, []);
 
   function applyAnsiColors(themeName: string) {
@@ -253,6 +257,21 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
   }, []);
 
   useEffect(() => {
+    const handleDemoSettingsChange = (e: Event) => {
+      const evt = e as CustomEvent<Partial<DemoSettings>>;
+      if (evt.detail?.enableTerminalButtonHighlight !== undefined) {
+        setEnableHighlight(evt.detail.enableTerminalButtonHighlight);
+      }
+      if (evt.detail?.showTerminalShortcutHints !== undefined) {
+        setShowShortcuts(evt.detail.showTerminalShortcutHints);
+      }
+    };
+
+    window.addEventListener('cortex-demo-settings-changed', handleDemoSettingsChange);
+    return () => window.removeEventListener('cortex-demo-settings-changed', handleDemoSettingsChange);
+  }, []);
+
+  useEffect(() => {
     const handlePurge = () => { if (xtermRef.current) xtermRef.current.clear(); };
     window.addEventListener('cortex-purge-scrollback', handlePurge);
     return () => window.removeEventListener('cortex-purge-scrollback', handlePurge);
@@ -371,7 +390,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
                 }}
                 variant="ghost"
                 size="icon-xs"
-                className="btn-tactile text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 active:scale-97"
+                className={`${enableHighlight ? 'btn-tactile' : ''} text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 active:scale-97`}
                 style={{
                   width: '20px', height: '20px', padding: 0, borderRadius: '9999px',
                   background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
@@ -381,13 +400,15 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
                 <RotateCw size={10} className="transition-transform duration-300 hover:rotate-45" />
               </Button>
             )}
-            <Kbd style={{ 
-              fontSize: '8px', height: '14px', padding: '0 5px', background: 'rgba(255, 255, 255, 0.03)', 
-              borderColor: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)',
-              fontFamily: 'JetBrains Mono', borderRadius: '9999px'
-            }}>
-              Ctrl+Alt+R
-            </Kbd>
+            {showShortcuts && (
+              <Kbd style={{ 
+                fontSize: '8px', height: '14px', padding: '0 5px', background: 'rgba(255, 255, 255, 0.03)', 
+                borderColor: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)',
+                fontFamily: 'JetBrains Mono', borderRadius: '9999px'
+              }}>
+                Ctrl+Alt+R
+              </Kbd>
+            )}
           </div>
         </div>
       )}
@@ -411,7 +432,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
           </span>
           <Button 
             onClick={() => relaunch()}
-            className="primary btn-tactile"
+            className={`primary ${enableHighlight ? 'btn-tactile' : ''}`}
             style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', letterSpacing: '0.05em', borderRadius: 'var(--radius-sm)' }}
           >
             RELAUNCH SESSION

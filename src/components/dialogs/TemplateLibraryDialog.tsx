@@ -61,6 +61,8 @@ export function TemplateLibraryDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
         showCloseButton={true}
+        isDeep={true}
+        open={isOpen}
         className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-2xl flex flex-col p-0 gap-0 overflow-hidden"
         style={{
           maxWidth: "900px",

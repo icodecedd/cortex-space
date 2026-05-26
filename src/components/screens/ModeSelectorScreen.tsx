@@ -6,9 +6,10 @@ import { Kbd } from "@/components/ui/kbd";
 
 interface ModeSelectorScreenProps {
   onSelectMode: (mode: Mode) => void;
+  showShortcutHints?: boolean;
 }
 
-export function ModeSelectorScreen({ onSelectMode }: ModeSelectorScreenProps) {
+export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: ModeSelectorScreenProps) {
   const handleSelectMode = async (mode: Mode) => {
     await setSetting("startup.lastMode", mode);
     onSelectMode(mode);
@@ -161,7 +162,7 @@ export function ModeSelectorScreen({ onSelectMode }: ModeSelectorScreenProps) {
               cursor: "pointer",
             }}
           >
-            <Kbd className="absolute top-4 right-4 bg-white/5 border-white/10 text-white/50 font-normal text-[10px]">Ctrl + N</Kbd>
+            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-white/5 border-white/10 text-white/50 font-normal text-[10px]">Ctrl + N</Kbd>}
             <Terminal size={32} color="var(--text-secondary)" />
             <div style={{ textAlign: "left", flex: 1 }}>
               <h3
@@ -203,7 +204,7 @@ export function ModeSelectorScreen({ onSelectMode }: ModeSelectorScreenProps) {
               cursor: "pointer",
             }}
           >
-            <Kbd className="absolute top-4 right-4 bg-white/5 border-white/10 text-white/50 font-normal text-[10px]">Ctrl + A</Kbd>
+            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-white/5 border-white/10 text-white/50 font-normal text-[10px]">Ctrl + A</Kbd>}
             <div style={{ position: "relative" }}>
               <Users size={32} color="var(--text-secondary)" />
               <Cpu
@@ -246,61 +247,63 @@ export function ModeSelectorScreen({ onSelectMode }: ModeSelectorScreenProps) {
           </div>
         </div>
 
-        <div
-          className="animate-in"
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "2rem",
-            marginTop: "2rem",
-            transitionDelay: "700ms",
-            flexWrap: "wrap",
-          }}
-        >
+        {showShortcutHints && (
+          <div
+            className="animate-in"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "2rem",
+              marginTop: "2rem",
+              transitionDelay: "700ms",
+              flexWrap: "wrap",
+            }}
+          >
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              color: "var(--text-secondary)",
-              fontSize: "0.75rem",
-            }}
-          >
-            <Kbd className="bg-white/5 border-white/10 text-white/70">
-              Ctrl + T
-            </Kbd>
-            <span>Templates</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                color: "var(--text-secondary)",
+                fontSize: "0.75rem",
+              }}
+            >
+              <Kbd className="bg-white/5 border-white/10 text-white/70">
+                Ctrl + T
+              </Kbd>
+              <span>Templates</span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                color: "var(--text-secondary)",
+                fontSize: "0.75rem",
+              }}
+            >
+              <Kbd className="bg-white/5 border-white/10 text-white/70">
+                Ctrl + Alt + N
+              </Kbd>
+              <span>New Space</span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                color: "var(--text-secondary)",
+                fontSize: "0.75rem",
+              }}
+            >
+              <Kbd className="bg-white/5 border-white/10 text-white/70">
+                Ctrl + ,
+              </Kbd>
+              <span>Settings</span>
+            </div>
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              color: "var(--text-secondary)",
-              fontSize: "0.75rem",
-            }}
-          >
-            <Kbd className="bg-white/5 border-white/10 text-white/70">
-              Ctrl + Alt + N
-            </Kbd>
-            <span>New Space</span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              color: "var(--text-secondary)",
-              fontSize: "0.75rem",
-            }}
-          >
-            <Kbd className="bg-white/5 border-white/10 text-white/70">
-              Ctrl + ,
-            </Kbd>
-            <span>Settings</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

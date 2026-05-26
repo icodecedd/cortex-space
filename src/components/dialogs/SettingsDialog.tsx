@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getSetting, setSetting, getSettingsGroup, setSettingsGroup, ShortcutSettings, SHORTCUT_DEFAULTS, FocusSettings } from "@/lib/store";
+import { getSetting, setSetting, getSettingsGroup, setSettingsGroup, ShortcutSettings, SHORTCUT_DEFAULTS, FocusSettings, DemoSettings } from "@/lib/store";
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
 import { ThemeName } from "@/hooks/useTheme";
 import { ColorScheme, OpenOnLaunch } from "@/lib/store";
@@ -35,6 +35,7 @@ import {
   RotateCcw,
   Target,
   Keyboard,
+  FlaskConical,
 } from "lucide-react";
 
 interface SettingsDialogProps {
@@ -54,6 +55,9 @@ interface SettingsDialogProps {
   focusSettings: FocusSettings;
   setFocusSetting: <K extends keyof FocusSettings>(key: K, value: FocusSettings[K]) => Promise<void>;
   resetFocus: () => Promise<void>;
+  demoSettings: DemoSettings;
+  setDemoSetting: <K extends keyof DemoSettings>(key: K, value: DemoSettings[K]) => Promise<void>;
+  resetDemo: () => Promise<void>;
 }
 
 // ─── Re-usable setting row ────────────────────────────────────────────────────
@@ -209,6 +213,9 @@ export function SettingsDialog({
   focusSettings,
   setFocusSetting,
   resetFocus,
+  demoSettings,
+  setDemoSetting,
+  resetDemo,
 }: SettingsDialogProps) {
   const [defaultPath, setDefaultPath] = useState<string>("");
 
@@ -221,6 +228,9 @@ export function SettingsDialog({
 
   // Focus settings
   const focus = focusSettings;
+  
+  // Demo settings
+  const demo = demoSettings;
 
   // Shortcut settings
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
@@ -386,6 +396,8 @@ export function SettingsDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={true}
+        isDeep={true}
+        open={isOpen}
         className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-2xl flex flex-col"
         style={{
           padding: "2rem 1.5rem 1.5rem",
@@ -411,7 +423,7 @@ export function SettingsDialog({
           defaultValue="general"
           className="w-full flex-1 flex flex-col overflow-hidden mt-4"
         >
-          <TabsList className="w-full grid grid-cols-6 shrink-0">
+          <TabsList className="w-full grid grid-cols-7 shrink-0">
             <TabsTrigger
               value="general"
               className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
@@ -446,6 +458,13 @@ export function SettingsDialog({
             >
               <Palette size={13} />
               Themes
+            </TabsTrigger>
+            <TabsTrigger
+              value="demo"
+              className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
+            >
+              <FlaskConical size={13} />
+              Demo
             </TabsTrigger>
             <TabsTrigger
               value="about"
@@ -722,6 +741,82 @@ export function SettingsDialog({
                     id="pane-headers-toggle"
                     checked={focus.showPaneHeaders}
                     onCheckedChange={(v) => setFocusSetting("showPaneHeaders", v)}
+                  />
+                </SettingsRow>
+              </div>
+            </TabsContent>
+
+            {/* ── DEMO TAB ── */}
+            <TabsContent
+              value="demo"
+              className="m-0 space-y-0 animate-in fade-in-0 duration-300"
+            >
+              <SectionHeader title="Demo Features" onReset={resetDemo} />
+              <div className="space-y-1">
+                <SettingsRow
+                  label="Show Workspaces Tab"
+                  description="Toggle visibility of the workspace tabs in the header."
+                  htmlFor="demo-workspaces-toggle"
+                >
+                  <Switch
+                    id="demo-workspaces-toggle"
+                    checked={demo.showWorkspacesTab}
+                    onCheckedChange={(v) => setDemoSetting("showWorkspacesTab", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Enable Terminal Button Highlight"
+                  description="Toggle the tactile highlight effect on terminal action buttons."
+                  htmlFor="demo-button-highlight-toggle"
+                >
+                  <Switch
+                    id="demo-button-highlight-toggle"
+                    checked={demo.enableTerminalButtonHighlight}
+                    onCheckedChange={(v) => setDemoSetting("enableTerminalButtonHighlight", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Cortex Library Button"
+                  description="Toggle visibility of the Space Templates (Rocket) button in the header."
+                  htmlFor="demo-templates-toggle"
+                >
+                  <Switch
+                    id="demo-templates-toggle"
+                    checked={demo.showTemplatesButton}
+                    onCheckedChange={(v) => setDemoSetting("showTemplatesButton", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Keyboard Shortcuts Button"
+                  description="Toggle visibility of the Keyboard Shortcuts button in the header."
+                  htmlFor="demo-shortcuts-toggle"
+                >
+                  <Switch
+                    id="demo-shortcuts-toggle"
+                    checked={demo.showShortcutsButton}
+                    onCheckedChange={(v) => setDemoSetting("showShortcutsButton", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Mode Shortcut Hints"
+                  description="Toggle visibility of the Kbd shortcut hints in the Mode Selector screen."
+                  htmlFor="demo-mode-shortcuts-toggle"
+                >
+                  <Switch
+                    id="demo-mode-shortcuts-toggle"
+                    checked={demo.showModeShortcutHints}
+                    onCheckedChange={(v) => setDemoSetting("showModeShortcutHints", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Terminal Shortcut Hints"
+                  description="Toggle visibility of the Kbd shortcut hints on terminal panes (e.g. Ctrl+Alt+R)."
+                  htmlFor="demo-terminal-shortcuts-toggle"
+                >
+                  <Switch
+                    id="demo-terminal-shortcuts-toggle"
+                    checked={demo.showTerminalShortcutHints}
+                    onCheckedChange={(v) => setDemoSetting("showTerminalShortcutHints", v)}
                   />
                 </SettingsRow>
               </div>

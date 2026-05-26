@@ -40,14 +40,13 @@ export function SpaceView({
   showPaneHeaders = true
 }: SpaceViewProps) {
   // Normalize layout to LayoutNode tree
-  const initialLayout = useMemo(() => {
+  const layoutTree = useMemo(() => {
     if (typeof config.layout === 'string') {
       return gridToLayoutNode(config.layout, config.panes || []);
     }
     return config.layout;
   }, [config.layout, config.panes]);
 
-  const [layoutTree] = useState<LayoutNode>(initialLayout);
   const [focusedPaneId, setFocusedPaneId] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
   const isMobile = useIsMobile();

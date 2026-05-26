@@ -2,9 +2,6 @@ import { useState } from "react";
 import { 
   Dialog, 
   DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +10,8 @@ import {
   Card, 
   CardHeader, 
   CardTitle, 
-  CardContent, 
   CardFooter,
-  CardAction
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SpaceTemplate, Snippet } from "@/types";
 import { LayoutPreviewIcon } from "@/components/ui/layout-preview-icon";
 import { Search, Plus, Trash2, Clock, Folder, ExternalLink, Code, Terminal, Rocket, ChevronRightSquare, Zap } from "lucide-react";
@@ -116,6 +110,8 @@ export function CortexLibraryDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
         showCloseButton={true}
+        isDeep={true}
+        open={isOpen}
         className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-2xl flex flex-col p-0 gap-0 overflow-hidden"
         style={{
           maxWidth: "1000px",

@@ -76,6 +76,16 @@ export interface FocusSettings {
   showPaneHeaders: boolean;
 }
 
+export interface DemoSettings {
+  [key: string]: unknown;
+  showWorkspacesTab: boolean;
+  enableTerminalButtonHighlight: boolean;
+  showTemplatesButton: boolean;
+  showShortcutsButton: boolean;
+  showModeShortcutHints: boolean;
+  showTerminalShortcutHints: boolean;
+}
+
 export const TERMINAL_DEFAULTS: TerminalSettings = {
   fontSize: 12,
   fontFamily: 'JetBrains Mono',
@@ -106,6 +116,15 @@ export const FOCUS_DEFAULTS: FocusSettings = {
   showTabs: false,
   showStatusBar: false,
   showPaneHeaders: true,
+};
+
+export const DEMO_DEFAULTS: DemoSettings = {
+  showWorkspacesTab: true,
+  enableTerminalButtonHighlight: true,
+  showTemplatesButton: true,
+  showShortcutsButton: true,
+  showModeShortcutHints: true,
+  showTerminalShortcutHints: true,
 };
 
 export const SHORTCUT_DEFAULTS: ShortcutSettings = {

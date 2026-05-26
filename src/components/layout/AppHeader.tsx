@@ -21,6 +21,9 @@ interface AppHeaderProps {
   onMinimize: () => void;
   onMaximize: () => void;
   onClose: () => void;
+  showWorkspacesTab?: boolean;
+  showTemplatesButton?: boolean;
+  showShortcutsButton?: boolean;
 }
 
 export function AppHeader({
@@ -38,7 +41,10 @@ export function AppHeader({
   onOpenTemplates,
   onMinimize,
   onMaximize,
-  onClose
+  onClose,
+  showWorkspacesTab = true,
+  showTemplatesButton = true,
+  showShortcutsButton = true
 }: AppHeaderProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -97,85 +103,93 @@ export function AppHeader({
     >
       {/* Left Area: Workspace Tabs */}
       <div className="flex items-center gap-1 overflow-hidden flex-1 h-full mr-2">
-        <div
-          ref={scrollRef}
-          className="flex items-center h-full gap-0.5 overflow-x-auto scrollbar-none flex-1 [mask-image:linear-gradient(to_right,black_95%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_95%,transparent_100%)]"
-        >
-          <TooltipProvider>
-            {workspaces.map((ws, idx) => {
-              const isActive = activeWorkspaceId === ws.id;
-              const isDraft = ws.status !== 'active';
+        {showWorkspacesTab && (
+          <div
+            ref={scrollRef}
+            className="flex items-center h-full gap-0.5 overflow-x-auto scrollbar-none flex-1 [mask-image:linear-gradient(to_right,black_95%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_95%,transparent_100%)]"
+          >
+            <TooltipProvider>
+              {workspaces.map((ws, idx) => {
+                const isActive = activeWorkspaceId === ws.id;
+                const isDraft = ws.status !== 'active';
 
-              return (
-                <div key={ws.id} data-active={isActive}>
-                  <InteractiveTab
-                    id={ws.id}
-                    name={ws.name ? ws.name : `WS ${idx + 1}`}
-                    customName={ws.customName}
-                    isActive={isActive}
-                    isDraft={isDraft}
-                    color={ws.color}
-                    icon={
-                      ws.mode === 'agents' ? (
-                        <Bot size={11} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
-                      ) : (
-                        <SquareTerminal size={11} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
-                      )
-                    }
-                    onSelect={() => onSwitchWorkspace(ws.id)}
-                    onClose={() => onCloseWorkspace(ws.id)}
-                    onRename={(newName) => onRenameWorkspace(ws.id, newName)}
-                    onColorChange={(newColor) => onColorWorkspace(ws.id, newColor)}
-                    onCloseOthers={() => handleCloseOthers(ws.id)}
-                    onCloseToRight={() => handleCloseToRight(ws.id)}
-                  />
-                </div>
-              );
-            })}
-          </TooltipProvider>
-        </div>
+                return (
+                  <div key={ws.id} data-active={isActive}>
+                    <InteractiveTab
+                      id={ws.id}
+                      name={ws.name ? ws.name : `WS ${idx + 1}`}
+                      customName={ws.customName}
+                      isActive={isActive}
+                      isDraft={isDraft}
+                      color={ws.color}
+                      icon={
+                        ws.mode === 'agents' ? (
+                          <Bot size={11} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
+                        ) : (
+                          <SquareTerminal size={11} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
+                        )
+                      }
+                      onSelect={() => onSwitchWorkspace(ws.id)}
+                      onClose={() => onCloseWorkspace(ws.id)}
+                      onRename={(newName) => onRenameWorkspace(ws.id, newName)}
+                      onColorChange={(newColor) => onColorWorkspace(ws.id, newColor)}
+                      onCloseOthers={() => handleCloseOthers(ws.id)}
+                      onCloseToRight={() => handleCloseToRight(ws.id)}
+                    />
+                  </div>
+                );
+              })}
+            </TooltipProvider>
+          </div>
+        )}
 
         {/* Fixed New Workspace Button */}
-        <div className="flex-shrink-0 flex items-center h-6 ml-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onNewWorkspaceFlow}
-            className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded-md transition-all cursor-pointer [-webkit-app-region:no-drag]"
-            title="Configure New Workspace (Ctrl+Alt+N)"
-          >
-            <Plus size={14} />
-          </Button>
-        </div>
+        {showWorkspacesTab && (
+          <div className="flex-shrink-0 flex items-center h-6 ml-1">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onNewWorkspaceFlow}
+              className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded-md transition-all cursor-pointer [-webkit-app-region:no-drag]"
+              title="Configure New Workspace (Ctrl+Alt+N)"
+            >
+              <Plus size={14} />
+            </Button>
+          </div>
+        )}
 
         {/* Global Separator */}
-        <div className="w-[1px] h-4 bg-[var(--border-color)] mx-2 opacity-60" />
+        {showWorkspacesTab && <div className="w-[1px] h-4 bg-[var(--border-color)] mx-2 opacity-60" />}
       </div>
 
       {/* Right Area: Workspace Configuration, Settings & OS Window Buttons */}
       <div className="flex items-center gap-1 flex-shrink-0 h-full [-webkit-app-region:no-drag] ml-1">
 
         {/* Space Templates Dialog Trigger */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onOpenTemplates}
-          className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-all cursor-pointer"
-          title="Space Templates (Ctrl+T)"
-        >
-          <Rocket size={13} />
-        </Button>
+        {showTemplatesButton && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onOpenTemplates}
+            className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-all cursor-pointer"
+            title="Space Templates (Ctrl+T)"
+          >
+            <Rocket size={13} />
+          </Button>
+        )}
 
         {/* Keyboard Shortcuts Dialog Trigger */}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onOpenShortcuts}
-          className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded transition-all cursor-pointer"
-          title="Keyboard Shortcuts (Ctrl+/)"
-        >
-          <Keyboard size={13} />
-        </Button>
+        {showShortcutsButton && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onOpenShortcuts}
+            className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded transition-all cursor-pointer"
+            title="Keyboard Shortcuts (Ctrl+/)"
+          >
+            <Keyboard size={13} />
+          </Button>
+        )}
 
         {/* Global Settings Dialog Trigger */}
         <Button

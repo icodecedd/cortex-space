@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,8 +18,10 @@ interface ConfirmModeChangeDialogProps {
 }
 
 export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDialogProps) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -31,6 +34,7 @@ export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDi
       </DialogTrigger>
       <DialogContent
         showCloseButton={true}
+        open={open}
         className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-2xl"
         style={{
           padding: '2rem 1.5rem 1.5rem',

@@ -21,12 +21,27 @@ _Core engine and architectural foundations._
 - [x] **Enhanced Focus & Navigation:** High-fidelity visual focus states and robust pane focus management.
 - [x] **Advanced Directional Shortcuts:** Directional focus shifting via `Cmd/Ctrl + Opt + Arrows` for complex layouts.
 - [x] **Design-Eng UI:** High-fidelity aesthetics following modern productivity standards.
+- [x] **Physics-Based Motion System:** Implementation of snappy spring animations (`stiffness: 400`, `damping: 30`) and workspace "pushback" (Z-axis scaling + blur) for high-context navigation.
+- [x] **Tiered Modal Transitions:** Consistent, depth-aware entrance/exit animations for all dialogs with built-in support for Reduced Motion preferences.
 - [x] **Bulk Library Management:** Bulk selection and deletion capabilities for managing large collections of snippets.
 - [x] **Contextual Notifications:** Rich toast notification system (Title + Description) with formal styling documentation for clear user feedback.
 
 ---
 
-## 2. 🔒 MUST HAVE
+## 2. 🧪 TO BE VERIFIED
+
+_Features and fixes requiring empirical validation and user feedback._
+
+- [ ] **Reactive Library Launch Fix:**
+  - Verify that launching templates from the Cortex Library correctly creates multi-pane layouts (3+ terminals) when triggered from an existing single-pane workspace.
+- [ ] **Workspace Tab Isolation:**
+  - Verify that launching a template while in an active workspace creates a *new* workspace entry rather than overwriting the current one.
+- [ ] **SpaceView Layout Reactivity:**
+  - Confirm that the `SpaceView` correctly re-renders its layout tree when the underlying configuration is updated via the command palette or library.
+
+---
+
+## 3. 🔒 MUST HAVE
 
 _Critical path items for the next release cycle._
 
