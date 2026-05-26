@@ -21,12 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getSetting, setSetting, getSettingsGroup, setSettingsGroup, ShortcutSettings, SHORTCUT_DEFAULTS } from "@/lib/store";
+import { getSetting, setSetting, getSettingsGroup, setSettingsGroup, ShortcutSettings, SHORTCUT_DEFAULTS, FocusSettings } from "@/lib/store";
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
 import { ThemeName } from "@/hooks/useTheme";
 import { ColorScheme, OpenOnLaunch } from "@/lib/store";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useFocusSettings } from "@/hooks/useFocusSettings";
 import {
   FolderOpen,
   Settings2,
@@ -52,6 +51,9 @@ interface SettingsDialogProps {
   reducedMotion: boolean;
   setReducedMotion: (reduced: boolean) => void;
   onResetAppearance: () => void;
+  focusSettings: FocusSettings;
+  setFocusSetting: <K extends keyof FocusSettings>(key: K, value: FocusSettings[K]) => Promise<void>;
+  resetFocus: () => Promise<void>;
 }
 
 // ─── Re-usable setting row ────────────────────────────────────────────────────
@@ -204,6 +206,9 @@ export function SettingsDialog({
   reducedMotion,
   setReducedMotion,
   onResetAppearance,
+  focusSettings,
+  setFocusSetting,
+  resetFocus,
 }: SettingsDialogProps) {
   const [defaultPath, setDefaultPath] = useState<string>("");
 
@@ -215,7 +220,7 @@ export function SettingsDialog({
   const [defaultShell, setDefaultShell] = useState("");
 
   // Focus settings
-  const { settings: focus, setFocusSetting, resetToDefaults: resetFocus } = useFocusSettings();
+  const focus = focusSettings;
 
   // Shortcut settings
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);

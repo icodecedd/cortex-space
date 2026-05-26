@@ -172,8 +172,8 @@ body::after {
   transform: scale(0.97);
 }
 
-/* Override Shadcn button text color to respect our theme */
-[data-slot="button"] {
+/* Override Shadcn button text color to respect our theme - but only for non-primary/destructive buttons */
+[data-slot="button"]:not(.primary):not([data-variant="default"]):not([data-variant="destructive"]) {
   color: var(--text-primary);
 }
 

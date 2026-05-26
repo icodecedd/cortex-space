@@ -41,11 +41,11 @@ function App() {
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const { settings: colorSchemeSettings, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
-  const { settings: focusSettings, setFocusSetting, toggleZenMode } = useFocusSettings();
+  const { settings: focusSettings, setFocusSetting, toggleZenMode, resetToDefaults: resetFocus } = useFocusSettings();
 
   const { isWindowMaximized, handleMinimize, handleMaximize, handleClose } = useWindowControls();
   const { templates, captureCurrent, deleteTemplate } = useSpaceTemplates();
-  const { snippets, addSnippet, deleteSnippet } = useSnippets();
+  const { snippets, addSnippet, deleteSnippet, deleteSnippets } = useSnippets();
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
@@ -440,6 +440,9 @@ function App() {
         reducedMotion={colorSchemeSettings.reducedMotion}
         setReducedMotion={setReducedMotion}
         onResetAppearance={resetAppearance}
+        focusSettings={focusSettings}
+        setFocusSetting={setFocusSetting}
+        resetFocus={resetFocus}
       />
       <CortexLibraryDialog 
         isOpen={templatesOpen} 
@@ -451,6 +454,7 @@ function App() {
         onCaptureCurrent={handleCaptureCurrent}
         onAddSnippet={addSnippet}
         onDeleteSnippet={deleteSnippet}
+        onDeleteSnippets={deleteSnippets}
         onExecuteSnippet={handleSnippetExecute}
       />
 

@@ -44,6 +44,7 @@ interface CortexLibraryDialogProps {
   onCaptureCurrent: () => void;
   onAddSnippet: (label: string, command: string) => void;
   onDeleteSnippet: (id: string) => void;
+  onDeleteSnippets?: (ids: string[]) => void;
   onExecuteSnippet: (snippet: Snippet, execute: boolean) => void;
 }
 
@@ -57,10 +58,12 @@ export function CortexLibraryDialog({
   onCaptureCurrent,
   onAddSnippet,
   onDeleteSnippet,
+  onDeleteSnippets,
   onExecuteSnippet
 }: CortexLibraryDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("workspaces");
+  const [selectedSnippetIds, setSelectedSnippetIds] = useState<Set<string>>(new Set());
 
   // Snippet Form State
   const [isAddingSnippet, setIsAddSnippet] = useState(false);
@@ -87,16 +90,38 @@ export function CortexLibraryDialog({
     }
   };
 
+  const toggleSnippetSelection = (id: string) => {
+    const next = new Set(selectedSnippetIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedSnippetIds(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedSnippetIds.size === filteredSnippets.length) {
+      setSelectedSnippetIds(new Set());
+    } else {
+      setSelectedSnippetIds(new Set(filteredSnippets.map(s => s.id)));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (onDeleteSnippets && selectedSnippetIds.size > 0) {
+      onDeleteSnippets(Array.from(selectedSnippetIds));
+      setSelectedSnippetIds(new Set());
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
         showCloseButton={true}
         className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-2xl flex flex-col p-0 gap-0 overflow-hidden"
         style={{
-          maxWidth: "900px",
+          maxWidth: "1000px",
           width: "calc(100% - 2rem)",
-          height: "80vh",
-          maxHeight: "800px",
+          height: "85vh",
+          maxHeight: "900px",
         }}
       >
         <div className="flex h-full">
@@ -144,18 +169,32 @@ export function CortexLibraryDialog({
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
             <header className="p-6 pr-12 border-b border-white/5 flex items-center justify-between shrink-0">
-               <div className="relative flex-1 max-w-md">
-                  <Search 
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" 
-                  />
-                  <Input 
-                    placeholder={`Search ${activeTab === 'workspaces' ? 'templates' : 'snippets'}...`}
-                    className="pl-9 text-[13px] h-[36px] bg-white/5 border-white/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]/50"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+               <div className="flex items-center gap-4 flex-1 max-w-xl">
+                  {activeTab === 'commands' && filteredSnippets.length > 0 && (
+                    <button 
+                      onClick={toggleSelectAll}
+                      className={cn(
+                        "w-5 h-5 rounded border transition-all flex items-center justify-center shrink-0",
+                        selectedSnippetIds.size > 0 ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10" : "border-white/10 hover:border-white/20"
+                      )}
+                    >
+                      {selectedSnippetIds.size === filteredSnippets.length && <Plus size={12} className="text-[var(--accent-primary)] rotate-45" />}
+                      {selectedSnippetIds.size > 0 && selectedSnippetIds.size < filteredSnippets.length && <div className="w-2 h-0.5 bg-[var(--accent-primary)] rounded-full" />}
+                    </button>
+                  )}
+                  <div className="relative flex-1">
+                    <Search 
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" 
+                    />
+                    <Input 
+                      placeholder={`Search ${activeTab === 'workspaces' ? 'templates' : 'snippets'}...`}
+                      className="pl-9 text-[13px] h-[36px] bg-white/5 border-white/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]/50"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
                </div>
 
                {activeTab === 'workspaces' ? (
@@ -175,7 +214,7 @@ export function CortexLibraryDialog({
                )}
             </header>
 
-            <ScrollArea className="flex-1 p-6">
+            <ScrollArea className="flex-1 p-6 pb-24">
               {activeTab === 'workspaces' ? (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                   {filteredTemplates.length === 0 ? (
@@ -231,6 +270,8 @@ export function CortexLibraryDialog({
                             <SnippetRow 
                                key={snippet.id} 
                                snippet={snippet} 
+                               isSelected={selectedSnippetIds.has(snippet.id)}
+                               onToggleSelection={() => toggleSnippetSelection(snippet.id)}
                                onDelete={() => onDeleteSnippet(snippet.id)}
                                onExecute={(exec) => onExecuteSnippet(snippet, exec)}
                             />
@@ -240,6 +281,42 @@ export function CortexLibraryDialog({
                 </div>
               )}
             </ScrollArea>
+
+            {/* Bulk Action Bar - Long & Thin Aesthetic */}
+            {activeTab === 'commands' && selectedSnippetIds.size > 0 && (
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-[600px] bg-[#1a1a1e]/90 backdrop-blur-xl border border-white/10 rounded-full py-1.5 px-8 flex items-center justify-between shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-bottom-4 duration-300 z-50">
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-bold tracking-[0.1em] text-white/40 uppercase">
+                    Selection Active
+                  </span>
+                  <div className="w-1 h-1 rounded-full bg-[var(--accent-primary)] animate-pulse" />
+                  <span className="text-[11px] font-bold tracking-tight text-white/80">
+                    <span className="text-[var(--accent-primary)]">{selectedSnippetIds.size}</span> Snippets Marked
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSelectedSnippetIds(new Set())}
+                    className="h-7 px-4 text-[10px] font-bold text-white/30 hover:text-white/60 hover:bg-white/5 rounded-full transition-all"
+                  >
+                    CLEAR
+                  </Button>
+                  <div className="w-px h-3 bg-white/5" />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleBulkDelete}
+                    className="h-7 px-6 text-[10px] font-bold bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded-full border border-red-500/20 transition-all"
+                  >
+                    <Trash2 size={12} className="mr-2" />
+                    CONFIRM DELETE
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
@@ -281,12 +358,37 @@ function TemplateCard({ template, onLaunch, onDelete }: { template: SpaceTemplat
   );
 }
 
-function SnippetRow({ snippet, onDelete, onExecute }: { snippet: Snippet; onDelete: () => void; onExecute: (exec: boolean) => void }) {
+function SnippetRow({ 
+  snippet, 
+  isSelected,
+  onToggleSelection,
+  onDelete, 
+  onExecute 
+}: { 
+  snippet: Snippet; 
+  isSelected: boolean;
+  onToggleSelection: () => void;
+  onDelete: () => void; 
+  onExecute: (exec: boolean) => void 
+}) {
   return (
     <div 
-       className="group flex items-center justify-between p-4 bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-lg transition-all cursor-default"
+       className={cn(
+         "group flex items-center justify-between p-4 bg-white/[0.02] hover:bg-white/[0.04] border rounded-lg transition-all cursor-default",
+         isSelected ? "border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/[0.03]" : "border-white/5"
+       )}
     >
        <div className="flex items-center gap-4 min-w-0">
+          <div 
+            onClick={onToggleSelection}
+            className={cn(
+              "w-5 h-5 rounded border transition-all flex items-center justify-center cursor-pointer shrink-0",
+              isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-white/10 group-hover:border-white/30"
+            )}
+          >
+            {isSelected && <Plus size={12} className="text-black rotate-45" />}
+          </div>
+
           <div className="w-10 h-10 rounded bg-amber-500/5 border border-amber-500/10 flex items-center justify-center shrink-0">
              <Terminal size={18} className="text-amber-500/60" />
           </div>
@@ -295,7 +397,7 @@ function SnippetRow({ snippet, onDelete, onExecute }: { snippet: Snippet; onDele
              <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-black/30 border border-white/5 font-mono text-[11px] text-white/40">
                    <ChevronRightSquare size={10} />
-                   <span className="truncate max-w-[300px]">{snippet.command}</span>
+                   <span className="truncate max-w-[400px]">{snippet.command}</span>
                 </div>
              </div>
           </div>

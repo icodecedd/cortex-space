@@ -34,13 +34,25 @@ export function useSnippets() {
   }, []);
 
   const deleteSnippet = useCallback((id: string) => {
+    const snippet = snippets.find(s => s.id === id);
     setSnippets(prev => prev.filter(s => s.id !== id));
-    toast.info("Snippet Deleted");
+    toast.info("Snippet Removed", {
+      description: snippet ? `"${snippet.label}" has been deleted from your library.` : "The selected snippet has been deleted."
+    });
+  }, [snippets]);
+
+  const deleteSnippets = useCallback((ids: string[]) => {
+    const count = ids.length;
+    setSnippets(prev => prev.filter(s => !ids.includes(s.id)));
+    toast.info("Bulk Deletion Complete", {
+      description: `Successfully removed ${count} snippets from your library.`
+    });
   }, []);
 
   return {
     snippets,
     addSnippet,
-    deleteSnippet
+    deleteSnippet,
+    deleteSnippets
   };
 }

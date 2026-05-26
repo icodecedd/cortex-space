@@ -19,11 +19,13 @@ struct PtySession {
     master: Box<dyn MasterPty + Send>,
     writer: Box<dyn Write + Send>,
     child: Box<dyn Child + Send + Sync>,
+    session_id: u64,
 }
 
 type PtyState = Arc<Mutex<HashMap<String, PtySession>>>;
 
 static PTY_SESSIONS: Lazy<PtyState> = Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
+static SESSION_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 fn get_shell_env() -> HashMap<String, String> {
     let mut env = HashMap::new();
@@ -186,6 +188,8 @@ fn spawn_pty<R: Runtime>(
     let reader = pty_pair.master.try_clone_reader().map_err(|e| format!("Failed to clone reader: {}", e))?;
     let writer = pty_pair.master.take_writer().map_err(|e| format!("Failed to take writer: {}", e))?;
 
+    let session_id = SESSION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
     let mut sessions = PTY_SESSIONS.lock().unwrap();
     // Kill existing session if any with the same ID
     if let Some(mut old_session) = sessions.remove(&id) {
@@ -198,6 +202,7 @@ fn spawn_pty<R: Runtime>(
             master: pty_pair.master,
             writer,
             child,
+            session_id,
         },
     );
 
@@ -220,8 +225,15 @@ fn spawn_pty<R: Runtime>(
                 _ => break, // EOF or error
             }
         }
-        // Notify frontend that this PTY session has terminated
-        let _ = app_clone.emit("pty-exit", id_clone.clone());
+        // Notify frontend that this PTY session has terminated, ONLY if it is still the current active session
+        let mut sessions = PTY_SESSIONS.lock().unwrap();
+        if let Some(session) = sessions.get(&id_clone) {
+            if session.session_id == session_id {
+                sessions.remove(&id_clone);
+                drop(sessions); // Release lock before emitting event to avoid deadlocks
+                let _ = app_clone.emit("pty-exit", id_clone.clone());
+            }
+        }
     });
 
     Ok(())

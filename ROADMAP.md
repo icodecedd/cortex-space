@@ -21,6 +21,8 @@ _Core engine and architectural foundations._
 - [x] **Enhanced Focus & Navigation:** High-fidelity visual focus states and robust pane focus management.
 - [x] **Advanced Directional Shortcuts:** Directional focus shifting via `Cmd/Ctrl + Opt + Arrows` for complex layouts.
 - [x] **Design-Eng UI:** High-fidelity aesthetics following modern productivity standards.
+- [x] **Bulk Library Management:** Bulk selection and deletion capabilities for managing large collections of snippets.
+- [x] **Contextual Notifications:** Rich toast notification system (Title + Description) with formal styling documentation for clear user feedback.
 
 ---
 

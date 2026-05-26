@@ -84,7 +84,9 @@ export function TemplateLibraryDialog({
             </div>
             <Button 
               onClick={onCapture}
-              className="primary btn-tactile bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-[var(--accent-contrast)] gap-2 h-[36px] px-4 font-semibold text-[13px] rounded-md shadow-sm"
+              variant="secondary"
+              className="btn-tactile gap-2 h-[36px] px-4 font-bold text-[13px] rounded-md shadow-sm border-[var(--border-color)] transition-all"
+              style={{ color: "var(--text-primary)" }}
             >
               <Plus className="w-4 h-4" />
               Capture Current

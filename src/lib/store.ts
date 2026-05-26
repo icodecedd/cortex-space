@@ -105,7 +105,7 @@ export const FOCUS_DEFAULTS: FocusSettings = {
   isZenMode: false,
   showTabs: false,
   showStatusBar: false,
-  showPaneHeaders: false,
+  showPaneHeaders: true,
 };
 
 export const SHORTCUT_DEFAULTS: ShortcutSettings = {
