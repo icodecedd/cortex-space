@@ -15,6 +15,7 @@
   --text-primary: #ffffff;
   --text-secondary: #737373;
   --accent-primary: #ffffff;
+  --accent-primary-rgb: 255, 255, 255;
   --accent-contrast: #000000;
 
   /* Emil Kowalski Easing & Timing */

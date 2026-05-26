@@ -10,7 +10,7 @@ interface PtyOutputPayload {
 export function usePty(
   id: string, 
   onData: (data: Uint8Array) => void, 
-  config?: { command?: string; cwd?: string; rows?: number; cols?: number }
+  config?: { command?: string; cwd?: string; rows?: number; cols?: number; shell?: string }
 ) {
   const [isReady, setIsReady] = useState(false);
   const [isTerminated, setIsTerminated] = useState(false);
@@ -24,7 +24,7 @@ export function usePty(
     onDataRef.current = onData;
   }, [onData]);
 
-  const spawn = useCallback(async (spawnConfig: { command?: string; cwd?: string; rows?: number; cols?: number }) => {
+  const spawn = useCallback(async (spawnConfig: { command?: string; cwd?: string; rows?: number; cols?: number; shell?: string }) => {
     try {
       if (!isMountedRef.current) return;
       setIsReady(false);
@@ -35,7 +35,8 @@ export function usePty(
         command: spawnConfig.command || null, 
         cwd: spawnConfig.cwd || null,
         rows: spawnConfig.rows || 24,
-        cols: spawnConfig.cols || 80
+        cols: spawnConfig.cols || 80,
+        shell: spawnConfig.shell || null
       });
       console.log(`[usePty ${id}] PTY spawn succeeded.`);
       
@@ -93,7 +94,8 @@ export function usePty(
       command: config?.command,
       cwd: config?.cwd,
       rows: config?.rows,
-      cols: config?.cols
+      cols: config?.cols,
+      shell: config?.shell
     });
   }, [spawn, config]);
 
@@ -136,9 +138,11 @@ export function usePty(
         command: config?.command,
         cwd: config?.cwd,
         rows: config?.rows,
-        cols: config?.cols
+        cols: config?.cols,
+        shell: config?.shell
       });
     };
+
 
     setup();
 
@@ -156,7 +160,7 @@ export function usePty(
     };
     // ONLY restart if the core process definition changes.
     // Dimensions (rows/cols) changes must be handled by resize() to keep session alive.
-  }, [id, config?.command, config?.cwd, spawn]);
+  }, [id, config?.command, config?.cwd, config?.shell, spawn]);
 
   return { write, resize, isReady, isTerminated, relaunch };
 }

@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { INITIAL_STEP, MAX_STEP } from "@/lib/setup-constants";
 import { useWorkspaceDirectory } from "@/hooks/useWorkspaceDirectory";
 import { usePresets } from "@/hooks/usePresets";
 import { useSetupPanes } from "@/hooks/useSetupPanes";
+import { gridToLayoutNode } from "@/lib/setup-utils";
 import { SetupHeader } from "./setup/SetupHeader";
 import { SetupControls } from "./setup/SetupControls";
 import { StepWorkspace } from "./setup/steps/StepWorkspace";
@@ -59,8 +60,55 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
   const prevStep = () => setStep(s => Math.max(s - 1, INITIAL_STEP));
 
   const handleLaunch = () => {
-    onLaunch({ rootPath, layout, panes: activePanes });
+    const layoutNode = gridToLayoutNode(layout, activePanes);
+    onLaunch({ 
+      rootPath, 
+      layout: layoutNode, 
+      panes: activePanes 
+    });
   };
+
+  // Keyboard navigation shortcuts for the setup process (Emil Kowalski speed & accessibility)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. Next / Advance (Ctrl/Cmd + Enter)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        
+        // Ctrl+Shift+Enter triggers SKIP PREVIEW & LAUNCH in step 2
+        if (step === 2 && e.shiftKey) {
+          if (isStepValid) {
+            handleLaunch();
+          }
+          return;
+        }
+
+        if (step < 3) {
+          if (isStepValid || step === 1) {
+            handleNext();
+          }
+        } else {
+          if (isStepValid) {
+            handleLaunch();
+          }
+        }
+      }
+
+      // 2. Previous / Cancel (Esc)
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (step > 1) {
+          prevStep();
+        } else {
+          onBack();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [step, isStepValid, isValidDir, rootPath, layout, activePanes, onBack]);
+
 
   return (
     <div className="step-container animate-in">

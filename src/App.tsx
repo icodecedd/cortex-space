@@ -16,15 +16,18 @@ import { SettingsDialog } from "./components/dialogs/SettingsDialog";
 import { SplashScreen } from "./components/screens/SplashScreen";
 import { ModeSelectorScreen } from "./components/screens/ModeSelectorScreen";
 import { getSetting } from "./lib/store";
-import { TemplateLibraryDialog } from "./components/dialogs/TemplateLibraryDialog";
+import { CortexLibraryDialog } from "./components/dialogs/CortexLibraryDialog";
+import { WorkspaceSwitcherDialog } from "./components/dialogs/WorkspaceSwitcherDialog";
 import { useSpaceTemplates } from "./hooks/useSpaceTemplates";
-import { flattenLayoutToGrid } from "./lib/setup-utils";
+import { useSnippets } from "./hooks/useSnippets";
 
 declare global {
   interface Window {
     __TAURI_INTERNALS__?: any;
   }
 }
+
+import { useFocusSettings } from "./hooks/useFocusSettings";
 
 function App() {
   const [appState, setAppState] = useState<AppState>('splash');
@@ -35,11 +38,14 @@ function App() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-  const { settings: colorSchemeSettings, setColorScheme, setUiFontScale, resetToDefaults: resetAppearance } = useColorScheme();
+  const { settings: colorSchemeSettings, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
+  const { settings: focusSettings, setFocusSetting, toggleZenMode } = useFocusSettings();
 
   const { isWindowMaximized, handleMinimize, handleMaximize, handleClose } = useWindowControls();
   const { templates, captureCurrent, deleteTemplate } = useSpaceTemplates();
+  const { snippets, addSnippet, deleteSnippet } = useSnippets();
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
@@ -249,11 +255,15 @@ function App() {
   useAppShortcuts({
     workspaces,
     activeWorkspaceId,
+    isZenMode: focusSettings.isZenMode,
     onNewWorkspaceFlow: handleNewWorkspaceFlow,
     onCloseWorkspace: handleCloseWorkspace,
     onSwitchWorkspace: handleSwitchWorkspace,
     onToggleShortcuts: () => setShortcutsOpen(prev => !prev),
-    onToggleTemplates: () => setTemplatesOpen(prev => !prev)
+    onToggleTemplates: () => setTemplatesOpen(prev => !prev),
+    onToggleSettings: () => setSettingsOpen(prev => !prev),
+    onToggleZenMode: toggleZenMode,
+    onToggleSwitcher: () => setSwitcherOpen(prev => !prev)
   });
 
   const handleLaunchTemplate = async (template: SpaceTemplate) => {
@@ -270,13 +280,11 @@ function App() {
        console.warn("Failed to verify directory existence:", err);
     }
 
-    // Flatten tree layout back to panes array and a layout string for the current rigid system
-    const { panes, layout } = flattenLayoutToGrid(template.layout);
-
+    // Use the tree layout directly for the new resizable system
     const config = {
       rootPath: template.rootPath,
-      layout: layout, // This will be '1x1', '1x2', etc.
-      panes: panes
+      layout: template.layout,
+      panes: [] // No longer need the flat panes array as primary
     };
 
     handleLaunch(config);
@@ -304,9 +312,26 @@ function App() {
     );
   };
 
+  const showHeader = appState === 'running' && (!focusSettings.isZenMode || focusSettings.showTabs);
+  const showFooter = appState === 'running' && (!focusSettings.isZenMode || focusSettings.showStatusBar);
+
+  const handleSnippetExecute = (snippet: any, execute: boolean) => {
+    if (!activeWorkspaceId) return;
+    
+    // Dispatch custom event to let the focused terminal handle the injection
+    const event = new CustomEvent('cortex:write-to-terminal', {
+      detail: {
+        workspaceId: activeWorkspaceId,
+        command: snippet.command,
+        execute
+      }
+    });
+    window.dispatchEvent(event);
+  };
+
   return (
     <div id="root" className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--bg-color)]">
-      {appState === 'running' && (
+      {showHeader && (
         <AppHeader
           workspaces={workspaces}
           activeWorkspaceId={activeWorkspaceId}
@@ -334,7 +359,7 @@ function App() {
         alignItems: activeWorkspace?.status === 'active' ? 'stretch' : 'center',
         overflow: 'hidden'
       }}>
-        {appState === 'splash' && <SplashScreen splashKey={splashKey} />}
+        {appState === 'splash' && <SplashScreen splashKey={splashKey} reducedMotion={colorSchemeSettings.reducedMotion} />}
 
         {appState === 'running' && workspaces.map(ws => {
           const isCurrent = activeWorkspaceId === ws.id;
@@ -387,6 +412,10 @@ function App() {
                   theme={theme}
                   setTheme={setTheme}
                   onStop={() => handleCloseWorkspace(ws.id)}
+                  isZenMode={focusSettings.isZenMode}
+                  setIsZenMode={(v) => setFocusSetting('isZenMode', v)}
+                  zenPadding={colorSchemeSettings.zenPadding}
+                  showPaneHeaders={focusSettings.showPaneHeaders}
                 />
               </div>
             );
@@ -406,18 +435,43 @@ function App() {
         setColorScheme={setColorScheme}
         uiFontScale={colorSchemeSettings.uiFontScale}
         setUiFontScale={setUiFontScale}
+        zenPadding={colorSchemeSettings.zenPadding}
+        setZenPadding={setZenPadding}
+        reducedMotion={colorSchemeSettings.reducedMotion}
+        setReducedMotion={setReducedMotion}
         onResetAppearance={resetAppearance}
       />
-      <TemplateLibraryDialog 
+      <CortexLibraryDialog 
         isOpen={templatesOpen} 
         onOpenChange={setTemplatesOpen}
         templates={templates}
-        onLaunch={handleLaunchTemplate}
-        onDelete={deleteTemplate}
-        onCapture={handleCaptureCurrent}
+        snippets={snippets}
+        onLaunchTemplate={handleLaunchTemplate}
+        onDeleteTemplate={deleteTemplate}
+        onCaptureCurrent={handleCaptureCurrent}
+        onAddSnippet={addSnippet}
+        onDeleteSnippet={deleteSnippet}
+        onExecuteSnippet={handleSnippetExecute}
       />
 
-      {appState === 'running' && (
+      <WorkspaceSwitcherDialog
+        isOpen={switcherOpen}
+        onOpenChange={setSwitcherOpen}
+        workspaces={workspaces}
+        activeWorkspaceId={activeWorkspaceId}
+        templates={templates}
+        snippets={snippets}
+        onSwitchWorkspace={handleSwitchWorkspace}
+        onLaunchTemplate={handleLaunchTemplate}
+        onSnippetExecute={handleSnippetExecute}
+        onToggleZenMode={toggleZenMode}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenShortcuts={() => setShortcutsOpen(true)}
+        onOpenTemplates={() => setTemplatesOpen(true)}
+        onSetTheme={setTheme}
+      />
+
+      {showFooter && (
         <AppFooter
           theme={theme}
           setTheme={(newTheme) => setTheme(newTheme as ThemeName)}

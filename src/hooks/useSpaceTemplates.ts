@@ -26,12 +26,18 @@ export function useSpaceTemplates() {
   const captureCurrent = useCallback((
     name: string,
     rootPath: string,
-    layout: LayoutType,
+    layout: LayoutType | LayoutNode,
     panes: PaneConfig[],
     mode: Mode,
     description?: string
   ) => {
-    const layoutNode = convertGridLayoutToTree(layout, panes);
+    let layoutNode: LayoutNode;
+    
+    if (typeof layout === 'string') {
+      layoutNode = convertGridLayoutToTree(layout, panes);
+    } else {
+      layoutNode = layout;
+    }
     
     const newTemplate: SpaceTemplate = {
       id: crypto.randomUUID(),
