@@ -44,12 +44,45 @@ export interface StartupSettings {
   rememberLastMode: boolean;
   openOnLaunch: OpenOnLaunch;
   checkForUpdatesOnStartup: boolean;
+  defaultShell: string;
 }
 
 export interface AppearanceSettings {
   [key: string]: unknown;
   colorScheme: ColorScheme;
   uiFontScale: number;
+  zenPadding: number;
+  reducedMotion: boolean;
+}
+
+export interface ShortcutSettings {
+  [key: string]: string;
+  toggleZenMode: string;
+  newWorkspace: string;
+  closeWorkspace: string;
+  cycleNextWorkspace: string;
+  cyclePrevWorkspace: string;
+  openShortcuts: string;
+  openTemplates: string;
+  openSettings: string;
+  quickSwitcher: string;
+}
+
+export interface FocusSettings {
+  [key: string]: unknown;
+  isZenMode: boolean;
+  showTabs: boolean;
+  showStatusBar: boolean;
+  showPaneHeaders: boolean;
+}
+
+export interface DemoSettings {
+  [key: string]: unknown;
+  showWorkspacesTab: boolean;
+  showTemplatesButton: boolean;
+  showShortcutsButton: boolean;
+  showModeShortcutHints: boolean;
+  showTerminalShortcutHints: boolean;
 }
 
 export const TERMINAL_DEFAULTS: TerminalSettings = {
@@ -67,11 +100,41 @@ export const STARTUP_DEFAULTS: StartupSettings = {
   rememberLastMode: false,
   openOnLaunch: 'modeSelector',
   checkForUpdatesOnStartup: true,
+  defaultShell: '',
 };
 
 export const APPEARANCE_DEFAULTS: AppearanceSettings = {
   colorScheme: 'dark',
   uiFontScale: 100,
+  zenPadding: 32,
+  reducedMotion: false,
+};
+
+export const FOCUS_DEFAULTS: FocusSettings = {
+  isZenMode: false,
+  showTabs: false,
+  showStatusBar: false,
+  showPaneHeaders: true,
+};
+
+export const DEMO_DEFAULTS: DemoSettings = {
+  showWorkspacesTab: true,
+  showTemplatesButton: true,
+  showShortcutsButton: true,
+  showModeShortcutHints: true,
+  showTerminalShortcutHints: true,
+};
+
+export const SHORTCUT_DEFAULTS: ShortcutSettings = {
+  toggleZenMode: 'Ctrl+Shift+Z',
+  newWorkspace: 'Ctrl+Alt+N',
+  closeWorkspace: 'Ctrl+Shift+W',
+  cycleNextWorkspace: 'Ctrl+Tab',
+  cyclePrevWorkspace: 'Ctrl+Shift+Tab',
+  openShortcuts: 'Ctrl+/',
+  openTemplates: 'Ctrl+T',
+  openSettings: 'Ctrl+,',
+  quickSwitcher: 'Ctrl+K',
 };
 
 // ---------------------------------------------------------------------------

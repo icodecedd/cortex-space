@@ -15,6 +15,7 @@
   --text-primary: #ffffff;
   --text-secondary: #737373;
   --accent-primary: #ffffff;
+  --accent-primary-rgb: 255, 255, 255;
   --accent-contrast: #000000;
 
   /* Emil Kowalski Easing & Timing */
@@ -171,8 +172,8 @@ body::after {
   transform: scale(0.97);
 }
 
-/* Override Shadcn button text color to respect our theme */
-[data-slot="button"] {
+/* Override Shadcn button text color to respect our theme - but only for non-primary/destructive buttons */
+[data-slot="button"]:not(.primary):not([data-variant="default"]):not([data-variant="destructive"]) {
   color: var(--text-primary);
 }
 

@@ -3,6 +3,25 @@ import { getSetting, setSetting } from '@/lib/store';
 
 export type ThemeName = 'ayu' | 'catppuccin' | 'iceberg' | 'nvim' | 'monochrome' | 'soft-monochrome' | 'cortex';
 
+export interface AnsiColors {
+  black: string;
+  red: string;
+  green: string;
+  yellow: string;
+  blue: string;
+  magenta: string;
+  cyan: string;
+  white: string;
+  brightBlack: string;
+  brightRed: string;
+  brightGreen: string;
+  brightYellow: string;
+  brightBlue: string;
+  brightMagenta: string;
+  brightCyan: string;
+  brightWhite: string;
+}
+
 interface ThemeDefinition {
   name: string;
   bg: string;
@@ -13,9 +32,10 @@ interface ThemeDefinition {
   textPrimary: string;
   textSecondary: string;
   accent: string;
+  ansi?: Partial<AnsiColors>;
 }
 
-const THEMES: Record<ThemeName, ThemeDefinition> = {
+export const THEMES: Record<ThemeName, ThemeDefinition> = {
   ayu: {
     name: "Ayu Mirage",
     bg: "#1a1f29",
@@ -26,6 +46,16 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
     textPrimary: "#cbccc6",
     textSecondary: "#707a8c",
     accent: "#ffcc66",
+    ansi: {
+      black: '#191e2a',
+      red: '#ed8274',
+      green: '#a6cc70',
+      yellow: '#fad07b',
+      blue: '#6dcbfa',
+      magenta: '#cfbafa',
+      cyan: '#90e1c6',
+      white: '#c7c7c7',
+    }
   },
   catppuccin: {
     name: "Catppuccin Mocha",
@@ -37,6 +67,16 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
     textPrimary: "#cdd6f4",
     textSecondary: "#7f849c",
     accent: "#89b4fa",
+    ansi: {
+      black: '#45475a',
+      red: '#f38ba8',
+      green: '#a6e3a1',
+      yellow: '#f9e2af',
+      blue: '#89b4fa',
+      magenta: '#f5c2e7',
+      cyan: '#94e2d5',
+      white: '#bac2de',
+    }
   },
   iceberg: {
     name: "Iceberg Dark",
@@ -48,6 +88,16 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
     textPrimary: "#c6c8d1",
     textSecondary: "#6b7089",
     accent: "#84a0c6",
+    ansi: {
+      black: '#161821',
+      red: '#e27878',
+      green: '#b4be82',
+      yellow: '#e2a478',
+      blue: '#84a0c6',
+      magenta: '#a093c7',
+      cyan: '#89b8c2',
+      white: '#c6c8d1',
+    }
   },
   nvim: {
     name: "Nvim Dark",
@@ -59,6 +109,16 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
     textPrimary: "#e0e2ea",
     textSecondary: "#4f5258",
     accent: "#a6dbff",
+    ansi: {
+      black: '#011627',
+      red: '#ef5350',
+      green: '#22da6e',
+      yellow: '#addb67',
+      blue: '#82aaff',
+      magenta: '#c792ea',
+      cyan: '#21c7a8',
+      white: '#ffffff',
+    }
   },
   monochrome: {
     name: "Monochromatic Luxe",
@@ -70,6 +130,16 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
     textPrimary: "#ffffff",
     textSecondary: "#737373",
     accent: "#ffffff",
+    ansi: {
+      black: '#000000',
+      red: '#ffffff',
+      green: '#ffffff',
+      yellow: '#ffffff',
+      blue: '#ffffff',
+      magenta: '#ffffff',
+      cyan: '#ffffff',
+      white: '#ffffff',
+    }
   },
   'soft-monochrome': {
     name: "Soft Monochrome",
@@ -81,6 +151,16 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
     textPrimary: "#e5e5e5",
     textSecondary: "#8a8a8a",
     accent: "#e5e5e5",
+    ansi: {
+      black: '#121212',
+      red: '#e5e5e5',
+      green: '#e5e5e5',
+      yellow: '#e5e5e5',
+      blue: '#e5e5e5',
+      magenta: '#e5e5e5',
+      cyan: '#e5e5e5',
+      white: '#e5e5e5',
+    }
   },
   cortex: {
     name: "Cortex Default",
@@ -92,6 +172,16 @@ const THEMES: Record<ThemeName, ThemeDefinition> = {
     textPrimary: "#E2E2EC",
     textSecondary: "#6B6B80",
     accent: "#FF3399",
+    ansi: {
+      black: '#000000',
+      red: '#ff5555',
+      green: '#50fa7b',
+      yellow: '#f1fa8c',
+      blue: '#bd93f9',
+      magenta: '#ff79c6',
+      cyan: '#8be9fd',
+      white: '#f8f8f2',
+    }
   }
 };
 

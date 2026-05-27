@@ -1,72 +1,135 @@
-export function getPaneCount(layout: string) {
-  switch (layout) {
-    case '1x1': return 1;
-    case '1x2':
-    case '2x1': return 2;
-    case '2x2': return 4;
-    case '3x3': return 9;
-    default: return 4;
-  }
+import { LayoutConfig, PaneConfig } from "./setup-constants";
+import { LayoutNode, SplitNode } from "@/types";
+
+export function getPaneCount(layout: LayoutConfig) {
+  return layout.rows * layout.cols;
 }
 
-export function getGridCols(layout: string) {
-  if (layout === '1x1') return '1fr';
-  if (layout === '1x2') return '1fr 1fr';
-  if (layout === '2x1') return '1fr';
-  if (layout === '2x2') return '1fr 1fr';
-  if (layout === '3x3') return '1fr 1fr 1fr';
-  return '1fr 1fr';
+export function getGridCols(layout: LayoutConfig) {
+  return `repeat(${layout.cols}, 1fr)`;
 }
 
-export function getGridRows(layout: string) {
-  if (layout === '1x1') return '1fr';
-  if (layout === '1x2') return '1fr';
-  if (layout === '2x1') return '1fr 1fr';
-  if (layout === '2x2') return '1fr 1fr';
-  if (layout === '3x3') return '1fr 1fr 1fr';
-  return '1fr 1fr';
+export function getGridRows(layout: LayoutConfig) {
+  return `repeat(${layout.rows}, 1fr)`;
 }
 
-export function getGridTemplate(layout: string, isMobile: boolean) {
+export function getGridTemplate(layout: LayoutConfig, isMobile: boolean) {
   if (isMobile) return '1fr / 1fr';
-  switch (layout) {
-    case '1x1': return '1fr / 1fr';
-    case '1x2': return '1fr / 1fr 1fr';
-    case '2x1': return '1fr 1fr / 1fr';
-    case '2x2': return '1fr 1fr / 1fr 1fr';
-    case '3x3': return '1fr 1fr 1fr / 1fr 1fr 1fr';
-    default: return '1fr 1fr / 1fr 1fr';
-  }
+  return `repeat(${layout.rows}, 1fr) / repeat(${layout.cols}, 1fr)`;
 }
 
-import { LayoutNode, PaneNode } from "@/types";
-import { PaneConfig } from "./setup-constants";
+export function gridToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): LayoutNode {
+  const { rows, cols } = config;
 
-export function flattenLayoutToGrid(layout: LayoutNode): { panes: PaneConfig[], layout: string } {
-  const panes: PaneConfig[] = [];
-  
-  const traverse = (node: LayoutNode) => {
-    if (node.type === 'pane') {
-      const paneNode = node as PaneNode;
-      panes.push({
-        id: parseInt(paneNode.id) || panes.length + 1,
-        name: paneNode.name,
-        command: paneNode.command,
-        isCustom: true
-      });
-    } else {
-      node.children.forEach(traverse);
+  if (rows === 1 && cols === 1) {
+    return {
+      type: 'pane',
+      id: panes[0]?.id.toString() || '1',
+      name: panes[0]?.name || 'Pane 1',
+      command: panes[0]?.command || ''
+    };
+  }
+
+  // Helper to build a tree from a slice of panes
+  const buildGridTree = (paneSlice: PaneConfig[], r: number, c: number): LayoutNode => {
+    if (paneSlice.length === 1) {
+      return {
+        type: 'pane',
+        id: paneSlice[0].id.toString(),
+        name: paneSlice[0].name,
+        command: paneSlice[0].command
+      };
+    }
+
+    // If more than 1 row, split vertically first
+    if (r > 1) {
+      const splitRow = Math.ceil(r / 2);
+      const topCount = splitRow * c;
+      return {
+        type: 'split',
+        direction: 'vertical',
+        ratio: splitRow / r,
+        children: [
+          buildGridTree(paneSlice.slice(0, topCount), splitRow, c),
+          buildGridTree(paneSlice.slice(topCount), r - splitRow, c)
+        ]
+      };
+    }
+
+    // If only 1 row but multiple columns, split horizontally
+    const splitCol = Math.ceil(c / 2);
+    return {
+      type: 'split',
+      direction: 'horizontal',
+      ratio: splitCol / c,
+      children: [
+        buildGridTree(paneSlice.slice(0, splitCol), 1, splitCol),
+        buildGridTree(paneSlice.slice(splitCol), 1, c - splitCol)
+      ]
+    };
+  };
+
+  return buildGridTree(panes.slice(0, rows * cols), rows, cols);
+}
+
+export function findNeighborPane(
+  root: LayoutNode,
+  currentId: string,
+  direction: 'up' | 'down' | 'left' | 'right'
+): string | null {
+  // 1. Build a map of parent pointers and find the current node
+  const parentMap = new Map<LayoutNode, { parent: LayoutNode, index: number }>();
+  let currentNode: LayoutNode | null = null;
+
+  const traverse = (node: LayoutNode, parent?: LayoutNode, index?: number) => {
+    if (parent !== undefined && index !== undefined) {
+      parentMap.set(node, { parent, index });
+    }
+    if (node.type === 'pane' && node.id === currentId) {
+      currentNode = node;
+    }
+    if (node.type === 'split') {
+      node.children.forEach((child, i) => traverse(child, node, i));
     }
   };
 
-  traverse(layout);
+  traverse(root);
 
-  // Map count back to rigid grid strings
-  let layoutStr = '2x2';
-  if (panes.length === 1) layoutStr = '1x1';
-  else if (panes.length === 2) layoutStr = '1x2'; // Default to 2 columns
-  else if (panes.length <= 4) layoutStr = '2x2';
-  else layoutStr = '3x3';
+  if (!currentNode) return null;
 
-  return { panes, layout: layoutStr };
+  // 2. Map directions to split types and sibling indices
+  const targetDirection = (direction === 'left' || direction === 'right') ? 'horizontal' : 'vertical';
+  const targetIndex = (direction === 'left' || direction === 'up') ? 1 : 0;
+
+  let searchNode: LayoutNode = currentNode;
+  while (true) {
+    const parentInfo = parentMap.get(searchNode);
+    if (!parentInfo) break; // Reached root
+
+    const { parent, index } = parentInfo;
+    const split = parent as SplitNode;
+
+    if (split.direction === targetDirection && index === targetIndex) {
+      const siblingIndex = targetIndex === 1 ? 0 : 1;
+      const siblingNode = split.children[siblingIndex];
+      return findDeepestPane(siblingNode, direction);
+    }
+
+    searchNode = parent;
+  }
+
+  return null;
+}
+
+function findDeepestPane(node: LayoutNode, fromDirection: 'up' | 'down' | 'left' | 'right'): string {
+  if (node.type === 'pane') return node.id;
+
+  let nextIndex = 0;
+  if (fromDirection === 'left' || fromDirection === 'up') {
+    nextIndex = 1; 
+  } else {
+    nextIndex = 0;
+  }
+
+  return findDeepestPane(node.children[nextIndex], fromDirection);
 }

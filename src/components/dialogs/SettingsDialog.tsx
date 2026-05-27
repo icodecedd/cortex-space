@@ -5,7 +5,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getSetting, setSetting } from "@/lib/store";
+import { getSetting, setSetting, getSettingsGroup, setSettingsGroup, ShortcutSettings, SHORTCUT_DEFAULTS, FocusSettings, DemoSettings } from "@/lib/store";
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
 import { ThemeName } from "@/hooks/useTheme";
 import { ColorScheme, OpenOnLaunch } from "@/lib/store";
@@ -34,6 +33,9 @@ import {
   Info,
   Terminal,
   RotateCcw,
+  Target,
+  Keyboard,
+  FlaskConical,
 } from "lucide-react";
 
 interface SettingsDialogProps {
@@ -45,7 +47,17 @@ interface SettingsDialogProps {
   setColorScheme: (scheme: ColorScheme) => void;
   uiFontScale: number;
   setUiFontScale: (scale: number) => void;
+  zenPadding: number;
+  setZenPadding: (padding: number) => void;
+  reducedMotion: boolean;
+  setReducedMotion: (reduced: boolean) => void;
   onResetAppearance: () => void;
+  focusSettings: FocusSettings;
+  setFocusSetting: <K extends keyof FocusSettings>(key: K, value: FocusSettings[K]) => Promise<void>;
+  resetFocus: () => Promise<void>;
+  demoSettings: DemoSettings;
+  setDemoSetting: <K extends keyof DemoSettings>(key: K, value: DemoSettings[K]) => Promise<void>;
+  resetDemo: () => Promise<void>;
 }
 
 // ─── Re-usable setting row ────────────────────────────────────────────────────
@@ -193,7 +205,17 @@ export function SettingsDialog({
   setColorScheme,
   uiFontScale,
   setUiFontScale,
+  zenPadding,
+  setZenPadding,
+  reducedMotion,
+  setReducedMotion,
   onResetAppearance,
+  focusSettings,
+  setFocusSetting,
+  resetFocus,
+  demoSettings,
+  setDemoSetting,
+  resetDemo,
 }: SettingsDialogProps) {
   const [defaultPath, setDefaultPath] = useState<string>("");
 
@@ -202,6 +224,16 @@ export function SettingsDialog({
   const [rememberMode, setRememberMode] = useState(false);
   const [openOnLaunch, setOpenOnLaunch] = useState<OpenOnLaunch>("modeSelector");
   const [checkUpdates, setCheckUpdates] = useState(true);
+  const [defaultShell, setDefaultShell] = useState("");
+
+  // Focus settings
+  const focus = focusSettings;
+  
+  // Demo settings
+  const demo = demoSettings;
+
+  // Shortcut settings
+  const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
 
   // Terminal settings via hook
   const {
@@ -213,7 +245,7 @@ export function SettingsDialog({
     resetToDefaults: resetTerminal,
   } = useTerminalSettings();
 
-  // Load general + startup settings
+  // Load general + startup + shortcuts
   useEffect(() => {
     if (!isOpen) return;
     (async () => {
@@ -226,6 +258,10 @@ export function SettingsDialog({
       setCheckUpdates(
         await getSetting("startup.checkForUpdatesOnStartup", true)
       );
+      setDefaultShell(await getSetting("startup.defaultShell", ""));
+      
+      const savedShortcuts = await getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS);
+      setShortcuts(savedShortcuts);
     })();
   }, [isOpen]);
 
@@ -259,12 +295,31 @@ export function SettingsDialog({
     setRememberMode(false);
     setOpenOnLaunch("modeSelector");
     setCheckUpdates(true);
+    setDefaultShell("");
     await Promise.all([
       setSetting("startup.showSplashAnimation", true),
       setSetting("startup.rememberLastMode", false),
       setSetting("startup.openOnLaunch", "modeSelector"),
       setSetting("startup.checkForUpdatesOnStartup", true),
+      setSetting("startup.defaultShell", ""),
     ]);
+  };
+
+  const handleShortcutChange = async (key: keyof ShortcutSettings, value: string) => {
+    const updated = { ...shortcuts, [key]: value };
+    setShortcuts(updated);
+    await setSetting(`shortcuts.${key}`, value);
+    window.dispatchEvent(new CustomEvent('cortex-settings-changed', { 
+      detail: { shortcuts: updated } 
+    }));
+  };
+
+  const handleResetShortcuts = async () => {
+    setShortcuts(SHORTCUT_DEFAULTS);
+    await setSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS);
+    window.dispatchEvent(new CustomEvent('cortex-settings-changed', { 
+      detail: { shortcuts: SHORTCUT_DEFAULTS } 
+    }));
   };
 
   const themes: {
@@ -317,7 +372,8 @@ export function SettingsDialog({
     },
   ];
 
-  const fontFamilies = [
+  const
+  fontFamilies = [
     // Standard monospace fonts
     { value: 'JetBrains Mono', label: 'JetBrains Mono' },
     { value: 'Fira Code', label: 'Fira Code' },
@@ -340,6 +396,8 @@ export function SettingsDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={true}
+        isDeep={true}
+        open={isOpen}
         className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-2xl flex flex-col"
         style={{
           padding: "2rem 1.5rem 1.5rem",
@@ -365,31 +423,52 @@ export function SettingsDialog({
           defaultValue="general"
           className="w-full flex-1 flex flex-col overflow-hidden mt-4"
         >
-          <TabsList className="w-full grid grid-cols-4 shrink-0">
+          <TabsList className="w-full grid grid-cols-7 shrink-0">
             <TabsTrigger
               value="general"
-              className="gap-1.5 text-[12px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
+              className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
             >
               <Settings2 size={13} />
               General
             </TabsTrigger>
             <TabsTrigger
+              value="focus"
+              className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
+            >
+              <Target size={13} />
+              Focus
+            </TabsTrigger>
+            <TabsTrigger
+              value="shortcuts"
+              className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
+            >
+              <Keyboard size={13} />
+              Keys
+            </TabsTrigger>
+            <TabsTrigger
               value="terminal"
-              className="gap-1.5 text-[12px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
+              className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
             >
               <Terminal size={13} />
               Terminal
             </TabsTrigger>
             <TabsTrigger
               value="themes"
-              className="gap-1.5 text-[12px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
+              className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
             >
               <Palette size={13} />
               Themes
             </TabsTrigger>
             <TabsTrigger
+              value="demo"
+              className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
+            >
+              <FlaskConical size={13} />
+              Demo
+            </TabsTrigger>
+            <TabsTrigger
               value="about"
-              className="gap-1.5 text-[12px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
+              className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10"
             >
               <Info size={13} />
               About
@@ -444,6 +523,40 @@ export function SettingsDialog({
                       {uiFontScale}%
                     </span>
                   </div>
+                </SettingsRow>
+                <SettingsRow
+                  label="Zen Mode Padding"
+                  description="Padding around the terminal in Zen Mode (0–100px)."
+                  htmlFor="zen-padding-slider"
+                >
+                  <div className="flex items-center gap-3 w-[180px]">
+                    <Slider
+                      id="zen-padding-slider"
+                      min={0}
+                      max={100}
+                      step={4}
+                      value={[zenPadding]}
+                      onValueChange={([v]) => setZenPadding(v)}
+                      className="flex-1"
+                    />
+                    <span
+                      className="text-[12px] font-mono w-[36px] text-right"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {zenPadding}px
+                    </span>
+                  </div>
+                </SettingsRow>
+                <SettingsRow
+                  label="Reduced Motion"
+                  description="Disable or simplify animations across the interface."
+                  htmlFor="reduced-motion-toggle"
+                >
+                  <Switch
+                    id="reduced-motion-toggle"
+                    checked={reducedMotion}
+                    onCheckedChange={setReducedMotion}
+                  />
                 </SettingsRow>
               </div>
 
@@ -512,6 +625,26 @@ export function SettingsDialog({
                   </Select>
                 </SettingsRow>
                 <SettingsRow
+                  label="Default Shell"
+                  description="Specific shell path (e.g. /bin/zsh). Leave empty for system default."
+                  htmlFor="default-shell-input"
+                >
+                  <Input
+                    id="default-shell-input"
+                    value={defaultShell}
+                    placeholder="Auto"
+                    onChange={async (e) => {
+                      const v = e.target.value;
+                      setDefaultShell(v);
+                      await setSetting("startup.defaultShell", v);
+                      window.dispatchEvent(new CustomEvent('cortex-settings-changed', { 
+                        detail: { startup: { defaultShell: v } } 
+                      }));
+                    }}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)]"
+                  />
+                </SettingsRow>
+                <SettingsRow
                   label="Check for Updates on Startup"
                   description="Automatically check for Cortex Space updates when the app opens."
                   htmlFor="check-updates-toggle"
@@ -556,6 +689,219 @@ export function SettingsDialog({
                     Browse
                   </Button>
                 </div>
+              </div>
+            </TabsContent>
+
+            {/* ── FOCUS TAB ── */}
+            <TabsContent
+              value="focus"
+              className="m-0 space-y-0 animate-in fade-in-0 duration-300"
+            >
+              <SectionHeader title="Zen Mode Preferences" onReset={resetFocus} />
+              <div className="space-y-1">
+                <SettingsRow
+                  label="Persist Zen Mode"
+                  description="Keep Zen Mode active across app restarts."
+                  htmlFor="zen-persist-toggle"
+                >
+                  <Switch
+                    id="zen-persist-toggle"
+                    checked={focus.isZenMode}
+                    onCheckedChange={(v) => setFocusSetting("isZenMode", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Tabs in Zen Mode"
+                  description="Keep the workspace tab bar visible even in Zen Mode."
+                  htmlFor="zen-tabs-toggle"
+                >
+                  <Switch
+                    id="zen-tabs-toggle"
+                    checked={focus.showTabs}
+                    onCheckedChange={(v) => setFocusSetting("showTabs", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Status Bar in Zen Mode"
+                  description="Keep the bottom status/theme bar visible even in Zen Mode."
+                  htmlFor="zen-status-toggle"
+                >
+                  <Switch
+                    id="zen-status-toggle"
+                    checked={focus.showStatusBar}
+                    onCheckedChange={(v) => setFocusSetting("showStatusBar", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Pane Headers"
+                  description="Show the skeuomorphic capsule headers on terminal panes."
+                  htmlFor="pane-headers-toggle"
+                >
+                  <Switch
+                    id="pane-headers-toggle"
+                    checked={focus.showPaneHeaders}
+                    onCheckedChange={(v) => setFocusSetting("showPaneHeaders", v)}
+                  />
+                </SettingsRow>
+              </div>
+            </TabsContent>
+
+            {/* ── DEMO TAB ── */}
+            <TabsContent
+              value="demo"
+              className="m-0 space-y-0 animate-in fade-in-0 duration-300"
+            >
+              <SectionHeader title="Demo Features" onReset={resetDemo} />
+              <div className="space-y-1">
+                <SettingsRow
+                  label="Show Workspaces Tab"
+                  description="Toggle visibility of the workspace tabs in the header."
+                  htmlFor="demo-workspaces-toggle"
+                >
+                  <Switch
+                    id="demo-workspaces-toggle"
+                    checked={demo.showWorkspacesTab}
+                    onCheckedChange={(v) => setDemoSetting("showWorkspacesTab", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Cortex Library Button"                  description="Toggle visibility of the Space Templates (Rocket) button in the header."
+                  htmlFor="demo-templates-toggle"
+                >
+                  <Switch
+                    id="demo-templates-toggle"
+                    checked={demo.showTemplatesButton}
+                    onCheckedChange={(v) => setDemoSetting("showTemplatesButton", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Keyboard Shortcuts Button"
+                  description="Toggle visibility of the Keyboard Shortcuts button in the header."
+                  htmlFor="demo-shortcuts-toggle"
+                >
+                  <Switch
+                    id="demo-shortcuts-toggle"
+                    checked={demo.showShortcutsButton}
+                    onCheckedChange={(v) => setDemoSetting("showShortcutsButton", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Mode Shortcut Hints"
+                  description="Toggle visibility of the Kbd shortcut hints in the Mode Selector screen."
+                  htmlFor="demo-mode-shortcuts-toggle"
+                >
+                  <Switch
+                    id="demo-mode-shortcuts-toggle"
+                    checked={demo.showModeShortcutHints}
+                    onCheckedChange={(v) => setDemoSetting("showModeShortcutHints", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Terminal Shortcut Hints"
+                  description="Toggle visibility of the Kbd shortcut hints on terminal panes (e.g. Ctrl+Alt+R)."
+                  htmlFor="demo-terminal-shortcuts-toggle"
+                >
+                  <Switch
+                    id="demo-terminal-shortcuts-toggle"
+                    checked={demo.showTerminalShortcutHints}
+                    onCheckedChange={(v) => setDemoSetting("showTerminalShortcutHints", v)}
+                  />
+                </SettingsRow>
+              </div>
+            </TabsContent>
+
+            {/* ── SHORTCUTS TAB ── */}
+            <TabsContent
+              value="shortcuts"
+              className="m-0 space-y-0 animate-in fade-in-0 duration-300"
+            >
+              <SectionHeader title="Global Hotkeys" onReset={handleResetShortcuts} />
+              <div className="space-y-1">
+                <SettingsRow
+                  label="Toggle Zen Mode"
+                  description="Quickly switch between normal and focus view."
+                >
+                  <Input
+                    value={shortcuts.toggleZenMode}
+                    onChange={(e) => handleShortcutChange('toggleZenMode', e.target.value)}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="New Workspace Flow"
+                  description="Open the workspace configuration screen."
+                >
+                  <Input
+                    value={shortcuts.newWorkspace}
+                    onChange={(e) => handleShortcutChange('newWorkspace', e.target.value)}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Close Active Workspace"
+                  description="Instantly terminate the current session."
+                >
+                  <Input
+                    value={shortcuts.closeWorkspace}
+                    onChange={(e) => handleShortcutChange('closeWorkspace', e.target.value)}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Cycle Next Workspace"
+                >
+                  <Input
+                    value={shortcuts.cycleNextWorkspace}
+                    onChange={(e) => handleShortcutChange('cycleNextWorkspace', e.target.value)}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Cycle Prev Workspace"
+                >
+                  <Input
+                    value={shortcuts.cyclePrevWorkspace}
+                    onChange={(e) => handleShortcutChange('cyclePrevWorkspace', e.target.value)}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Quick Switcher"
+                  description="Search and jump to any active workspace."
+                >
+                  <Input
+                    value={shortcuts.quickSwitcher}
+                    onChange={(e) => handleShortcutChange('quickSwitcher', e.target.value)}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Shortcuts Cheatsheet"
+                >
+                  <Input
+                    value={shortcuts.openShortcuts}
+                    onChange={(e) => handleShortcutChange('openShortcuts', e.target.value)}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Manage Templates"
+                >
+                  <Input
+                    value={shortcuts.openTemplates}
+                    onChange={(e) => handleShortcutChange('openTemplates', e.target.value)}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Open Preferences"
+                >
+                  <Input
+                    value={shortcuts.openSettings}
+                    onChange={(e) => handleShortcutChange('openSettings', e.target.value)}
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                  />
+                </SettingsRow>
               </div>
             </TabsContent>
 
@@ -854,31 +1200,6 @@ export function SettingsDialog({
           </div>
         </Tabs>
 
-        <DialogFooter
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: "0.75rem",
-            margin: "1.5rem -1.5rem -1.5rem -1.5rem",
-            padding: "1.25rem 1.5rem",
-            borderTop: "1px solid var(--border-color)",
-            background: "rgba(255, 255, 255, 0.015)",
-          }}
-        >
-          <Button
-            className="primary btn-tactile bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90"
-            onClick={() => onOpenChange(false)}
-            style={{
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              height: "40px",
-              borderRadius: "var(--radius-sm)",
-              color: "var(--accent-contrast)",
-            }}
-          >
-            Done
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

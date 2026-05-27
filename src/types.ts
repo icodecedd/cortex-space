@@ -43,3 +43,17 @@ export interface SpaceTemplate {
   lastUsedAt?: string;
   color?: string;
 }
+
+export interface Snippet {
+  id: string;
+  label: string;
+  command: string;
+  category?: string;
+  tags?: string[];
+}
+
+export type PaletteItem = 
+  | { type: 'workspace'; data: Workspace; shortcut?: string }
+  | { type: 'template'; data: SpaceTemplate; shortcut?: string }
+  | { type: 'action'; id: string; label: string; icon: any; action: () => void; shortcut?: string }
+  | { type: 'snippet'; data: Snippet; shortcut?: string };

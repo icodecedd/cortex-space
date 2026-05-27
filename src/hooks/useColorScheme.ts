@@ -66,6 +66,16 @@ export function useColorScheme() {
     await setSetting(`${PREFIX}.uiFontScale`, scale);
   }, []);
 
+  const setZenPadding = useCallback(async (padding: number) => {
+    setSettings((prev) => ({ ...prev, zenPadding: padding }));
+    await setSetting(`${PREFIX}.zenPadding`, padding);
+  }, []);
+
+  const setReducedMotion = useCallback(async (reduced: boolean) => {
+    setSettings((prev) => ({ ...prev, reducedMotion: reduced }));
+    await setSetting(`${PREFIX}.reducedMotion`, reduced);
+  }, []);
+
   const resetToDefaults = useCallback(async () => {
     setSettings(APPEARANCE_DEFAULTS);
     applyColorScheme(APPEARANCE_DEFAULTS.colorScheme);
@@ -73,5 +83,5 @@ export function useColorScheme() {
     await setSettingsGroup<AppearanceSettings>(PREFIX, APPEARANCE_DEFAULTS);
   }, []);
 
-  return { settings, isLoaded, setColorScheme, setUiFontScale, resetToDefaults };
+  return { settings, isLoaded, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults };
 }

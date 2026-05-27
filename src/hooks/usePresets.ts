@@ -14,6 +14,10 @@ export function usePresets(rootPath: string, isValidDir: boolean | null) {
       setIsInitialized(true);
     }
     init();
+
+    const handleSync = () => init();
+    window.addEventListener('cortex:assets-updated', handleSync);
+    return () => window.removeEventListener('cortex:assets-updated', handleSync);
   }, []);
 
   useEffect(() => {

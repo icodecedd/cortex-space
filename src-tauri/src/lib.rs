@@ -19,11 +19,13 @@ struct PtySession {
     master: Box<dyn MasterPty + Send>,
     writer: Box<dyn Write + Send>,
     child: Box<dyn Child + Send + Sync>,
+    session_id: u64,
 }
 
 type PtyState = Arc<Mutex<HashMap<String, PtySession>>>;
 
 static PTY_SESSIONS: Lazy<PtyState> = Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
+static SESSION_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 fn get_shell_env() -> HashMap<String, String> {
     let mut env = HashMap::new();
@@ -61,6 +63,7 @@ fn spawn_pty<R: Runtime>(
     cwd: Option<String>,
     rows: u16,
     cols: u16,
+    shell: Option<String>,
 ) -> Result<(), String> {
     let pty_system = native_pty_system();
     
@@ -76,39 +79,47 @@ fn spawn_pty<R: Runtime>(
     let env = get_shell_env();
 
     let child = if cfg!(target_os = "windows") {
-        // Try spawning pwsh.exe first, fallback to powershell.exe
-        let mut pwsh_cmd = CommandBuilder::new("pwsh.exe");
-        if let Some(ref cmd_str) = command {
-            pwsh_cmd.args([
-                "-NoLogo",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-NoExit",
-                "-Command",
-                &format!("pwsh.exe -NoLogo -ExecutionPolicy Bypass -Command {}", cmd_str),
-            ]);
-        } else {
-            pwsh_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
+        let shell_to_use = shell.unwrap_or_else(|| "pwsh.exe".to_string());
+        let mut main_cmd = CommandBuilder::new(&shell_to_use);
+        
+        if shell_to_use.contains("pwsh.exe") || shell_to_use.contains("powershell.exe") {
+            if let Some(ref cmd_str) = command {
+                main_cmd.args([
+                    "-NoLogo",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-NoExit",
+                    "-Command",
+                    &format!("{} -NoLogo -ExecutionPolicy Bypass -Command {}", shell_to_use, cmd_str),
+                ]);
+            } else {
+                main_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
+            }
+        } else if let Some(ref cmd_str) = command {
+            // For other shells like git bash or cmd
+            main_cmd.arg("-c");
+            main_cmd.arg(cmd_str);
         }
+
         if let Some(ref path) = cwd {
             if !path.trim().is_empty() && std::path::Path::new(path).exists() {
-                pwsh_cmd.cwd(path);
+                main_cmd.cwd(path);
             } else if let Some(home_dir) = home::home_dir() {
-                pwsh_cmd.cwd(home_dir);
+                main_cmd.cwd(home_dir);
             }
         } else if let Some(home_dir) = home::home_dir() {
-            pwsh_cmd.cwd(home_dir);
+            main_cmd.cwd(home_dir);
         }
         for (key, val) in &env {
-            pwsh_cmd.env(key, val);
+            main_cmd.env(key, val);
         }
-        pwsh_cmd.env("TERM", "xterm-256color");
-        pwsh_cmd.env("COLORTERM", "truecolor");
+        main_cmd.env("TERM", "xterm-256color");
+        main_cmd.env("COLORTERM", "truecolor");
 
-        match pty_pair.slave.spawn_command(pwsh_cmd) {
+        match pty_pair.slave.spawn_command(main_cmd) {
             Ok(c) => c,
-            Err(_) => {
-                // Fallback to powershell.exe
+            Err(_) if shell_to_use == "pwsh.exe" => {
+                // Fallback to powershell.exe if pwsh failed and was the default
                 let mut ps_cmd = CommandBuilder::new("powershell.exe");
                 if let Some(ref cmd_str) = command {
                     ps_cmd.args([
@@ -139,19 +150,24 @@ fn spawn_pty<R: Runtime>(
 
                 pty_pair.slave.spawn_command(ps_cmd).map_err(|e| format!("Failed to spawn powershell: {}", e))?
             }
+            Err(e) => return Err(format!("Failed to spawn {}: {}", shell_to_use, e)),
         }
     } else {
         // Unix shell
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
-        let mut unix_cmd = CommandBuilder::new(&shell);
-        unix_cmd.arg("-l");
-        unix_cmd.arg("-i");
-        unix_cmd.arg("-c");
-        if let Some(ref cmd_str) = command {
-            unix_cmd.arg(format!("exec {}", cmd_str));
-        } else {
-            unix_cmd.arg("exec $SHELL");
+        let shell_to_use = shell.unwrap_or_else(|| std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string()));
+        let mut unix_cmd = CommandBuilder::new(&shell_to_use);
+        
+        // Add interactive/login flags for standard shells
+        if shell_to_use.ends_with("sh") || shell_to_use.ends_with("bash") || shell_to_use.ends_with("zsh") {
+            unix_cmd.arg("-l");
+            unix_cmd.arg("-i");
         }
+        
+        if let Some(ref cmd_str) = command {
+            unix_cmd.arg("-c");
+            unix_cmd.arg(format!("exec {}", cmd_str));
+        }
+
         if let Some(ref path) = cwd {
             if !path.trim().is_empty() && std::path::Path::new(path).exists() {
                 unix_cmd.cwd(path);
@@ -167,10 +183,12 @@ fn spawn_pty<R: Runtime>(
         unix_cmd.env("TERM", "xterm-256color");
         unix_cmd.env("COLORTERM", "truecolor");
 
-        pty_pair.slave.spawn_command(unix_cmd).map_err(|e| format!("Failed to spawn command: {}", e))?
+        pty_pair.slave.spawn_command(unix_cmd).map_err(|e| format!("Failed to spawn shell {}: {}", shell_to_use, e))?
     };
     let reader = pty_pair.master.try_clone_reader().map_err(|e| format!("Failed to clone reader: {}", e))?;
     let writer = pty_pair.master.take_writer().map_err(|e| format!("Failed to take writer: {}", e))?;
+
+    let session_id = SESSION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
     let mut sessions = PTY_SESSIONS.lock().unwrap();
     // Kill existing session if any with the same ID
@@ -184,6 +202,7 @@ fn spawn_pty<R: Runtime>(
             master: pty_pair.master,
             writer,
             child,
+            session_id,
         },
     );
 
@@ -206,8 +225,15 @@ fn spawn_pty<R: Runtime>(
                 _ => break, // EOF or error
             }
         }
-        // Notify frontend that this PTY session has terminated
-        let _ = app_clone.emit("pty-exit", id_clone.clone());
+        // Notify frontend that this PTY session has terminated, ONLY if it is still the current active session
+        let mut sessions = PTY_SESSIONS.lock().unwrap();
+        if let Some(session) = sessions.get(&id_clone) {
+            if session.session_id == session_id {
+                sessions.remove(&id_clone);
+                drop(sessions); // Release lock before emitting event to avoid deadlocks
+                let _ = app_clone.emit("pty-exit", id_clone.clone());
+            }
+        }
     });
 
     Ok(())
