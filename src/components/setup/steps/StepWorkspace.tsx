@@ -1,9 +1,11 @@
-import { FolderOpen, Grid3X3, Lock, X, BookmarkPlus } from "lucide-react";
+import { FolderOpen, Grid3X3, Lock, X, BookmarkPlus, Save } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LayoutType } from "@/lib/setup-constants";
+import { LayoutType, LayoutConfig, SavedLayout } from "@/lib/setup-constants";
 import { LayoutSelector } from "../ui-parts/LayoutSelector";
 import { PresetManager } from "../ui-parts/PresetManager";
+import { cn } from "@/lib/utils";
 
 interface StepWorkspaceProps {
   rootPath: string;
@@ -16,6 +18,12 @@ interface StepWorkspaceProps {
   removePreset: (path: string) => void;
   layout: LayoutType;
   handleLayoutChange: (layout: LayoutType) => void;
+  customLayout: LayoutConfig;
+  setCustomLayout: (config: Partial<LayoutConfig>) => void;
+  savedLayouts: SavedLayout[];
+  addSavedLayout: (name: string, config: LayoutConfig) => void;
+  removeSavedLayout: (id: string) => void;
+  onRestoreLayouts: () => void;
 }
 
 export function StepWorkspace({
@@ -28,65 +36,63 @@ export function StepWorkspace({
   addPreset,
   removePreset,
   layout,
-  handleLayoutChange
+  handleLayoutChange,
+  customLayout,
+  setCustomLayout,
+  savedLayouts,
+  addSavedLayout,
+  removeSavedLayout,
+  onRestoreLayouts
 }: StepWorkspaceProps) {
-  return (
-    <div>
-      <section className="animate-in" style={{ marginBottom: '3rem', transitionDelay: '50ms' }}>
-        <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <FolderOpen size={16} color="var(--accent-primary)" />
-          01. Define Working Directory
-        </h3>
+  const [layoutName, setLayoutName] = useState("");
 
-        <div style={{ 
-          display: 'flex', 
-          gap: '1rem', 
-          alignItems: 'center', 
-          background: 'rgba(255,255,255,0.03)', 
-          border: `1px solid ${isValidDir === false ? '#ef4444' : 'var(--border-color)'}`, 
-          padding: '0 1rem', 
-          borderRadius: '4px', 
-          marginBottom: '1rem', 
-          position: 'relative',
-          transition: 'border-color 200ms ease'
-        }}>
-          <Lock size={14} color="var(--text-secondary)" />
+  const handleSaveLayout = () => {
+    const finalName = layoutName.trim() 
+      ? layoutName.toUpperCase() 
+      : `${customLayout.rows}X${customLayout.cols}`;
+    
+    addSavedLayout(finalName, customLayout);
+    setLayoutName("");
+  };
+
+  return (
+    // ... rest of component
+    <div className="flex flex-col gap-12">
+      {/* SECTION 01: DIRECTORY */}
+      <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="mb-6 flex items-center gap-3">
+          <FolderOpen size={16} className="text-[var(--accent-primary)]" />
+          <h3 className="text-sm font-bold tracking-tight">01. Define Working Directory</h3>
+        </div>
+
+        <div className={cn(
+          "relative flex items-center gap-3 rounded-md border bg-white/[0.03] px-4 py-1 transition-all duration-300",
+          isValidDir === false ? "border-red-500/50" : "border-[var(--border-color)] focus-within:border-[var(--accent-primary)]"
+        )}>
+          <Lock size={14} className="text-[var(--text-secondary)]" />
           <Input
             type="text"
             value={rootPath}
             onChange={(e) => setRootPath(e.target.value)}
             placeholder="NO DIRECTORY SELECTED / PASTE PATH"
-            style={{
-              padding: '0.75rem 0.5rem',
-              flex: 1,
-              fontSize: '0.8rem',
-              background: 'transparent',
-              border: 'none',
-              color: rootPath ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontFamily: 'JetBrains Mono',
-              outline: 'none',
-              boxShadow: 'none'
-            }}
-            className="focus-visible:ring-0 focus-visible:ring-offset-0 h-auto"
+            className="border-none bg-transparent px-0 font-mono text-[13px] text-[var(--text-primary)] shadow-none focus-visible:ring-0"
           />
           {rootPath && (
-             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setRootPath("")}
-                className="hover:text-white"
-                style={{ opacity: 0.5 }}
+                className="text-[var(--text-secondary)] hover:text-white"
               >
                 <X size={12} />
               </Button>
-              <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', margin: '0 0.5rem' }} />
+              <div className="mx-2 h-4 w-px bg-[var(--border-color)]" />
               <Button
                 variant="ghost"
                 size="sm"
-                className="btn-tactile"
-                style={{ color: 'var(--accent-primary)', gap: '0.4rem', fontSize: '0.65rem' }}
                 onClick={addPreset}
+                className="h-8 gap-2 font-mono text-[10px] font-bold text-[var(--accent-primary)] hover:bg-white/5"
               >
                 <BookmarkPlus size={14} />
                 SAVE PRESET
@@ -96,67 +102,89 @@ export function StepWorkspace({
           <Button
             variant="ghost"
             size="sm"
-            className="btn-tactile"
-            style={{ color: 'var(--accent-primary)', fontSize: '0.7rem', fontWeight: 'bold', letterSpacing: '0.05em' }}
             onClick={handleBrowse}
+            className="h-8 font-mono text-[10px] font-bold tracking-widest text-[var(--accent-primary)] hover:bg-white/5"
           >
             BROWSE
           </Button>
         </div>
 
         {rootPath && (
-          <div
-            className="animate-in"
-            style={{
-              marginTop: '1rem',
-              fontSize: '0.65rem',
-              color: 'var(--text-secondary)',
-              fontFamily: 'JetBrains Mono',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.25rem',
-              transitionDelay: '100ms'
-            }}
-          >
+          <div className="animate-in fade-in mt-4 flex flex-wrap gap-1 font-mono text-[10px]">
             {rootPath.split(/[\\/]/).filter(Boolean).map((part, i, arr) => (
-              <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Button
-                  variant="ghost"
-                  className="h-auto p-0 hover:bg-transparent"
+              <span key={i} className="flex items-center gap-1">
+                <button
                   onClick={() => handleBreadcrumbClick(i)}
-                  style={{
-                    padding: '0.1rem 0.3rem',
-                    border: 'none',
-                    background: 'transparent',
-                    color: i === arr.length - 1 ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                    fontSize: 'inherit',
-                    fontFamily: 'inherit'
-                  }}
+                  className={cn(
+                    "rounded px-1.5 py-0.5 transition-colors hover:bg-white/5",
+                    i === arr.length - 1 ? "text-[var(--accent-primary)]" : "text-[var(--text-secondary)]"
+                  )}
                 >
                   {part.toUpperCase()}
-                </Button>
-                {i < arr.length - 1 && <span>/</span>}
+                </button>
+                {i < arr.length - 1 && <span className="text-[var(--text-secondary)] opacity-50">/</span>}
               </span>
             ))}
           </div>
         )}
 
-        <PresetManager
-          presets={presets}
-          onSelect={setRootPath}
-          onRemove={removePreset}
-          onAdd={addPreset}
-          rootPath={rootPath}
-          isValidDir={isValidDir}
-        />
+        <div className="mt-8">
+          <PresetManager
+            presets={presets}
+            onSelect={setRootPath}
+            onRemove={removePreset}
+            onAdd={addPreset}
+            rootPath={rootPath}
+          />
+        </div>
       </section>
 
-      <section className="animate-in" style={{ transitionDelay: '150ms' }}>
-        <h3 style={{ fontSize: '0.9rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Grid3X3 size={16} color="var(--accent-primary)" />
-          02. Select Pane Layout
-        </h3>
-        <LayoutSelector currentLayout={layout} onLayoutChange={handleLayoutChange} />
+      {/* SECTION 02: LAYOUT */}
+      <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+        <div className="mb-6 flex items-center gap-3">
+          <Grid3X3 size={16} className="text-[var(--accent-primary)]" />
+          <h3 className="text-sm font-bold tracking-tight">02. Select Pane Layout</h3>
+        </div>
+
+        <LayoutSelector 
+          currentLayout={layout} 
+          onLayoutChange={handleLayoutChange} 
+          customLayout={customLayout}
+          onCustomLayoutChange={setCustomLayout}
+          savedLayouts={savedLayouts}
+          onRemoveSavedLayout={removeSavedLayout}
+          onRestoreDefaults={onRestoreLayouts}
+        />
+
+        {layout === 'custom' && (
+          <div className="animate-in fade-in slide-in-from-top-4 mt-6 flex items-center gap-4 rounded-md border border-[var(--border-color)] bg-white/[0.03] p-4">
+            <div className="flex flex-1 items-center gap-3">
+              <Save size={14} className="text-[var(--text-secondary)]" />
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  placeholder={`NAME (OPTIONAL, DEFAULTS TO ${customLayout.rows}X${customLayout.cols})`}
+                  value={layoutName}
+                  onChange={(e) => setLayoutName(e.target.value.toUpperCase())}
+                  className="h-8 border-none bg-transparent px-0 font-mono text-[11px] shadow-none focus-visible:ring-0"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-[9px] font-mono text-white/30 hidden md:block">
+                ID: <span className="text-[var(--accent-primary)] font-bold">{layoutName.trim() ? layoutName : `${customLayout.rows}X${customLayout.cols}`}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveLayout}
+                className="h-8 border-[var(--border-color)] bg-transparent font-mono text-[10px] font-bold text-[var(--accent-primary)] hover:bg-white/5"
+              >
+                SAVE AS REUSABLE LAYOUT
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

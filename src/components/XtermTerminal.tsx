@@ -34,7 +34,6 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
   const [dimensions, setDimensions] = useState({ rows: 24, cols: 80 });
   const [defaultShell, setDefaultShell] = useState<string>('');
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
-  const [enableHighlight, setEnableHighlight] = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(true);
 
   useEffect(() => {
@@ -42,7 +41,6 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
       setDefaultShell(saved.defaultShell || '');
     });
     getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
-    getSetting('demo.enableTerminalButtonHighlight', true).then(setEnableHighlight);
     getSetting('demo.showTerminalShortcutHints', true).then(setShowShortcuts);
   }, []);
 
@@ -259,9 +257,6 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
   useEffect(() => {
     const handleDemoSettingsChange = (e: Event) => {
       const evt = e as CustomEvent<Partial<DemoSettings>>;
-      if (evt.detail?.enableTerminalButtonHighlight !== undefined) {
-        setEnableHighlight(evt.detail.enableTerminalButtonHighlight);
-      }
       if (evt.detail?.showTerminalShortcutHints !== undefined) {
         setShowShortcuts(evt.detail.showTerminalShortcutHints);
       }
@@ -390,7 +385,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
                 }}
                 variant="ghost"
                 size="icon-xs"
-                className={`${enableHighlight ? 'btn-tactile' : ''} text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 active:scale-97`}
+                className="btn-tactile text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 active:scale-97"
                 style={{
                   width: '20px', height: '20px', padding: 0, borderRadius: '9999px',
                   background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
@@ -432,7 +427,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
           </span>
           <Button 
             onClick={() => relaunch()}
-            className={`primary ${enableHighlight ? 'btn-tactile' : ''}`}
+            className="primary btn-tactile"
             style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', letterSpacing: '0.05em', borderRadius: 'var(--radius-sm)' }}
           >
             RELAUNCH SESSION

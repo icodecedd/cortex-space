@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Workspace, SpaceTemplate, Snippet } from "@/types";
 import { LayoutPreviewIcon } from "@/components/ui/layout-preview-icon";
-import { Search, Folder, Terminal, Bot, Zap, Rocket, Settings, Keyboard, Maximize, Palette, ChevronRightSquare, Code, Play } from "lucide-react";
+import { Search, Folder, Terminal, Bot, Zap, Rocket, Settings, Keyboard, Maximize, Palette, ChevronRightSquare, Code, Play, Command } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type PaletteItem = 
   | { type: 'workspace'; data: Workspace; shortcut?: string }
@@ -172,9 +173,13 @@ export function WorkspaceSwitcherDialog({
         <ScrollArea className="flex-1 overflow-y-auto">
           <div className="p-2 space-y-0.5">
             {filteredItems.length === 0 ? (
-              <div className="h-[300px] flex flex-col items-center justify-center text-center">
-                <p className="text-[13px] text-white/30 font-medium">No results matching "{searchQuery}"</p>
-              </div>
+              <EmptyState 
+                icon={Command}
+                title="No Results Found"
+                description={`We couldn't find any workspaces, snippets, or actions matching "${searchQuery}".`}
+                iconColor="text-white/10"
+                className="py-20"
+              />
             ) : (
               filteredItems.map((item, index) => {
                 const isSelected = selectedIndex === index;

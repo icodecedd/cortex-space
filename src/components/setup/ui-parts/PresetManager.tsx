@@ -1,5 +1,6 @@
-import { X } from "lucide-react";
+import { X, Plus, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface PresetManagerProps {
   presets: { label: string; path: string }[];
@@ -7,80 +8,48 @@ interface PresetManagerProps {
   onRemove: (path: string) => void;
   onAdd: () => void;
   rootPath: string;
-  isValidDir: boolean | null;
 }
 
-export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath, isValidDir }: PresetManagerProps) {
+export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: PresetManagerProps) {
   return (
-    <div style={{ marginTop: '2rem' }}>
-      <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', letterSpacing: '0.1em', marginBottom: '1rem', fontWeight: 700 }}>SAVED PRESETS</div>
+    <div className="mt-8">
+      <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-4">
+        Quick Access Paths
+      </div>
       
       {presets.length === 0 ? (
-        <div style={{ 
-          border: '1px dashed var(--border-color)', 
-          borderRadius: 'var(--radius-md)', 
-          padding: '2rem', 
-          textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '1rem'
-        }}>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono' }}>NO PRESETS CONFIGURED</div>
-          <Button 
-            variant="outline" 
-            size="xs" 
-            onClick={onAdd} 
-            className="btn-tactile" 
-            style={{ fontSize: '0.6rem' }}
-            disabled={!rootPath || isValidDir === false}
-          >
-            {rootPath ? "SAVE CURRENT AS PRESET" : "DEFINE DIRECTORY TO START"}
-          </Button>
-        </div>
+        <EmptyState 
+          icon={Database}
+          compact
+          title="No Presets Saved"
+          description="Save your current directory as a favorite to quickly switch between projects later."
+          iconColor="text-emerald-500/40"
+          action={rootPath ? {
+            label: "Save Current Path",
+            onClick: onAdd,
+            icon: Plus
+          } : undefined}
+          className="border border-dashed border-[var(--border-color)] rounded-lg bg-white/[0.01]"
+        />
       ) : (
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap gap-2">
           {presets.map((preset, index) => (
             <div 
               key={preset.path} 
-              className="animate-in group" 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                background: 'var(--surface-color)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '20px',
-                padding: '0.3rem 0.4rem 0.3rem 1rem',
-                transition: 'all 200ms ease',
-                transitionDelay: `${index * 40}ms`
-              }}
+              className="group animate-in fade-in slide-in-from-left-2 duration-300 flex items-center bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-full pl-3.5 pr-1 py-1 transition-all cursor-default"
+              style={{ transitionDelay: `${index * 40}ms` }}
             >
-              <Button
-                variant="ghost"
-                className="h-auto p-0 hover:bg-transparent"
+              <button
                 onClick={() => onSelect(preset.path)}
-                style={{
-                  fontSize: '0.65rem',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-primary)',
-                  letterSpacing: '0.05em',
-                  fontWeight: 600,
-                  marginRight: '0.75rem'
-                }}
+                className="text-[11px] font-bold text-[var(--text-primary)] hover:text-[var(--accent-primary)] transition-colors pr-2 border-r border-white/5"
               >
                 {preset.label}
-              </Button>
+              </button>
               <Button
                 variant="ghost"
-                size="icon"
-                className="w-[22px] h-[22px] rounded-full hover:bg-[rgba(255,255,255,0.1)] hover:text-[var(--text-primary)]"
+                size="icon-xs"
+                className="ml-1 hover:text-red-400 hover:bg-transparent opacity-30 group-hover:opacity-100 transition-opacity"
                 onClick={() => onRemove(preset.path)}
-                style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: 'none',
-                  color: 'var(--text-secondary)'
-                }}
               >
                 <X size={12} />
               </Button>

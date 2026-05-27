@@ -1,4 +1,22 @@
-export type LayoutType = '1x1' | '1x2' | '2x1' | '2x2' | '3x3';
+export interface LayoutConfig {
+  rows: number;
+  cols: number;
+}
+
+export interface SavedLayout extends LayoutConfig {
+  id: string;
+  name: string;
+}
+
+export type LayoutType = '1x1' | '1x2' | '2x1' | '2x2' | '3x3' | 'custom' | string;
+
+export const INITIAL_LAYOUTS: SavedLayout[] = [
+  { id: '1x1', name: '1X1', rows: 1, cols: 1 },
+  { id: '1x2', name: '1X2', rows: 1, cols: 2 },
+  { id: '2x1', name: '2X1', rows: 2, cols: 1 },
+  { id: '2x2', name: '2X2', rows: 2, cols: 2 },
+  { id: '3x3', name: '3X3', rows: 3, cols: 3 },
+];
 
 export const AGENT_PRESETS = [
   { label: "GEMINI", command: "gemini" },

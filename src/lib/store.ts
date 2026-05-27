@@ -79,7 +79,6 @@ export interface FocusSettings {
 export interface DemoSettings {
   [key: string]: unknown;
   showWorkspacesTab: boolean;
-  enableTerminalButtonHighlight: boolean;
   showTemplatesButton: boolean;
   showShortcutsButton: boolean;
   showModeShortcutHints: boolean;
@@ -120,7 +119,6 @@ export const FOCUS_DEFAULTS: FocusSettings = {
 
 export const DEMO_DEFAULTS: DemoSettings = {
   showWorkspacesTab: true,
-  enableTerminalButtonHighlight: true,
   showTemplatesButton: true,
   showShortcutsButton: true,
   showModeShortcutHints: true,

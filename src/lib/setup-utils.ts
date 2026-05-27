@@ -1,49 +1,27 @@
-export function getPaneCount(layout: string) {
-  switch (layout) {
-    case '1x1': return 1;
-    case '1x2':
-    case '2x1': return 2;
-    case '2x2': return 4;
-    case '3x3': return 9;
-    default: return 4;
-  }
-}
-
-export function getGridCols(layout: string) {
-  if (layout === '1x1') return '1fr';
-  if (layout === '1x2') return '1fr 1fr';
-  if (layout === '2x1') return '1fr';
-  if (layout === '2x2') return '1fr 1fr';
-  if (layout === '3x3') return '1fr 1fr 1fr';
-  return '1fr 1fr';
-}
-
-export function getGridRows(layout: string) {
-  if (layout === '1x1') return '1fr';
-  if (layout === '1x2') return '1fr';
-  if (layout === '2x1') return '1fr 1fr';
-  if (layout === '2x2') return '1fr 1fr';
-  if (layout === '3x3') return '1fr 1fr 1fr';
-  return '1fr 1fr';
-}
-
-export function getGridTemplate(layout: string, isMobile: boolean) {
-  if (isMobile) return '1fr / 1fr';
-  switch (layout) {
-    case '1x1': return '1fr / 1fr';
-    case '1x2': return '1fr / 1fr 1fr';
-    case '2x1': return '1fr 1fr / 1fr';
-    case '2x2': return '1fr 1fr / 1fr 1fr';
-    case '3x3': return '1fr 1fr 1fr / 1fr 1fr 1fr';
-    default: return '1fr 1fr / 1fr 1fr';
-  }
-}
-
+import { LayoutConfig, PaneConfig } from "./setup-constants";
 import { LayoutNode, SplitNode } from "@/types";
-import { PaneConfig } from "./setup-constants";
 
-export function gridToLayoutNode(layout: string, panes: PaneConfig[]): LayoutNode {
-  if (layout === '1x1' || panes.length <= 1) {
+export function getPaneCount(layout: LayoutConfig) {
+  return layout.rows * layout.cols;
+}
+
+export function getGridCols(layout: LayoutConfig) {
+  return `repeat(${layout.cols}, 1fr)`;
+}
+
+export function getGridRows(layout: LayoutConfig) {
+  return `repeat(${layout.rows}, 1fr)`;
+}
+
+export function getGridTemplate(layout: LayoutConfig, isMobile: boolean) {
+  if (isMobile) return '1fr / 1fr';
+  return `repeat(${layout.rows}, 1fr) / repeat(${layout.cols}, 1fr)`;
+}
+
+export function gridToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): LayoutNode {
+  const { rows, cols } = config;
+
+  if (rows === 1 && cols === 1) {
     return {
       type: 'pane',
       id: panes[0]?.id.toString() || '1',
@@ -52,65 +30,46 @@ export function gridToLayoutNode(layout: string, panes: PaneConfig[]): LayoutNod
     };
   }
 
-  if (layout === '1x2') {
+  // Helper to build a tree from a slice of panes
+  const buildGridTree = (paneSlice: PaneConfig[], r: number, c: number): LayoutNode => {
+    if (paneSlice.length === 1) {
+      return {
+        type: 'pane',
+        id: paneSlice[0].id.toString(),
+        name: paneSlice[0].name,
+        command: paneSlice[0].command
+      };
+    }
+
+    // If more than 1 row, split vertically first
+    if (r > 1) {
+      const splitRow = Math.ceil(r / 2);
+      const topCount = splitRow * c;
+      return {
+        type: 'split',
+        direction: 'vertical',
+        ratio: splitRow / r,
+        children: [
+          buildGridTree(paneSlice.slice(0, topCount), splitRow, c),
+          buildGridTree(paneSlice.slice(topCount), r - splitRow, c)
+        ]
+      };
+    }
+
+    // If only 1 row but multiple columns, split horizontally
+    const splitCol = Math.ceil(c / 2);
     return {
       type: 'split',
       direction: 'horizontal',
-      ratio: 0.5,
+      ratio: splitCol / c,
       children: [
-        { type: 'pane', id: panes[0].id.toString(), name: panes[0].name, command: panes[0].command },
-        { type: 'pane', id: panes[1].id.toString(), name: panes[1].name, command: panes[1].command }
+        buildGridTree(paneSlice.slice(0, splitCol), 1, splitCol),
+        buildGridTree(paneSlice.slice(splitCol), 1, c - splitCol)
       ]
     };
-  }
-
-  if (layout === '2x1') {
-    return {
-      type: 'split',
-      direction: 'vertical',
-      ratio: 0.5,
-      children: [
-        { type: 'pane', id: panes[0].id.toString(), name: panes[0].name, command: panes[0].command },
-        { type: 'pane', id: panes[1].id.toString(), name: panes[1].name, command: panes[1].command }
-      ]
-    };
-  }
-
-  if (layout === '2x2') {
-    return {
-      type: 'split',
-      direction: 'vertical',
-      ratio: 0.5,
-      children: [
-        {
-          type: 'split',
-          direction: 'horizontal',
-          ratio: 0.5,
-          children: [
-            { type: 'pane', id: panes[0].id.toString(), name: panes[0].name, command: panes[0].command },
-            { type: 'pane', id: panes[1].id.toString(), name: panes[1].name, command: panes[1].command }
-          ]
-        },
-        {
-          type: 'split',
-          direction: 'horizontal',
-          ratio: 0.5,
-          children: [
-            { type: 'pane', id: panes[2].id.toString(), name: panes[2].name, command: panes[2].command },
-            { type: 'pane', id: panes[3].id.toString(), name: panes[3].name, command: panes[3].command }
-          ]
-        }
-      ]
-    };
-  }
-
-  // Fallback for 3x3 or others: just return a nested mess or the first pane
-  return {
-    type: 'pane',
-    id: panes[0]?.id.toString() || '1',
-    name: panes[0]?.name || 'Pane 1',
-    command: panes[0]?.command || ''
   };
+
+  return buildGridTree(panes.slice(0, rows * cols), rows, cols);
 }
 
 export function findNeighborPane(
@@ -139,10 +98,8 @@ export function findNeighborPane(
   if (!currentNode) return null;
 
   // 2. Map directions to split types and sibling indices
-  // 'left'/'right' -> orientation 'horizontal', move between index 0 and 1
-  // 'up'/'down' -> orientation 'vertical', move between index 0 and 1
   const targetDirection = (direction === 'left' || direction === 'right') ? 'horizontal' : 'vertical';
-  const targetIndex = (direction === 'left' || direction === 'up') ? 1 : 0; // If moving left/up, we want to be coming from index 1 to go to index 0
+  const targetIndex = (direction === 'left' || direction === 'up') ? 1 : 0;
 
   let searchNode: LayoutNode = currentNode;
   while (true) {
@@ -153,13 +110,8 @@ export function findNeighborPane(
     const split = parent as SplitNode;
 
     if (split.direction === targetDirection && index === targetIndex) {
-      // Found the split level where we can move to the sibling
       const siblingIndex = targetIndex === 1 ? 0 : 1;
       const siblingNode = split.children[siblingIndex];
-
-      // 3. Find the most "logical" leaf pane in the sibling branch
-      // If we move right, we want the leftmost pane of the right sibling.
-      // If we move left, we want the rightmost pane of the left sibling.
       return findDeepestPane(siblingNode, direction);
     }
 
@@ -172,14 +124,9 @@ export function findNeighborPane(
 function findDeepestPane(node: LayoutNode, fromDirection: 'up' | 'down' | 'left' | 'right'): string {
   if (node.type === 'pane') return node.id;
 
-  // Heuristic: If we moved 'right' into a new branch, we want the 'leftmost' pane.
-  // If we moved 'left', we want the 'rightmost'.
-  // If we moved 'down', we want the 'topmost' (index 0).
-  // If we moved 'up', we want the 'bottommost' (index 1).
-  
   let nextIndex = 0;
   if (fromDirection === 'left' || fromDirection === 'up') {
-    nextIndex = 1; // We want the one closest to where we came from
+    nextIndex = 1; 
   } else {
     nextIndex = 0;
   }

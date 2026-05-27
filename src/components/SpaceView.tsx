@@ -7,6 +7,7 @@ import { TerminalPane } from "./TerminalPane";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { gridToLayoutNode, findNeighborPane } from "@/lib/setup-utils";
+import { LayoutConfig } from "@/lib/setup-constants";
 import { ThemeName } from "@/hooks/useTheme";
 import { LayoutNode, PaneNode } from "@/types";
 import {
@@ -42,7 +43,12 @@ export function SpaceView({
   // Normalize layout to LayoutNode tree
   const layoutTree = useMemo(() => {
     if (typeof config.layout === 'string') {
-      return gridToLayoutNode(config.layout, config.panes || []);
+      const configObj: LayoutConfig = { rows: 2, cols: 2 };
+      if (config.layout === '1x1') { configObj.rows = 1; configObj.cols = 1; }
+      else if (config.layout === '1x2') { configObj.rows = 1; configObj.cols = 2; }
+      else if (config.layout === '2x1') { configObj.rows = 2; configObj.cols = 1; }
+      else if (config.layout === '3x3') { configObj.rows = 3; configObj.cols = 3; }
+      return gridToLayoutNode(configObj, config.panes || []);
     }
     return config.layout;
   }, [config.layout, config.panes]);

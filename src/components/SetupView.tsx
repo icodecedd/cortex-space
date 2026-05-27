@@ -10,6 +10,7 @@ import { SetupControls } from "./setup/SetupControls";
 import { StepWorkspace } from "./setup/steps/StepWorkspace";
 import { StepConfigure } from "./setup/steps/StepConfigure";
 import { StepPreview } from "./setup/steps/StepPreview";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SetupViewProps {
   mode: 'normal' | 'agents';
@@ -35,10 +36,17 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
   } = usePresets(rootPath, isValidDir);
 
   const {
-    layout,
+    layoutType,
+    customLayout,
+    setCustomLayout,
+    savedLayouts,
+    addSavedLayout,
+    removeSavedLayout,
+    currentLayout,
     activePanes,
     handleLayoutChange,
-    updatePaneCommand
+    updatePaneCommand,
+    restoreDefaults
   } = useSetupPanes(mode);
 
   const isStepValid = useMemo(() => {
@@ -60,7 +68,7 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
   const prevStep = () => setStep(s => Math.max(s - 1, INITIAL_STEP));
 
   const handleLaunch = () => {
-    const layoutNode = gridToLayoutNode(layout, activePanes);
+    const layoutNode = gridToLayoutNode(currentLayout, activePanes);
     onLaunch({ 
       rootPath, 
       layout: layoutNode, 
@@ -107,45 +115,53 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [step, isStepValid, isValidDir, rootPath, layout, activePanes, onBack]);
+  }, [step, isStepValid, isValidDir, rootPath, currentLayout, activePanes, onBack]);
 
 
   return (
-    <div className="step-container animate-in">
+    <div className="step-container animate-in flex flex-col h-full overflow-hidden">
       <SetupHeader step={step} mode={mode} onBack={onBack} />
 
-      <div className="animate-in" key={step} style={{ minHeight: '400px' }}>
-        {step === 1 && (
-          <StepWorkspace
-            rootPath={rootPath}
-            setRootPath={setRootPath}
-            isValidDir={isValidDir}
-            handleBrowse={handleBrowse}
-            handleBreadcrumbClick={handleBreadcrumbClick}
-            presets={presets}
-            addPreset={addPreset}
-            removePreset={removePreset}
-            layout={layout}
-            handleLayoutChange={handleLayoutChange}
-          />
-        )}
+      <ScrollArea className="flex-1 -mx-4 px-4 min-h-0">
+        <div className="animate-in pb-12 pt-2" key={step}>
+          {step === 1 && (
+            <StepWorkspace
+              rootPath={rootPath}
+              setRootPath={setRootPath}
+              isValidDir={isValidDir}
+              handleBrowse={handleBrowse}
+              handleBreadcrumbClick={handleBreadcrumbClick}
+              presets={presets}
+              addPreset={addPreset}
+              removePreset={removePreset}
+              layout={layoutType}
+              handleLayoutChange={handleLayoutChange}
+              customLayout={customLayout}
+              setCustomLayout={setCustomLayout}
+              savedLayouts={savedLayouts}
+              addSavedLayout={addSavedLayout}
+              removeSavedLayout={removeSavedLayout}
+              onRestoreLayouts={restoreDefaults}
+            />
+          )}
 
-        {step === 2 && (
-          <StepConfigure
-            mode={mode}
-            activePanes={activePanes}
-            updatePaneCommand={updatePaneCommand}
-          />
-        )}
+          {step === 2 && (
+            <StepConfigure
+              mode={mode}
+              activePanes={activePanes}
+              updatePaneCommand={updatePaneCommand}
+            />
+          )}
 
-        {step === 3 && (
-          <StepPreview
-            rootPath={rootPath}
-            layout={layout}
-            activePanes={activePanes}
-          />
-        )}
-      </div>
+          {step === 3 && (
+            <StepPreview
+              rootPath={rootPath}
+              layout={currentLayout}
+              activePanes={activePanes}
+            />
+          )}
+        </div>
+      </ScrollArea>
 
       <SetupControls
         step={step}

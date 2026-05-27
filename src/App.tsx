@@ -448,7 +448,19 @@ function App() {
 
             if (ws.status === 'setup') {
               return (
-                <div key={ws.id} style={{ display: isCurrent ? 'block' : 'none', width: '100%', maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
+                <div 
+                  key={ws.id} 
+                  style={{ 
+                    display: isCurrent ? 'flex' : 'none', 
+                    flexDirection: 'column',
+                    height: '100%',
+                    width: '100%', 
+                    maxWidth: '800px', 
+                    margin: '0 auto', 
+                    padding: '2rem 2rem 0',
+                    overflow: 'hidden'
+                  }}
+                >
                   <SetupView
                     mode={ws.mode}
                     onLaunch={handleLaunch}

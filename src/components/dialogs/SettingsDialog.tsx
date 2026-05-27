@@ -765,19 +765,7 @@ export function SettingsDialog({
                   />
                 </SettingsRow>
                 <SettingsRow
-                  label="Enable Terminal Button Highlight"
-                  description="Toggle the tactile highlight effect on terminal action buttons."
-                  htmlFor="demo-button-highlight-toggle"
-                >
-                  <Switch
-                    id="demo-button-highlight-toggle"
-                    checked={demo.enableTerminalButtonHighlight}
-                    onCheckedChange={(v) => setDemoSetting("enableTerminalButtonHighlight", v)}
-                  />
-                </SettingsRow>
-                <SettingsRow
-                  label="Show Cortex Library Button"
-                  description="Toggle visibility of the Space Templates (Rocket) button in the header."
+                  label="Show Cortex Library Button"                  description="Toggle visibility of the Space Templates (Rocket) button in the header."
                   htmlFor="demo-templates-toggle"
                 >
                   <Switch

@@ -11,22 +11,17 @@ All demo features are controlled via the **Preferences > Demo** tab.
 - **Impact:** Hides the entire top-left workspace management area, including the tab bar and the "New Workspace" (+) button.
 - **Affected Components:** `AppHeader.tsx`, `App.tsx`
 
-### 2. Tactile Button Highlights
-- **Toggle:** `Enable Terminal Button Highlight`
-- **Impact:** Toggles the `.btn-tactile` CSS class on terminal action buttons (like "Relaunch Session").
-- **Affected Components:** `XtermTerminal.tsx`
-
-### 3. Header Action Toggles
+### 2. Header Action Toggles
 - **Toggles:** `Show Cortex Library Button`, `Show Keyboard Shortcuts Button`
 - **Impact:** Conditionally renders the Rocket and Keyboard icons in the global header.
 - **Affected Components:** `AppHeader.tsx`
 
-### 4. Mode Selector Shortcut Hints
+### 3. Mode Selector Shortcut Hints
 - **Toggle:** `Show Mode Shortcut Hints`
 - **Impact:** Hides the `<Kbd>` shortcut indicators (Ctrl+N, Ctrl+A, etc.) on the mode selection screen.
 - **Affected Components:** `ModeSelectorScreen.tsx`
 
-### 5. Terminal Shortcut Hints
+### 4. Terminal Shortcut Hints
 - **Toggle:** `Show Terminal Shortcut Hints`
 - **Impact:** Hides the `Ctrl+Alt+R` shortcut hint displayed in terminal pane headers.
 - **Affected Components:** `XtermTerminal.tsx`
