@@ -21,6 +21,7 @@ import { CortexLibraryDialog } from "./components/dialogs/CortexLibraryDialog";
 import { WorkspaceSwitcherDialog } from "./components/dialogs/WorkspaceSwitcherDialog";
 import { useSpaceTemplates } from "./hooks/useSpaceTemplates";
 import { useSnippets } from "./hooks/useSnippets";
+import { splitNode, removeNode, updatePaneNode } from "./lib/setup-utils";
 
 declare global {
   interface Window {
@@ -60,6 +61,64 @@ function App() {
   const { isWindowMaximized, handleMinimize, handleMaximize, handleClose } = useWindowControls();
   const { templates, captureCurrent, deleteTemplate } = useSpaceTemplates();
   const { snippets, addSnippet, deleteSnippet, deleteSnippets } = useSnippets();
+
+  const handleSplitPane = (paneId: string, direction: 'horizontal' | 'vertical') => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces(prev => prev.map(w => {
+      if (w.id === activeWorkspaceId && w.config) {
+        return {
+          ...w,
+          config: {
+            ...w.config,
+            layout: splitNode(w.config.layout, paneId, direction)
+          }
+        };
+      }
+      return w;
+    }));
+  };
+
+  const handleKillPane = (paneId: string) => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces(prev => prev.map(w => {
+      if (w.id === activeWorkspaceId && w.config) {
+        const newLayout = removeNode(w.config.layout, paneId);
+        if (!newLayout) {
+          // If no layout left, close workspace or reset
+          toast.info("Workspace Reset", { description: "Last pane closed. Reverting to empty state." });
+          return {
+            ...w,
+            status: 'mode-select',
+            config: null
+          };
+        }
+        return {
+          ...w,
+          config: {
+            ...w.config,
+            layout: newLayout
+          }
+        };
+      }
+      return w;
+    }));
+  };
+
+  const handleRenamePane = (paneId: string, newName: string) => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces(prev => prev.map(w => {
+      if (w.id === activeWorkspaceId && w.config) {
+        return {
+          ...w,
+          config: {
+            ...w.config,
+            layout: updatePaneNode(w.config.layout, paneId, { name: newName })
+          }
+        };
+      }
+      return w;
+    }));
+  };
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
@@ -496,6 +555,10 @@ function App() {
                     setIsZenMode={(v) => setFocusSetting('isZenMode', v)}
                     zenPadding={colorSchemeSettings.zenPadding}
                     showPaneHeaders={focusSettings.showPaneHeaders}
+                    onSplitPane={handleSplitPane}
+                    onKillPane={handleKillPane}
+                    onRenamePane={handleRenamePane}
+                    onSaveSnippet={(command) => addSnippet(command, "General")}
                   />
                 </div>
               );

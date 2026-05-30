@@ -6,7 +6,7 @@ import { getSetting, setSetting } from "@/lib/store";
 export function useSetupPanes(mode: 'normal' | 'agents') {
   const [layoutType, setLayoutType] = useState<LayoutType>("2x2");
   const [customLayout, setCustomLayout] = useState<LayoutConfig>({ rows: 2, cols: 2 });
-  const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
+  const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>(INITIAL_LAYOUTS);
   const [isInitialized, setIsInitialized] = useState(false);
   
   const currentLayout = useMemo(() => {
@@ -114,6 +114,7 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
     activePanes,
     handleLayoutChange,
     updatePaneCommand,
-    restoreDefaults
+    restoreDefaults,
+    isInitialized
   };
 }

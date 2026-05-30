@@ -151,7 +151,7 @@ export function AppHeader({
               size="icon-sm"
               onClick={onNewWorkspaceFlow}
               className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)] rounded-md transition-all cursor-pointer [-webkit-app-region:no-drag]"
-              title="Configure New Workspace (Ctrl+Alt+N)"
+              title="Configure New Workspace (Ctrl+T)"
             >
               <Plus size={14} />
             </Button>
@@ -172,7 +172,7 @@ export function AppHeader({
             size="icon-sm"
             onClick={onOpenTemplates}
             className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-emerald-400 hover:bg-emerald-400/10 rounded transition-all cursor-pointer"
-            title="Space Templates (Ctrl+T)"
+            title="Space Templates (Ctrl+Shift+T)"
           >
             <Rocket size={13} />
           </Button>

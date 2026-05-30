@@ -224,6 +224,7 @@ export function SettingsDialog({
   const [rememberMode, setRememberMode] = useState(false);
   const [openOnLaunch, setOpenOnLaunch] = useState<OpenOnLaunch>("modeSelector");
   const [checkUpdates, setCheckUpdates] = useState(true);
+  const [confirmModeChange, setConfirmModeChange] = useState(true);
   const [defaultShell, setDefaultShell] = useState("");
 
   // Focus settings
@@ -257,6 +258,9 @@ export function SettingsDialog({
       );
       setCheckUpdates(
         await getSetting("startup.checkForUpdatesOnStartup", true)
+      );
+      setConfirmModeChange(
+        await getSetting("startup.confirmModeChange", true)
       );
       setDefaultShell(await getSetting("startup.defaultShell", ""));
       
@@ -295,12 +299,14 @@ export function SettingsDialog({
     setRememberMode(false);
     setOpenOnLaunch("modeSelector");
     setCheckUpdates(true);
+    setConfirmModeChange(true);
     setDefaultShell("");
     await Promise.all([
       setSetting("startup.showSplashAnimation", true),
       setSetting("startup.rememberLastMode", false),
       setSetting("startup.openOnLaunch", "modeSelector"),
       setSetting("startup.checkForUpdatesOnStartup", true),
+      setSetting("startup.confirmModeChange", true),
       setSetting("startup.defaultShell", ""),
     ]);
   };
@@ -661,6 +667,23 @@ export function SettingsDialog({
                     }
                   />
                 </SettingsRow>
+                <SettingsRow
+                  label="Confirm Mode Change"
+                  description="Show a warning before switching back to the mode selection screen."
+                  htmlFor="confirm-mode-change-toggle"
+                >
+                  <Switch
+                    id="confirm-mode-change-toggle"
+                    checked={confirmModeChange}
+                    onCheckedChange={(v) =>
+                      handleStartupToggle(
+                        "startup.confirmModeChange",
+                        setConfirmModeChange,
+                        v
+                      )
+                    }
+                  />
+                </SettingsRow>
               </div>
 
               <Divider />
@@ -732,17 +755,6 @@ export function SettingsDialog({
                     onCheckedChange={(v) => setFocusSetting("showStatusBar", v)}
                   />
                 </SettingsRow>
-                <SettingsRow
-                  label="Show Pane Headers"
-                  description="Show the skeuomorphic capsule headers on terminal panes."
-                  htmlFor="pane-headers-toggle"
-                >
-                  <Switch
-                    id="pane-headers-toggle"
-                    checked={focus.showPaneHeaders}
-                    onCheckedChange={(v) => setFocusSetting("showPaneHeaders", v)}
-                  />
-                </SettingsRow>
               </div>
             </TabsContent>
 
@@ -805,6 +817,17 @@ export function SettingsDialog({
                     id="demo-terminal-shortcuts-toggle"
                     checked={demo.showTerminalShortcutHints}
                     onCheckedChange={(v) => setDemoSetting("showTerminalShortcutHints", v)}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  label="Show Floating Terminal Header"
+                  description="Toggle the skeuomorphic floating capsule headers on terminal panes."
+                  htmlFor="demo-floating-header-toggle"
+                >
+                  <Switch
+                    id="demo-floating-header-toggle"
+                    checked={demo.showFloatingTerminalHeader}
+                    onCheckedChange={(v) => setDemoSetting("showFloatingTerminalHeader", v)}
                   />
                 </SettingsRow>
               </div>

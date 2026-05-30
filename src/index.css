@@ -305,7 +305,6 @@ input[type="text"]:focus, select:focus {
   font-weight: 700;
   letter-spacing: 0.2em;
   color: var(--accent-primary);
-  animation: character-reveal 1s var(--ease-out) forwards;
 }
 
 .splash-subtext {
@@ -314,8 +313,6 @@ input[type="text"]:focus, select:focus {
   letter-spacing: 0.5em;
   color: var(--text-secondary);
   margin-top: 1rem;
-  opacity: 0;
-  animation: character-reveal 1s var(--ease-out) 0.5s forwards;
 }
 
 /* Mode Selection */

@@ -47,6 +47,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
       title: "Active Terminal Sessions",
       items: [
         { label: "Focus Pane 1 - 4", value: "Ctrl + 1..4" },
+        { label: "Snap Focus (Directional)", value: "Alt + Arrows" },
         { label: "Maximize Focused Pane", value: "Ctrl + Shift + M" },
         { label: "Execute / Relaunch Session", value: "Ctrl + Alt + R" },
       ]

@@ -31,6 +31,10 @@ interface SpaceViewProps {
   setIsZenMode: (val: boolean) => void;
   zenPadding?: number;
   showPaneHeaders?: boolean;
+  onSplitPane?: (paneId: string, direction: 'horizontal' | 'vertical') => void;
+  onKillPane?: (paneId: string) => void;
+  onRenamePane?: (paneId: string, newName: string) => void;
+  onSaveSnippet?: (command: string) => void;
 }
 
 export function SpaceView({ 
@@ -38,7 +42,11 @@ export function SpaceView({
   config, 
   isZenMode, 
   zenPadding = 32,
-  showPaneHeaders = true
+  showPaneHeaders = true,
+  onSplitPane,
+  onKillPane,
+  onRenamePane,
+  onSaveSnippet
 }: SpaceViewProps) {
   // Normalize layout to LayoutNode tree
   const layoutTree = useMemo(() => {
@@ -100,10 +108,10 @@ export function SpaceView({
         setIsMaximized(prev => !prev);
       }
 
-      // 3. Directional Navigation (Cmd/Ctrl + Opt + Arrows)
+      // 3. Directional Navigation (Alt + Arrows)
       const isArrow = e.key.startsWith('Arrow');
-      const isMod = (e.ctrlKey || e.metaKey) && e.altKey;
-      if (isMod && isArrow && focusedPaneId) {
+      const isAlt = e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+      if (isAlt && isArrow && focusedPaneId) {
         e.preventDefault();
         const dir = e.key.slice(5).toLowerCase() as 'up' | 'down' | 'left' | 'right';
         const neighborId = findNeighborPane(layoutTree, focusedPaneId, dir);
@@ -120,21 +128,27 @@ export function SpaceView({
   // Recursive Layout Renderer
   const renderLayout = (node: LayoutNode): React.ReactNode => {
     if (node.type === 'pane') {
+      const pIndex = allPanes.findIndex(p => p.id === node.id);
       return (
         <TerminalPane
           workspaceId={workspaceId}
           pane={{
-            id: parseInt(node.id),
+            id: node.id,
             name: node.name,
             command: node.command,
             isCustom: true
           }}
           isFocused={focusedPaneId === node.id}
+          index={pIndex}
           isMultiPane={allPanes.length > 1}
           onFocus={() => setFocusedPaneId(node.id)}
           rootPath={config.rootPath}
           isZenMode={isZenMode}
           showPaneHeader={showPaneHeaders}
+          onSplit={onSplitPane}
+          onKill={onKillPane}
+          onRename={onRenamePane}
+          onSaveSnippet={onSaveSnippet}
         />
       );
     }
@@ -166,17 +180,22 @@ export function SpaceView({
               <TerminalPane
                 workspaceId={workspaceId}
                 pane={{
-                  id: parseInt(focusedPane.id),
+                  id: focusedPane.id,
                   name: focusedPane.name,
                   command: focusedPane.command,
                   isCustom: true
                 }}
                 isFocused={true}
+                index={allPanes.findIndex(p => p.id === focusedPane.id)}
                 isMultiPane={false}
                 onFocus={() => {}}
                 rootPath={config.rootPath}
                 isZenMode={true}
                 showPaneHeader={showPaneHeaders}
+                onSplit={onSplitPane}
+                onKill={onKillPane}
+                onRename={onRenamePane}
+                onSaveSnippet={onSaveSnippet}
               />
             )}
           </div>
@@ -199,16 +218,21 @@ export function SpaceView({
               <TerminalPane
                 workspaceId={workspaceId}
                 pane={{
-                  id: parseInt(focusedPane.id),
+                  id: focusedPane.id,
                   name: focusedPane.name,
                   command: focusedPane.command,
                   isCustom: true
                 }}
                 isFocused={true}
+                index={allPanes.findIndex(p => p.id === focusedPane.id)}
                 isMultiPane={false}
                 onFocus={() => {}}
                 rootPath={config.rootPath}
                 showPaneHeader={showPaneHeaders}
+                onSplit={onSplitPane}
+                onKill={onKillPane}
+                onRename={onRenamePane}
+                onSaveSnippet={onSaveSnippet}
               />
             )}
           </div>
@@ -216,21 +240,26 @@ export function SpaceView({
           <div className="flex-1 overflow-hidden">
             {isMobile ? (
                <div className="h-full overflow-y-auto bg-[var(--border-color)] flex flex-col gap-[1px]">
-                  {allPanes.map(pane => (
+                  {allPanes.map((pane, idx) => (
                     <div key={pane.id} className="h-[300px] shrink-0">
                       <TerminalPane
                         workspaceId={workspaceId}
                         pane={{
-                          id: parseInt(pane.id),
+                          id: pane.id,
                           name: pane.name,
                           command: pane.command,
                           isCustom: true
                         }}
                         isFocused={focusedPaneId === pane.id}
+                        index={idx}
                         isMultiPane={allPanes.length > 1}
                         onFocus={() => setFocusedPaneId(pane.id)}
                         rootPath={config.rootPath}
                         showPaneHeader={showPaneHeaders}
+                        onSplit={onSplitPane}
+                        onKill={onKillPane}
+                        onRename={onRenamePane}
+                        onSaveSnippet={onSaveSnippet}
                       />
                     </div>
                   ))}

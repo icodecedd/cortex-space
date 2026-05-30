@@ -1,4 +1,6 @@
 import { CheckCircle2, Settings2, Trash2, Layers, Zap, Plus, X } from "lucide-react";
+import { useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { LayoutType, LayoutConfig, SavedLayout } from "@/lib/setup-constants";
 import { getGridCols, getGridRows, getPaneCount } from "@/lib/setup-utils";
 import { Input } from "@/components/ui/input";
@@ -14,6 +16,7 @@ interface LayoutSelectorProps {
   savedLayouts: SavedLayout[];
   onRemoveSavedLayout?: (id: string) => void;
   onRestoreDefaults?: () => void;
+  isInitialized?: boolean;
 }
 
 export function LayoutSelector({ 
@@ -23,68 +26,29 @@ export function LayoutSelector({
   onCustomLayoutChange,
   savedLayouts,
   onRemoveSavedLayout,
-  onRestoreDefaults
+  onRestoreDefaults,
+  isInitialized
 }: LayoutSelectorProps) {
   // All layouts are now dynamic and come from savedLayouts
-  const options = [
+  const options = useMemo(() => [
     ...savedLayouts.map(l => ({ id: l.id, name: l.name, isSystem: false })),
     { id: 'custom', name: 'CUSTOM', isSystem: true }
-  ];
-
-  if (savedLayouts.length === 0) {
-    return (
-      <div className="flex flex-col gap-6">
-        <EmptyState 
-          icon={Layers}
-          compact
-          title="Library is Empty"
-          description="You haven't saved any terminal grid arrangements yet. Restore defaults or define a custom one below."
-          iconColor="text-blue-500/40"
-          action={onRestoreDefaults ? {
-            label: "Install Starter Pack",
-            onClick: onRestoreDefaults,
-            icon: Zap
-          } : undefined}
-          className="border border-dashed border-[var(--border-color)] rounded-lg bg-white/[0.01]"
-        />
-        
-        <div 
-          onClick={() => onLayoutChange(currentLayout === 'custom' ? '2x2' : 'custom')} // Toggle custom
-          className={cn(
-            "layout-card relative flex items-center justify-center h-12 rounded-md border border-dashed border-[var(--border-color)] cursor-pointer transition-all hover:border-[var(--accent-primary)] hover:bg-white/5",
-            currentLayout === 'custom' && "border-[var(--accent-primary)] bg-white/5 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.1)]"
-          )}
-        >
-          {currentLayout === 'custom' ? <X size={14} className="mr-2 text-[var(--accent-primary)]" /> : <Plus size={14} className="mr-2" />}
-          <span className={cn("font-mono text-[10px] font-bold", currentLayout === 'custom' ? "text-[var(--accent-primary)]" : "text-[var(--text-secondary)]")}>
-            {currentLayout === 'custom' ? "CLOSE CUSTOM CONFIG" : "START WITH CUSTOM GRID"}
-          </span>
-        </div>
-
-        {currentLayout === 'custom' && (
-          <CustomLayoutForm 
-            customLayout={customLayout} 
-            onCustomLayoutChange={onCustomLayoutChange} 
-          />
-        )}
-      </div>
-    );
-  }
+  ], [savedLayouts]);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {options.map((opt, index) => (
-          <div
+          <motion.div
             key={opt.id}
             onClick={() => onLayoutChange(opt.id)}
             className={cn(
-              "layout-card animate-in group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-md border transition-all duration-200 overflow-hidden",
+              "layout-card group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-md border duration-200 overflow-hidden",
               currentLayout === opt.id 
                 ? "border-[var(--accent-primary)] bg-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)]" 
                 : "border-[var(--border-color)] bg-transparent hover:border-[var(--accent-primary)] hover:bg-white/5"
             )}
-            style={{ transitionDelay: `${index * 30}ms` }}
+            whileTap={{ scale: 0.97 }}
           >
             {opt.id === 'custom' ? (
               <Settings2 
@@ -112,12 +76,18 @@ export function LayoutSelector({
               )}
             </div>
 
-            {currentLayout === opt.id && (
-              <CheckCircle2 
-                size={12} 
-                className="absolute top-2 right-2 text-[var(--accent-primary)]" 
-              />
-            )}
+            <AnimatePresence>
+              {currentLayout === opt.id && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  className="absolute top-2 right-2"
+                >
+                  <CheckCircle2 size={12} className="text-[var(--accent-primary)]" />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {!opt.isSystem && (
               <Button
@@ -132,23 +102,32 @@ export function LayoutSelector({
                 <Trash2 size={10} />
               </Button>
             )}
-          </div>
+          </motion.div>
         ))}
       </div>
 
-      {currentLayout === 'custom' && (
-        <CustomLayoutForm 
-          customLayout={customLayout} 
-          onCustomLayoutChange={onCustomLayoutChange} 
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {currentLayout === 'custom' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            className="overflow-hidden"
+          >
+            <CustomLayoutForm 
+              customLayout={customLayout} 
+              onCustomLayoutChange={onCustomLayoutChange} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 function CustomLayoutForm({ customLayout, onCustomLayoutChange }: { customLayout: LayoutConfig, onCustomLayoutChange: (config: Partial<LayoutConfig>) => void }) {
   return (
-    <div className="animate-in fade-in slide-in-from-top-2 flex items-center gap-8 rounded-md border border-[var(--border-color)] bg-white/[0.02] p-5">
+    <div className="flex items-center gap-8 rounded-md border border-[var(--border-color)] bg-white/[0.02] p-5">
       <div className="flex items-center gap-4">
         <div className="font-mono text-[10px] font-medium tracking-tight text-[var(--text-secondary)] uppercase">Rows</div>
         <Input 

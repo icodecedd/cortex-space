@@ -4,22 +4,32 @@ interface TerminalPaneProps {
   workspaceId: string;
   pane: any;
   isFocused: boolean;
+  index: number;
   isMultiPane?: boolean;
   onFocus: () => void;
   rootPath?: string;
   isZenMode?: boolean;
   showPaneHeader?: boolean;
+  onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
+  onKill?: (id: string) => void;
+  onRename?: (id: string, newName: string) => void;
+  onSaveSnippet?: (command: string) => void;
 }
 
 export function TerminalPane({ 
   workspaceId, 
   pane, 
   isFocused, 
+  index,
   isMultiPane = true, 
   onFocus, 
   rootPath,
   isZenMode = false,
-  showPaneHeader = true
+  showPaneHeader = true,
+  onSplit,
+  onKill,
+  onRename,
+  onSaveSnippet
 }: TerminalPaneProps) {
   return (
     <div 
@@ -34,7 +44,7 @@ export function TerminalPane({
       }}
       tabIndex={0}
       role="region"
-      aria-label={`Terminal Pane: ${pane.command || 'Idle'}`}
+      aria-label={`Terminal Pane: ${pane.name || pane.command || 'Idle'}`}
       style={{ 
         background: 'var(--bg-color)', 
         borderRadius: 0,
@@ -79,10 +89,17 @@ export function TerminalPane({
       >
         <XtermTerminal 
           id={`${workspaceId}-${pane.id}`} 
+          paneId={pane.id}
           isFocused={isFocused} 
+          index={index}
           command={pane.command}
           cwd={rootPath}
-          isZenMode={isZenMode || !showPaneHeader}
+          isZenMode={isZenMode}
+          name={pane.name}
+          onSplit={onSplit}
+          onKill={onKill}
+          onRename={onRename}
+          onSaveSnippet={onSaveSnippet}
         />
       </div>
     </div>

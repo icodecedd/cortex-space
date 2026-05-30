@@ -1,4 +1,5 @@
 import { CheckCircle2, Layout, Database, Activity } from "lucide-react";
+import { motion, Variants } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LayoutConfig, PaneConfig } from "@/lib/setup-constants";
 import { getGridCols, getGridRows } from "@/lib/setup-utils";
@@ -12,16 +13,40 @@ interface StepPreviewProps {
 export function StepPreview({ rootPath, layout, activePanes }: StepPreviewProps) {
   const layoutString = `${layout.rows}x${layout.cols}`;
 
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] }
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center">
-      <div className="mb-8 flex w-full items-center gap-3">
+    <motion.div 
+      className="flex flex-col items-center"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div variants={itemVariants} className="mb-8 flex w-full items-center gap-3">
         <CheckCircle2 size={16} className="text-[var(--accent-primary)]" />
         <h3 className="text-sm font-bold tracking-tight">04. Final Protocol Validation</h3>
-      </div>
+      </motion.div>
 
       <div className="grid w-full grid-cols-2 gap-8">
         {/* SUMMARY PANEL */}
-        <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+        <motion.div variants={itemVariants}>
           <Card className="border-[var(--border-color)] bg-white/[0.02]">
             <CardHeader className="pb-2">
               <CardTitle className="font-mono text-[10px] font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase">
@@ -54,10 +79,10 @@ export function StepPreview({ rootPath, layout, activePanes }: StepPreviewProps)
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
         {/* VISUAL GRID MINI-MAP */}
-        <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-150">
+        <motion.div variants={itemVariants}>
           <Card className="overflow-hidden border-[var(--border-color)] bg-white/[0.02]">
             <CardHeader className="pb-2">
               <CardTitle className="font-mono text-[10px] font-bold tracking-[0.2em] text-[var(--text-secondary)] uppercase">
@@ -72,11 +97,10 @@ export function StepPreview({ rootPath, layout, activePanes }: StepPreviewProps)
                   gridTemplateRows: getGridRows(layout)
                 }}
               >
-                {activePanes.map((pane, i) => (
+                {activePanes.map((pane) => (
                   <div
                     key={pane.id}
-                    className="animate-in fade-in flex items-center justify-center bg-[var(--bg-color)] p-2 transition-all"
-                    style={{ transitionDelay: `${i * 50}ms` }}
+                    className="flex items-center justify-center bg-[var(--bg-color)] p-2"
                   >
                     <div className="flex flex-col items-center gap-1.5 text-center">
                       <div className="font-mono text-[8px] font-bold text-[var(--accent-primary)] opacity-60">P{pane.id}</div>
@@ -89,8 +113,8 @@ export function StepPreview({ rootPath, layout, activePanes }: StepPreviewProps)
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

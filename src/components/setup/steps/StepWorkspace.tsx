@@ -1,5 +1,6 @@
 import { FolderOpen, Grid3X3, Lock, X, BookmarkPlus, Save } from "lucide-react";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LayoutType, LayoutConfig, SavedLayout } from "@/lib/setup-constants";
@@ -24,6 +25,7 @@ interface StepWorkspaceProps {
   addSavedLayout: (name: string, config: LayoutConfig) => void;
   removeSavedLayout: (id: string) => void;
   onRestoreLayouts: () => void;
+  isInitialized?: boolean;
 }
 
 export function StepWorkspace({
@@ -42,7 +44,8 @@ export function StepWorkspace({
   savedLayouts,
   addSavedLayout,
   removeSavedLayout,
-  onRestoreLayouts
+  onRestoreLayouts,
+  isInitialized
 }: StepWorkspaceProps) {
   const [layoutName, setLayoutName] = useState("");
 
@@ -56,7 +59,6 @@ export function StepWorkspace({
   };
 
   return (
-    // ... rest of component
     <div className="flex flex-col gap-12">
       {/* SECTION 01: DIRECTORY */}
       <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -140,7 +142,7 @@ export function StepWorkspace({
       </section>
 
       {/* SECTION 02: LAYOUT */}
-      <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+      <section>
         <div className="mb-6 flex items-center gap-3">
           <Grid3X3 size={16} className="text-[var(--accent-primary)]" />
           <h3 className="text-sm font-bold tracking-tight">02. Select Pane Layout</h3>
@@ -154,10 +156,15 @@ export function StepWorkspace({
           savedLayouts={savedLayouts}
           onRemoveSavedLayout={removeSavedLayout}
           onRestoreDefaults={onRestoreLayouts}
+          isInitialized={isInitialized}
         />
 
         {layout === 'custom' && (
-          <div className="animate-in fade-in slide-in-from-top-4 mt-6 flex items-center gap-4 rounded-md border border-[var(--border-color)] bg-white/[0.03] p-4">
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 flex items-center gap-4 rounded-md border border-[var(--border-color)] bg-white/[0.03] p-4"
+          >
             <div className="flex flex-1 items-center gap-3">
               <Save size={14} className="text-[var(--text-secondary)]" />
               <div className="flex-1">
@@ -183,9 +190,10 @@ export function StepWorkspace({
                 SAVE AS REUSABLE LAYOUT
               </Button>
             </div>
-          </div>
+          </motion.div>
         )}
       </section>
     </div>
   );
 }
+

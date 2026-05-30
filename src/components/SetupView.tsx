@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import { INITIAL_STEP, MAX_STEP } from "@/lib/setup-constants";
 import { useWorkspaceDirectory } from "@/hooks/useWorkspaceDirectory";
 import { usePresets } from "@/hooks/usePresets";
@@ -46,7 +47,8 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
     activePanes,
     handleLayoutChange,
     updatePaneCommand,
-    restoreDefaults
+    restoreDefaults,
+    isInitialized
   } = useSetupPanes(mode);
 
   const isStepValid = useMemo(() => {
@@ -119,48 +121,58 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
 
 
   return (
-    <div className="step-container animate-in flex flex-col h-full overflow-hidden">
+    <div className="step-container flex flex-col h-full overflow-hidden">
       <SetupHeader step={step} mode={mode} onBack={onBack} />
 
       <ScrollArea className="flex-1 -mx-4 px-4 min-h-0">
-        <div className="animate-in pb-12 pt-2" key={step}>
-          {step === 1 && (
-            <StepWorkspace
-              rootPath={rootPath}
-              setRootPath={setRootPath}
-              isValidDir={isValidDir}
-              handleBrowse={handleBrowse}
-              handleBreadcrumbClick={handleBreadcrumbClick}
-              presets={presets}
-              addPreset={addPreset}
-              removePreset={removePreset}
-              layout={layoutType}
-              handleLayoutChange={handleLayoutChange}
-              customLayout={customLayout}
-              setCustomLayout={setCustomLayout}
-              savedLayouts={savedLayouts}
-              addSavedLayout={addSavedLayout}
-              removeSavedLayout={removeSavedLayout}
-              onRestoreLayouts={restoreDefaults}
-            />
-          )}
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={step}
+            initial={{ opacity: 0, y: 15, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.99 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="pb-12 pt-2"
+          >
+            {step === 1 && (
+              <StepWorkspace
+                rootPath={rootPath}
+                setRootPath={setRootPath}
+                isValidDir={isValidDir}
+                handleBrowse={handleBrowse}
+                handleBreadcrumbClick={handleBreadcrumbClick}
+                presets={presets}
+                addPreset={addPreset}
+                removePreset={removePreset}
+                layout={layoutType}
+                handleLayoutChange={handleLayoutChange}
+                customLayout={customLayout}
+                setCustomLayout={setCustomLayout}
+                savedLayouts={savedLayouts}
+                addSavedLayout={addSavedLayout}
+                removeSavedLayout={removeSavedLayout}
+                onRestoreLayouts={restoreDefaults}
+                isInitialized={isInitialized}
+              />
+            )}
 
-          {step === 2 && (
-            <StepConfigure
-              mode={mode}
-              activePanes={activePanes}
-              updatePaneCommand={updatePaneCommand}
-            />
-          )}
+            {step === 2 && (
+              <StepConfigure
+                mode={mode}
+                activePanes={activePanes}
+                updatePaneCommand={updatePaneCommand}
+              />
+            )}
 
-          {step === 3 && (
-            <StepPreview
-              rootPath={rootPath}
-              layout={currentLayout}
-              activePanes={activePanes}
-            />
-          )}
-        </div>
+            {step === 3 && (
+              <StepPreview
+                rootPath={rootPath}
+                layout={currentLayout}
+                activePanes={activePanes}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </ScrollArea>
 
       <SetupControls

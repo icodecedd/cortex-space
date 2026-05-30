@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { getSetting, setSetting } from "@/lib/store";
 import {
   Dialog,
   DialogClose,
@@ -19,6 +22,33 @@ interface ConfirmModeChangeDialogProps {
 
 export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDialogProps) {
   const [open, setOpen] = useState(false);
+  const [shouldConfirm, setShouldConfirm] = useState(true);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const val = await getSetting('startup.confirmModeChange', true);
+      setShouldConfirm(val);
+    })();
+  }, [open]);
+
+  const handleConfirm = async () => {
+    if (dontShowAgain) {
+      await setSetting('startup.confirmModeChange', false);
+      setShouldConfirm(false);
+    }
+    onConfirm();
+    setOpen(false);
+  };
+
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    if (!shouldConfirm) {
+      // If user opted out, bypass the dialog and confirm immediately
+      e.preventDefault();
+      e.stopPropagation();
+      onConfirm();
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -26,6 +56,7 @@ export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDi
         <Button
           variant="ghost"
           size="xs"
+          onClick={handleTriggerClick}
           className="btn-tactile text-[0.65rem] py-[0.4rem] px-[0.8rem] opacity-90 flex items-center justify-center gap-2 border border-[var(--border-color)] bg-[var(--surface-color)] h-8 min-w-[120px] tracking-[0.04em] font-semibold transition-all duration-300 ease-[var(--ease-out)]"
         >
           <ChevronLeft size={14} />
@@ -53,6 +84,22 @@ export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDi
             This action will reset your current workspace progress and return you to the initial mode selection screen. This cannot be undone.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="flex items-center gap-3 mt-4 py-2 px-1">
+          <Switch 
+            id="dont-show-again" 
+            checked={dontShowAgain}
+            onCheckedChange={setDontShowAgain}
+          />
+          <Label 
+            htmlFor="dont-show-again"
+            className="text-[13px] font-medium cursor-pointer"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Don't show this warning again
+          </Label>
+        </div>
+
         <DialogFooter
           style={{
             display: 'grid',
@@ -79,21 +126,19 @@ export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDi
               Stay Here
             </Button>
           </DialogClose>
-          <DialogClose asChild>
-            <Button
-              onClick={onConfirm}
-              className="primary btn-tactile"
-              style={{
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                height: '40px',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--accent-contrast)'
-              }}
-            >
-              Confirm & Reset
-            </Button>
-          </DialogClose>
+          <Button
+            onClick={handleConfirm}
+            className="primary btn-tactile"
+            style={{
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              height: '40px',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--accent-contrast)'
+            }}
+          >
+            Confirm & Reset
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

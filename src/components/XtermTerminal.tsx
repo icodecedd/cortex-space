@@ -7,25 +7,51 @@ import { useTheme, THEMES, ThemeName } from '../hooks/useTheme';
 import { usePty } from '../hooks/usePty';
 import { Button } from "@/components/ui/button";
 import { getSetting, getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings, SHORTCUT_DEFAULTS, ShortcutSettings, DemoSettings } from '@/lib/store';
-import { RotateCw } from "lucide-react";
+import { MoreVertical, SquareSplitVertical, SquareSplitHorizontal, Trash2, BookmarkPlus, RefreshCw } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+} from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
 import { toast } from "sonner";
 import '@xterm/xterm/css/xterm.css';
 
 interface XtermTerminalProps {
   id: string;
+  paneId: string;
   isFocused: boolean;
+  index: number;
   command?: string;
   cwd?: string;
   isZenMode?: boolean;
+  name?: string;
+  onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
+  onKill?: (id: string) => void;
+  onRename?: (id: string, newName: string) => void;
+  onSaveSnippet?: (command: string) => void;
 }
 
-export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }: XtermTerminalProps) {
-  const idParts = id.split('-');
-  const paneId = idParts.pop() || '1';
-  const workspaceId = idParts.join('-');
+export function XtermTerminal({ 
+  id, 
+  paneId,
+  isFocused, 
+  index,
+  command, 
+  cwd, 
+  isZenMode = false,
+  name,
+  onSplit,
+  onKill,
+  onRename,
+  onSaveSnippet
+}: XtermTerminalProps) {
+  const workspaceId = id.substring(0, id.lastIndexOf(`-${paneId}`));
   const isMac = typeof window !== 'undefined' && navigator.userAgent.includes('Mac');
-  const focusShortcut = isMac ? `⌘${paneId}` : `Ctrl+${paneId}`;
+  const focusShortcut = isMac ? `⌘${index + 1}` : `Ctrl+${index + 1}`;
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -35,6 +61,15 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
   const [defaultShell, setDefaultShell] = useState<string>('');
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
   const [showShortcuts, setShowShortcuts] = useState(true);
+  const [showFloatingHeader, setShowFloatingHeader] = useState(true);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [tempName, setTempName] = useState(name || `PANE ${index + 1}`);
+
+  useEffect(() => {
+    if (isRenaming) {
+      setTempName(name || `PANE ${index + 1}`);
+    }
+  }, [isRenaming, name, index]);
 
   useEffect(() => {
     getSettingsGroup<TerminalSettings>('startup', { defaultShell: '' } as any).then((saved: any) => {
@@ -42,6 +77,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
     });
     getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
     getSetting('demo.showTerminalShortcutHints', true).then(setShowShortcuts);
+    getSetting('demo.showFloatingTerminalHeader', true).then(setShowFloatingHeader);
   }, []);
 
   function applyAnsiColors(themeName: string) {
@@ -67,7 +103,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
     shell: defaultShell
   }), [command, cwd, dimensions.rows, dimensions.cols, defaultShell]);
 
-  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch } = usePty(id, handlePtyData, ptyConfig);
+  const { write: writeToPty, resize: resizePty, isReady, relaunch } = usePty(id, handlePtyData, ptyConfig);
 
   // Bridge for xterm.js event handlers to always use latest PTY callbacks
   const writeRef = useRef(writeToPty);
@@ -260,6 +296,9 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
       if (evt.detail?.showTerminalShortcutHints !== undefined) {
         setShowShortcuts(evt.detail.showTerminalShortcutHints);
       }
+      if (evt.detail?.showFloatingTerminalHeader !== undefined) {
+        setShowFloatingHeader(evt.detail.showFloatingTerminalHeader);
+      }
     };
 
     window.addEventListener('cortex-demo-settings-changed', handleDemoSettingsChange);
@@ -316,18 +355,27 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
       if ((e.ctrlKey || e.metaKey) && e.altKey && isR) {
         e.preventDefault();
         relaunch();
-        toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${paneId}...` });
+        toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${index + 1}...` });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFocused, isReady, relaunch, paneId]);
+  }, [isFocused, isReady, relaunch, index]);
+
+  const handleRenameSubmit = () => {
+    const trimmed = tempName.trim();
+    if (onRename && trimmed) {
+      onRename(paneId, trimmed);
+      toast.success("Pane Renamed", { description: `Pane updated to "${trimmed}"` });
+    }
+    setIsRenaming(false);
+  };
 
   const handleContainerClick = () => { if (xtermRef.current && isReady) xtermRef.current.focus(); };
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-      {!isZenMode && (
+      {(showFloatingHeader && !isZenMode) && (
         <div 
           className="pane-header-overlay group/pane-header"
           style={{
@@ -351,16 +399,40 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
             pointerEvents: 'auto'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
-            <span style={{ 
-              fontSize: '9px', fontFamily: 'JetBrains Mono', fontWeight: 700, 
-              color: isFocused ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              background: 'rgba(255, 255, 255, 0.05)', padding: '2px 6px', borderRadius: '9999px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-            }}>
-              PANE {paneId}
-            </span>
-            {!isFocused && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden', flex: 1 }}>
+            {isRenaming ? (
+              <input
+                autoFocus
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onBlur={handleRenameSubmit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRenameSubmit();
+                  if (e.key === 'Escape') setIsRenaming(false);
+                  e.stopPropagation();
+                }}
+                className="bg-transparent border-none outline-none text-[11px] font-bold font-mono text-[var(--accent-primary)] w-full p-0"
+                style={{ height: '18px' }}
+              />
+            ) : (
+              <span 
+                onDoubleClick={() => setIsRenaming(true)}
+                style={{ 
+                  fontSize: '11px', fontFamily: 'JetBrains Mono', fontWeight: 800, 
+                  color: isFocused ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  background: 'rgba(255, 255, 255, 0.05)', padding: '2px 8px', borderRadius: '9999px',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  cursor: 'text',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '140px'
+                }}
+              >
+                {name || `PANE ${index + 1}`}
+              </span>
+            )}
+            {!isFocused && !isRenaming && (
               <span style={{ 
                 fontSize: '8px', fontFamily: 'JetBrains Mono', color: 'var(--text-secondary)',
                 background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
@@ -369,33 +441,72 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
                 {focusShortcut}
               </span>
             )}
-            <span style={{ 
-              fontSize: '9px', fontFamily: 'JetBrains Mono', color: isFocused ? 'var(--text-primary)' : 'var(--text-secondary)',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px'
-            }}>
-              {command || 'bash'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {isReady && !isTerminated && (
-              <Button
-                onClick={() => {
-                  relaunch();
-                  toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${paneId}...` });
-                }}
-                variant="ghost"
-                size="icon-xs"
-                className="btn-tactile text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 active:scale-97"
-                style={{
-                  width: '20px', height: '20px', padding: 0, borderRadius: '9999px',
-                  background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}
-              >
-                <RotateCw size={10} className="transition-transform duration-300 hover:rotate-45" />
-              </Button>
+            {!isRenaming && (
+              <span style={{ 
+                fontSize: '10px', fontFamily: 'JetBrains Mono', color: isFocused ? 'var(--text-primary)' : 'var(--text-secondary)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px',
+                opacity: 0.8
+              }}>
+                {command || 'bash'}
+              </span>
             )}
-            {showShortcuts && (
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="btn-tactile text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 active:scale-97"
+                  style={{
+                    width: '24px', height: '24px', padding: 0, borderRadius: '9999px',
+                    background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >
+                  <MoreVertical size={12} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-[var(--bg-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+                <DropdownMenuItem onClick={() => {
+                  relaunch();
+                  toast.success(`Pane Reset`, { description: `Restarting session for ${name || `PANE ${index + 1}`}...` });
+                }}>
+                  <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                  <span>Reset Process</span>
+                  <DropdownMenuShortcut className="text-[10px] opacity-50">Ctrl+Alt+R</DropdownMenuShortcut>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[var(--border-color)]" />
+                <DropdownMenuItem onClick={() => onSplit?.(paneId, 'horizontal')}>
+                  <SquareSplitHorizontal className="mr-2 h-3.5 w-3.5" />
+                  <span>Split Horizontally</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onSplit?.(paneId, 'vertical')}>
+                  <SquareSplitVertical className="mr-2 h-3.5 w-3.5" />
+                  <span>Split Vertically</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[var(--border-color)]" />
+                <DropdownMenuItem onClick={() => {
+                  if (onSaveSnippet && (command || '')) {
+                    onSaveSnippet(command || '');
+                    toast.success("Snippet Saved", { description: `Saved "${command}" to your library.` });
+                  }
+                }}>
+                  <BookmarkPlus className="mr-2 h-3.5 w-3.5" />
+                  <span>Save as Snippet</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[var(--border-color)]" />
+                <DropdownMenuItem 
+                  variant="destructive"
+                  onClick={() => onKill?.(paneId)}
+                >
+                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                  <span>Kill Process</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {(showShortcuts && isFocused) && (
               <Kbd style={{ 
                 fontSize: '8px', height: '14px', padding: '0 5px', background: 'rgba(255, 255, 255, 0.03)', 
                 borderColor: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)',
@@ -412,28 +523,27 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
         className="terminal-container"
         onClick={handleContainerClick}
         style={{ 
-          width: '100%', height: '100%', padding: isZenMode ? '0' : '52px 8px 8px 8px', 
+          width: '100%', height: '100%', padding: (isZenMode || !showFloatingHeader) ? '0' : '52px 8px 8px 8px', 
           margin: '0', background: '#000000', overflow: 'hidden'
         }} 
       />
-      {isTerminated && (
-        <div style={{
-          position: 'absolute', inset: 0, background: 'rgba(5, 5, 5, 0.85)', backdropFilter: 'blur(8px)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          zIndex: 100, gap: '0.75rem', fontFamily: 'JetBrains Mono, monospace'
-        }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em' }}>
-            SESSION TERMINATED
-          </span>
-          <Button 
-            onClick={() => relaunch()}
-            className="primary btn-tactile"
-            style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', letterSpacing: '0.05em', borderRadius: 'var(--radius-sm)' }}
-          >
-            RELAUNCH SESSION
-          </Button>
-        </div>
-      )}
+      <div style={{
+        position: 'absolute', inset: 0, background: 'rgba(5, 5, 5, 0.85)', backdropFilter: 'blur(8px)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, gap: '0.75rem', fontFamily: 'JetBrains Mono, monospace',
+        display: isReady ? 'none' : 'flex'
+      }}>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em' }}>
+          SESSION TERMINATED
+        </span>
+        <Button 
+          onClick={() => relaunch()}
+          className="primary btn-tactile"
+          style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', letterSpacing: '0.05em', borderRadius: 'var(--radius-sm)' }}
+        >
+          RELAUNCH SESSION
+        </Button>
+      </div>
     </div>
   );
 }
