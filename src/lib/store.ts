@@ -67,6 +67,8 @@ export interface ShortcutSettings {
   openTemplates: string;
   openSettings: string;
   quickSwitcher: string;
+  splitHorizontal: string;
+  splitVertical: string;
 }
 
 export interface FocusSettings {
@@ -137,6 +139,8 @@ export const SHORTCUT_DEFAULTS: ShortcutSettings = {
   openTemplates: 'Ctrl+Shift+T',
   openSettings: 'Ctrl+,',
   quickSwitcher: 'Ctrl+K',
+  splitHorizontal: 'Ctrl+Alt+H',
+  splitVertical: 'Ctrl+Alt+V',
 };
 
 // ---------------------------------------------------------------------------

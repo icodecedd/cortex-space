@@ -24,14 +24,31 @@ export function useSnippets() {
   }, [snippets, isInitialized]);
 
   const addSnippet = useCallback((label: string, command: string) => {
+    // Validation: Check if command is empty
+    if (!command || !command.trim()) {
+      toast.error("Cannot save empty command");
+      return;
+    }
+
+    // Validation: Check for duplicates
+    const isDuplicate = snippets.some(s => s.command.trim() === command.trim());
+    if (isDuplicate) {
+      toast.error("Snippet already exists", { 
+        description: "This command is already in your library." 
+      });
+      return;
+    }
+
+    const finalLabel = label || command.split(' ')[0] || "Untitled Snippet";
+
     const newSnippet: Snippet = {
       id: crypto.randomUUID(),
-      label,
-      command,
+      label: finalLabel,
+      command: command.trim(),
     };
     setSnippets(prev => [newSnippet, ...prev]);
-    toast.success("Snippet Saved", { description: label });
-  }, []);
+    toast.success("Snippet Saved", { description: finalLabel });
+  }, [snippets]);
 
   const deleteSnippet = useCallback((id: string) => {
     const snippet = snippets.find(s => s.id === id);

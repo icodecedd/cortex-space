@@ -22,6 +22,7 @@ import { WorkspaceSwitcherDialog } from "./components/dialogs/WorkspaceSwitcherD
 import { useSpaceTemplates } from "./hooks/useSpaceTemplates";
 import { useSnippets } from "./hooks/useSnippets";
 import { splitNode, removeNode, updatePaneNode } from "./lib/setup-utils";
+import { formatWorkspaceName } from "./lib/utils";
 
 declare global {
   interface Window {
@@ -51,8 +52,17 @@ function App() {
       const evt = e as CustomEvent<{ isDeep: boolean }>;
       setIsBackgroundRecessed(evt.detail.isDeep);
     };
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Logic for other global shortcuts can go here if needed
+    };
+
     window.addEventListener('cortex:modal-depth-changed', handleDepthChange);
-    return () => window.removeEventListener('cortex:modal-depth-changed', handleDepthChange);
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('cortex:modal-depth-changed', handleDepthChange);
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
   }, []);
   const { settings: colorSchemeSettings, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
   const { settings: focusSettings, setFocusSetting, toggleZenMode, resetToDefaults: resetFocus } = useFocusSettings();
@@ -201,7 +211,8 @@ function App() {
       }
     }
 
-    const rootName = finalPath.split(/[/\\]/).filter(Boolean).pop() || finalPath || "Workspace";
+    const rawName = finalPath.split(/[/\\]/).filter(Boolean).pop() || finalPath || "Workspace";
+    const rootName = formatWorkspaceName(rawName);
     const updatedConfig = {
       ...newConfig,
       rootPath: finalPath
@@ -373,7 +384,7 @@ function App() {
       const newId = Date.now().toString();
       const newWorkspace: Workspace = {
         id: newId,
-        name: template.name.toUpperCase(),
+        name: formatWorkspaceName(template.name),
         mode: template.mode,
         config: config,
         status: 'active'
@@ -385,7 +396,7 @@ function App() {
         if (w.id === activeWorkspaceId) {
           return {
             ...w,
-            name: template.name.toUpperCase(),
+            name: formatWorkspaceName(template.name),
             mode: template.mode,
             config: config,
             status: 'active'
@@ -415,7 +426,7 @@ function App() {
     const name = activeWorkspace.name || "UNNAMED SPACE";
 
     captureCurrent(
-      name.toUpperCase(),
+      formatWorkspaceName(name),
       rootPath,
       layout,
       panes,
@@ -558,7 +569,7 @@ function App() {
                     onSplitPane={handleSplitPane}
                     onKillPane={handleKillPane}
                     onRenamePane={handleRenamePane}
-                    onSaveSnippet={(command) => addSnippet(command, "General")}
+                    onSaveSnippet={(command) => addSnippet("", command)}
                   />
                 </div>
               );

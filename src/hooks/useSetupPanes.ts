@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { LayoutType, LayoutConfig, SavedLayout, INITIAL_LAYOUTS, AGENT_PRESETS, PaneConfig } from "@/lib/setup-constants";
 import { getPaneCount } from "@/lib/setup-utils";
 import { getSetting, setSetting } from "@/lib/store";
@@ -48,7 +48,7 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
     Array.from({ length: 16 }, (_, i) => ({
       id: i + 1,
       name: `Pane ${i + 1}`,
-      command: mode === 'agents' ? AGENT_PRESETS[i % AGENT_PRESETS.length].command : "",
+      command: "", // Default to empty so placeholders work correctly
       isCustom: false
     }))
   );
@@ -100,6 +100,14 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
     ));
   };
 
+  const updateAllPaneCommands = useCallback((command: string, isCustom?: boolean) => {
+    setPanes(prev => prev.map(p => ({
+      ...p,
+      command,
+      isCustom: isCustom !== undefined ? isCustom : p.isCustom
+    })));
+  }, []);
+
   return {
     layoutType,
     setLayoutType,
@@ -114,6 +122,7 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
     activePanes,
     handleLayoutChange,
     updatePaneCommand,
+    updateAllPaneCommands,
     restoreDefaults,
     isInitialized
   };

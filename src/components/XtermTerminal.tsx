@@ -103,7 +103,7 @@ export function XtermTerminal({
     shell: defaultShell
   }), [command, cwd, dimensions.rows, dimensions.cols, defaultShell]);
 
-  const { write: writeToPty, resize: resizePty, isReady, relaunch } = usePty(id, handlePtyData, ptyConfig);
+  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch } = usePty(id, handlePtyData, ptyConfig);
 
   // Bridge for xterm.js event handlers to always use latest PTY callbacks
   const writeRef = useRef(writeToPty);
@@ -180,8 +180,9 @@ export function XtermTerminal({
       const isDirectionalNav = (e.ctrlKey || e.metaKey) && e.altKey && isArrowKey;
       const isPaneFocus = (e.ctrlKey || e.metaKey) && isNumKey;
       const isMaximize = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'm';
+      const isRelaunch = (e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r';
 
-      if (isGlobalShortcut || isEscape || isDirectionalNav || isPaneFocus || isMaximize) {
+      if (isGlobalShortcut || isEscape || isDirectionalNav || isPaneFocus || isMaximize || isRelaunch) {
         return false; // Bubble up
       }
       return true;
@@ -241,7 +242,7 @@ export function XtermTerminal({
       term.dispose();
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [shortcuts]);
 
   // Theme Sync
   useEffect(() => {
@@ -258,12 +259,17 @@ export function XtermTerminal({
   // Settings Dynamic Sync
   useEffect(() => {
     const handleSettingsChange = (e: Event) => {
-      const evt = e as CustomEvent<{ terminal?: TerminalSettings; startup?: any }>;
+      const evt = e as CustomEvent<{ terminal?: TerminalSettings; startup?: any; shortcuts?: ShortcutSettings }>;
       const ts = evt.detail?.terminal;
       const ss = evt.detail?.startup;
+      const sh = evt.detail?.shortcuts;
 
       if (ss?.defaultShell !== undefined) {
         setDefaultShell(ss.defaultShell);
+      }
+
+      if (sh) {
+        setShortcuts(sh);
       }
 
       if (!xtermRef.current) return;
@@ -352,15 +358,28 @@ export function XtermTerminal({
     if (!isFocused || !isReady) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const isR = e.key.toLowerCase() === 'r';
-      if ((e.ctrlKey || e.metaKey) && e.altKey && isR) {
-        e.preventDefault();
-        relaunch();
-        toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${index + 1}...` });
+      const isH = e.key.toLowerCase() === 'h';
+      const isV = e.key.toLowerCase() === 'v';
+
+      if ((e.ctrlKey || e.metaKey) && e.altKey) {
+        if (isR) {
+          e.preventDefault();
+          relaunch();
+          toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${index + 1}...` });
+        } else if (isH) {
+          e.preventDefault();
+          onSplit?.(paneId, 'horizontal');
+          toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} horizontally...` });
+        } else if (isV) {
+          e.preventDefault();
+          onSplit?.(paneId, 'vertical');
+          toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} vertically...` });
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFocused, isReady, relaunch, index]);
+  }, [isFocused, isReady, relaunch, index, onSplit, paneId]);
 
   const handleRenameSubmit = () => {
     const trimmed = tempName.trim();
@@ -380,23 +399,25 @@ export function XtermTerminal({
           className="pane-header-overlay group/pane-header"
           style={{
             position: 'absolute',
-            top: '8px',
-            left: '8px',
-            right: '8px',
-            height: '36px',
+            top: '12px',
+            left: '50%',
+            transform: `translateX(-50%) translateY(${isFocused ? '0' : '0px'}) scale(${isFocused ? 1 : 0.98})`,
+            height: '32px',
             zIndex: 10,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 0.85rem',
-            background: isFocused ? 'rgba(15, 15, 15, 0.85)' : 'rgba(15, 15, 15, 0.65)',
-            backdropFilter: 'blur(16px)',
-            border: isFocused ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255, 255, 255, 0.05)',
-            borderRadius: '9999px',
-            opacity: isFocused ? 1 : 0.75,
-            boxShadow: isFocused ? '0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)' : '0 4px 15px rgba(0, 0, 0, 0.3)',
-            transition: 'all var(--duration-normal) var(--ease-out)',
-            pointerEvents: 'auto'
+            gap: '1rem',
+            padding: '0 0.6rem 0 1.25rem',
+            background: isFocused ? 'rgba(15, 15, 15, 0.6)' : 'rgba(15, 15, 15, 0.3)',
+            backdropFilter: 'blur(20px) saturate(160%)',
+            border: isFocused ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.04)',
+            borderRadius: '10px',
+            opacity: isFocused ? 1 : 0.2,
+            boxShadow: isFocused ? '0 12px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'none',
+            transition: 'all 400ms cubic-bezier(0.23, 1, 0.32, 1)',
+            pointerEvents: 'auto',
+            minWidth: '160px',
+            justifyContent: 'space-between'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden', flex: 1 }}>
@@ -411,63 +432,43 @@ export function XtermTerminal({
                   if (e.key === 'Escape') setIsRenaming(false);
                   e.stopPropagation();
                 }}
-                className="bg-transparent border-none outline-none text-[11px] font-bold font-mono text-[var(--accent-primary)] w-full p-0"
-                style={{ height: '18px' }}
+                className="bg-transparent border-none outline-none text-[11px] font-bold font-sans text-[var(--accent-primary)] w-full p-0"
+                style={{ height: '18px', minWidth: '80px' }}
               />
             ) : (
               <span 
                 onDoubleClick={() => setIsRenaming(true)}
                 style={{ 
-                  fontSize: '11px', fontFamily: 'JetBrains Mono', fontWeight: 800, 
-                  color: isFocused ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                  background: 'rgba(255, 255, 255, 0.05)', padding: '2px 8px', borderRadius: '9999px',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 700, 
+                  color: 'var(--text-primary)',
                   cursor: 'text',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  maxWidth: '140px'
+                  maxWidth: '240px',
+                  letterSpacing: '-0.01em'
                 }}
               >
-                {name || `PANE ${index + 1}`}
-              </span>
-            )}
-            {!isFocused && !isRenaming && (
-              <span style={{ 
-                fontSize: '8px', fontFamily: 'JetBrains Mono', color: 'var(--text-secondary)',
-                background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
-                padding: '1px 5px', borderRadius: '9999px', opacity: 0.8
-              }}>
-                {focusShortcut}
-              </span>
-            )}
-            {!isRenaming && (
-              <span style={{ 
-                fontSize: '10px', fontFamily: 'JetBrains Mono', color: isFocused ? 'var(--text-primary)' : 'var(--text-secondary)',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px',
-                opacity: 0.8
-              }}>
-                {command || 'bash'}
+                {name || `Pane ${index + 1}`}
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="btn-tactile text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 active:scale-97"
+                  className="text-[var(--text-secondary)] hover:text-white hover:bg-white/10 transition-colors"
                   style={{
-                    width: '24px', height: '24px', padding: 0, borderRadius: '9999px',
-                    background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    width: '24px', height: '24px', borderRadius: '6px'
                   }}
                 >
                   <MoreVertical size={12} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-[var(--bg-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+              <DropdownMenuContent align="center" side="bottom" sideOffset={8} className="w-56 bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)] shadow-2xl backdrop-blur-xl">
                 <DropdownMenuItem onClick={() => {
                   relaunch();
                   toast.success(`Pane Reset`, { description: `Restarting session for ${name || `PANE ${index + 1}`}...` });
@@ -476,16 +477,18 @@ export function XtermTerminal({
                   <span>Reset Process</span>
                   <DropdownMenuShortcut className="text-[10px] opacity-50">Ctrl+Alt+R</DropdownMenuShortcut>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[var(--border-color)]" />
+                <DropdownMenuSeparator className="bg-[var(--border-color)]/50" />
                 <DropdownMenuItem onClick={() => onSplit?.(paneId, 'horizontal')}>
                   <SquareSplitHorizontal className="mr-2 h-3.5 w-3.5" />
                   <span>Split Horizontally</span>
+                  <DropdownMenuShortcut className="text-[10px] opacity-50">Ctrl+Alt+H</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onSplit?.(paneId, 'vertical')}>
                   <SquareSplitVertical className="mr-2 h-3.5 w-3.5" />
                   <span>Split Vertically</span>
+                  <DropdownMenuShortcut className="text-[10px] opacity-50">Ctrl+Alt+V</DropdownMenuShortcut>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[var(--border-color)]" />
+                <DropdownMenuSeparator className="bg-[var(--border-color)]/50" />
                 <DropdownMenuItem onClick={() => {
                   if (onSaveSnippet && (command || '')) {
                     onSaveSnippet(command || '');
@@ -495,9 +498,9 @@ export function XtermTerminal({
                   <BookmarkPlus className="mr-2 h-3.5 w-3.5" />
                   <span>Save as Snippet</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[var(--border-color)]" />
+                <DropdownMenuSeparator className="bg-[var(--border-color)]/50" />
                 <DropdownMenuItem 
-                  variant="destructive"
+                  className="text-red-400 focus:text-red-400 focus:bg-red-400/10"
                   onClick={() => onKill?.(paneId)}
                 >
                   <Trash2 className="mr-2 h-3.5 w-3.5" />
@@ -505,16 +508,6 @@ export function XtermTerminal({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {(showShortcuts && isFocused) && (
-              <Kbd style={{ 
-                fontSize: '8px', height: '14px', padding: '0 5px', background: 'rgba(255, 255, 255, 0.03)', 
-                borderColor: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)',
-                fontFamily: 'JetBrains Mono', borderRadius: '9999px'
-              }}>
-                Ctrl+Alt+R
-              </Kbd>
-            )}
           </div>
         </div>
       )}
@@ -531,7 +524,7 @@ export function XtermTerminal({
         position: 'absolute', inset: 0, background: 'rgba(5, 5, 5, 0.85)', backdropFilter: 'blur(8px)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, gap: '0.75rem', fontFamily: 'JetBrains Mono, monospace',
-        display: isReady ? 'none' : 'flex'
+        display: isTerminated ? 'flex' : 'none'
       }}>
         <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em' }}>
           SESSION TERMINATED

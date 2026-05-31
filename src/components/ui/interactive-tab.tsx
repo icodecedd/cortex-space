@@ -141,67 +141,51 @@ export function InteractiveTab({
           onContextMenu={handleContextMenu}
           title={`${displayName}${customName && name ? ` (${name})` : ""}\nRight-click to rename or change color`}
           className={cn(
-            "btn-tactile group h-7 px-2.5 rounded-md flex items-center gap-2 text-[10px] font-mono tracking-wide cursor-pointer transition-all duration-150 border select-none shrink-0 max-w-[180px] overflow-hidden active:scale-[0.97] will-change-transform [-webkit-app-region:no-drag]",
-            // Background, borders and shadow exactly matches keyboard shortcuts dialog trigger
-            isActive && !isDraft
-              ? "bg-[var(--bg-color)] border-[var(--accent-primary)] text-[var(--text-primary)] font-bold shadow-[0_0_8px_rgba(63,185,80,0.1)]"
-              : isActive && isDraft
-                ? "bg-[var(--bg-color)] border-dashed border-[var(--accent-primary)] text-[var(--accent-primary)] font-bold shadow-[0_0_8px_rgba(63,185,80,0.1)]"
-                : "bg-transparent border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)]/20 hover:border-[var(--border-color)]/30",
+            "group relative h-8 px-3 rounded-t-lg flex items-center gap-2 text-[11px] font-sans font-medium cursor-pointer transition-all duration-200 select-none shrink-0 min-w-[120px] max-w-[200px] overflow-hidden [-webkit-app-region:no-drag]",
+            isActive
+              ? "bg-[var(--surface-color)] text-[var(--text-primary)] shadow-[0_-1px_0_rgba(255,255,255,0.05)_inset]"
+              : "bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5",
+            isDraft && !isActive && "opacity-60",
             // Apply color border adjustments
-            color && "border-l-3",
+            color && "border-b-2",
             color && activeColorConfig?.border
           )}
         >
-          {/* Color Accent Background Glow */}
-          {color && (
-            <div
-              className={cn(
-                "absolute inset-0 bg-gradient-to-r to-transparent pointer-events-none transition-opacity duration-150 opacity-40 group-hover:opacity-60",
-                activeColorConfig?.bg
-              )}
-            />
+          {/* Active Tab Indicator Top Line (Browser Style) */}
+          {isActive && (
+            <div className={cn(
+              "absolute top-0 left-0 right-0 h-[2px] bg-[var(--accent-primary)] opacity-80"
+            )} />
           )}
 
           {/* Left Slot: Mode Indicator / Icon */}
           <div className="flex items-center justify-center shrink-0 z-10">
             {icon ? (
-              icon
+              <div className={cn(
+                "transition-all duration-200",
+                isActive ? "opacity-100 scale-110" : "opacity-50 group-hover:opacity-100"
+              )}>
+                {icon}
+              </div>
             ) : (
               <Terminal
-                size={11}
+                size={12}
                 className={cn(
-                  "transition-all duration-150",
+                  "transition-all duration-200",
                   isActive
-                    ? "text-[var(--accent-primary)]"
-                    : "text-[var(--text-secondary)] opacity-70 group-hover:opacity-100",
+                    ? "text-[var(--accent-primary)] scale-110"
+                    : "text-[var(--text-secondary)] opacity-50 group-hover:opacity-100",
                   color && activeColorConfig?.text
                 )}
               />
             )}
           </div>
 
-          {/* Selected Indicator Dot */}
-          {isActive && !color && (
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_4px_var(--accent-primary)] shrink-0 z-10 animate-in fade-in zoom-in-75 duration-200" />
-          )}
-
-          {/* Color accent pip */}
-          {color && (
-            <div
-              className="w-1.5 h-1.5 rounded-full shrink-0 z-10 transition-transform duration-150 group-hover:scale-110"
-              style={{
-                backgroundColor: activeColorConfig?.hex,
-                boxShadow: `0 0 6px ${activeColorConfig?.hex}60`,
-              }}
-            />
-          )}
-
           {/* Workspace Title (Truncated) */}
           <span
             className={cn(
-              "truncate text-left flex-1 block max-w-[110px] z-10 transition-colors duration-150",
-              color && isActive && activeColorConfig?.text
+              "truncate text-left flex-1 block z-10 transition-colors duration-200",
+              isActive ? "font-semibold" : "font-medium"
             )}
           >
             {displayName}
@@ -213,7 +197,10 @@ export function InteractiveTab({
               e.stopPropagation()
               onClose()
             }}
-            className="opacity-0 group-hover:opacity-80 hover:opacity-100 hover:bg-[#F85149]/10 hover:text-[#F85149] rounded p-0.5 transition-all flex items-center justify-center w-4 h-4 text-zinc-400 cursor-pointer shrink-0 z-10 ml-auto active:scale-90"
+            className={cn(
+              "ml-auto p-0.5 rounded-sm transition-all flex items-center justify-center w-4 h-4 text-[var(--text-secondary)] cursor-pointer shrink-0 z-10 active:scale-90",
+              isActive ? "opacity-40 hover:opacity-100 hover:bg-white/10" : "opacity-0 group-hover:opacity-60 hover:opacity-100 hover:bg-white/10"
+            )}
             title="Close Workspace"
           >
             <X size={10} strokeWidth={2.5} />

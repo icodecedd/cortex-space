@@ -5,36 +5,38 @@ import { INITIAL_STEP, MAX_STEP } from "@/lib/setup-constants";
 import { useWorkspaceDirectory } from "@/hooks/useWorkspaceDirectory";
 import { usePresets } from "@/hooks/usePresets";
 import { useSetupPanes } from "@/hooks/useSetupPanes";
-import { gridToLayoutNode } from "@/lib/setup-utils";
 import { SetupHeader } from "./setup/SetupHeader";
 import { SetupControls } from "./setup/SetupControls";
 import { StepWorkspace } from "./setup/steps/StepWorkspace";
 import { StepConfigure } from "./setup/steps/StepConfigure";
 import { StepPreview } from "./setup/steps/StepPreview";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { gridToLayoutNode } from "@/lib/setup-utils";
+import { LayoutNode, PaneConfig } from "@/types";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface SetupViewProps {
   mode: 'normal' | 'agents';
-  onLaunch: (config: any) => void;
+  onLaunch: (config: { rootPath: string; layout: LayoutNode; panes: PaneConfig[] }) => void;
   onBack: () => void;
 }
 
 export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
   const [step, setStep] = useState(INITIAL_STEP);
-
+  
   const {
     rootPath,
     setRootPath,
     isValidDir,
     handleBrowse,
-    handleBreadcrumbClick
+    handleBreadcrumbClick,
+    defaultDir
   } = useWorkspaceDirectory();
 
   const {
     presets,
     addPreset,
     removePreset
-  } = usePresets(rootPath, isValidDir);
+  } = usePresets(rootPath || defaultDir, isValidDir);
 
   const {
     layoutType,
@@ -47,18 +49,19 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
     activePanes,
     handleLayoutChange,
     updatePaneCommand,
+    updateAllPaneCommands,
     restoreDefaults,
     isInitialized
   } = useSetupPanes(mode);
 
   const isStepValid = useMemo(() => {
-    if (step === 1) return rootPath.trim() !== "";
+    if (step === 1) return (rootPath || defaultDir).trim() !== "";
     if (step === 2) return true; // Allow proceeding even if command inputs are empty
     return true;
-  }, [step, rootPath, activePanes]);
+  }, [step, rootPath, defaultDir, activePanes]);
 
   const handleNext = () => {
-    if (step === 1 && isValidDir === false) {
+    if (step === 1 && isValidDir === false && rootPath !== "") {
       toast.error("Invalid Directory", {
         description: "The path provided does not exist or is inaccessible.",
       });
@@ -72,41 +75,26 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
   const handleLaunch = () => {
     const layoutNode = gridToLayoutNode(currentLayout, activePanes);
     onLaunch({ 
-      rootPath, 
+      rootPath: rootPath || defaultDir, 
       layout: layoutNode, 
       panes: activePanes 
     });
   };
 
-  // Keyboard navigation shortcuts for the setup process (Emil Kowalski speed & accessibility)
+  // Keyboard navigation shortcuts for the setup process
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 1. Next / Advance (Ctrl/Cmd + Enter)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        
-        // Ctrl+Shift+Enter triggers SKIP PREVIEW & LAUNCH in step 2
-        if (step === 2 && e.shiftKey) {
-          if (isStepValid) {
-            handleLaunch();
-          }
+      // 1. Next / Launch (Enter)
+      if (e.key === 'Enter') {
+        if (e.ctrlKey || e.metaKey || step === MAX_STEP) {
+          if (isStepValid) handleLaunch();
           return;
         }
-
-        if (step < 3) {
-          if (isStepValid || step === 1) {
-            handleNext();
-          }
-        } else {
-          if (isStepValid) {
-            handleLaunch();
-          }
-        }
+        if (isStepValid) handleNext();
       }
 
       // 2. Previous / Cancel (Esc)
       if (e.key === 'Escape') {
-        e.preventDefault();
         if (step > 1) {
           prevStep();
         } else {
@@ -117,7 +105,7 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [step, isStepValid, isValidDir, rootPath, currentLayout, activePanes, onBack]);
+  }, [step, isStepValid, isValidDir, rootPath, defaultDir, currentLayout, activePanes, onBack]);
 
 
   return (
@@ -138,6 +126,7 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
               <StepWorkspace
                 rootPath={rootPath}
                 setRootPath={setRootPath}
+                defaultDir={defaultDir}
                 isValidDir={isValidDir}
                 handleBrowse={handleBrowse}
                 handleBreadcrumbClick={handleBreadcrumbClick}
@@ -161,12 +150,14 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
                 mode={mode}
                 activePanes={activePanes}
                 updatePaneCommand={updatePaneCommand}
+                updateAllPaneCommands={updateAllPaneCommands}
               />
             )}
 
             {step === 3 && (
               <StepPreview
                 rootPath={rootPath}
+                defaultDir={defaultDir}
                 layout={currentLayout}
                 activePanes={activePanes}
               />
