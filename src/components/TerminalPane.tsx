@@ -9,7 +9,6 @@ interface TerminalPaneProps {
   onFocus: () => void;
   rootPath?: string;
   isZenMode?: boolean;
-  showPaneHeader?: boolean;
   onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
   onKill?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
@@ -25,7 +24,6 @@ export function TerminalPane({
   onFocus, 
   rootPath,
   isZenMode = false,
-  showPaneHeader = true,
   onSplit,
   onKill,
   onRename,

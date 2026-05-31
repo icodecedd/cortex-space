@@ -70,29 +70,36 @@ function TemplateCard({ template, onLaunch, onDelete }: { template: SpaceTemplat
       className="group relative flex flex-col p-0 bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-300 cursor-pointer overflow-hidden border border-white/5"
       onClick={onLaunch}
     >
-      <CardHeader className="p-4 pb-2 border-none">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <LayoutPreviewIcon layout={template.layout} className="w-10 h-8 border bg-black shrink-0 rounded-sm border-white/10" />
-            <div className="min-w-0">
-              <CardTitle className="text-[13px] font-bold truncate text-white/90 group-hover:text-[var(--accent-primary)] transition-colors">{template.name}</CardTitle>
-              <div className="flex items-center gap-1 text-[10px] text-white/30 truncate font-mono">
-                <Folder size={10} /> {template.rootPath}
-              </div>
+      <CardHeader className="p-4 pb-3 border-none">
+        <div className="flex items-start gap-3">
+          <LayoutPreviewIcon layout={template.layout} className="w-10 h-8 border bg-black shrink-0 rounded-sm border-white/10 mt-0.5" />
+          
+          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+            <CardTitle className="text-[13px] font-bold truncate text-white/90 group-hover:text-[var(--accent-primary)] transition-colors leading-tight">
+              {template.name}
+            </CardTitle>
+            <div className="flex items-center gap-1.5 text-[10px] text-white/30 font-mono overflow-hidden">
+              <Folder size={10} className="shrink-0 opacity-50" /> 
+              <span className="truncate whitespace-nowrap block">{template.rootPath}</span>
             </div>
           </div>
-          <Button 
-            variant="ghost" size="icon" 
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          >
-            <Trash2 size={12} />
-          </Button>
         </div>
       </CardHeader>
       <CardFooter className="px-4 py-2 border-t border-white/5 bg-black/20 flex items-center justify-between">
-         <span className="text-[9px] text-white/20 font-medium flex items-center gap-1"><Clock size={10} /> {formatTimeAgo(template.createdAt)}</span>
-         <ExternalLink size={10} className="text-white/10 group-hover:text-[var(--accent-primary)] transition-colors" />
+         <span className="text-[9px] text-white/20 font-medium flex items-center gap-1 leading-none"><Clock size={10} /> {formatTimeAgo(template.createdAt)}</span>
+         
+         <div className="flex items-center gap-2.5">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6 text-white/10 hover:bg-red-500/10 hover:text-red-400 group-hover:text-white/30 transition-all active:scale-95"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              title="Delete Template"
+            >
+              <Trash2 size={13} />
+            </Button>
+            <ExternalLink size={11} className="text-white/10 group-hover:text-[var(--accent-primary)] transition-colors" />
+         </div>
       </CardFooter>
     </Card>
   );

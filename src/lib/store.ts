@@ -86,6 +86,7 @@ export interface DemoSettings {
   showModeShortcutHints: boolean;
   showTerminalShortcutHints: boolean;
   showFloatingTerminalHeader: boolean;
+  enableBrowserRefresh: boolean;
 }
 
 export const TERMINAL_DEFAULTS: TerminalSettings = {
@@ -127,6 +128,7 @@ export const DEMO_DEFAULTS: DemoSettings = {
   showModeShortcutHints: true,
   showTerminalShortcutHints: true,
   showFloatingTerminalHeader: true,
+  enableBrowserRefresh: true,
 };
 
 export const SHORTCUT_DEFAULTS: ShortcutSettings = {

@@ -21,6 +21,7 @@ export interface InteractiveTabProps {
   onColorChange: (newColor: TabColor) => void
   onCloseOthers?: () => void
   onCloseToRight?: () => void
+  canClose?: boolean
 }
 
 export const COLOR_MAP: Record<
@@ -90,6 +91,7 @@ export function InteractiveTab({
   onColorChange,
   onCloseOthers,
   onCloseToRight,
+  canClose = true,
 }: InteractiveTabProps) {
   const [popoverOpen, setPopoverOpen] = React.useState(false)
   const [isRenaming, setIsRenaming] = React.useState(false)
@@ -192,19 +194,21 @@ export function InteractiveTab({
           </span>
 
           {/* Far Right Close ('X') Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onClose()
-            }}
-            className={cn(
-              "ml-auto p-0.5 rounded-sm transition-all flex items-center justify-center w-4 h-4 text-[var(--text-secondary)] cursor-pointer shrink-0 z-10 active:scale-90",
-              isActive ? "opacity-40 hover:opacity-100 hover:bg-white/10" : "opacity-0 group-hover:opacity-60 hover:opacity-100 hover:bg-white/10"
-            )}
-            title="Close Workspace"
-          >
-            <X size={10} strokeWidth={2.5} />
-          </button>
+          {canClose && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onClose()
+              }}
+              className={cn(
+                "ml-auto p-0.5 rounded-sm transition-all flex items-center justify-center w-4 h-4 text-[var(--text-secondary)] cursor-pointer shrink-0 z-10 active:scale-90",
+                isActive ? "opacity-40 hover:opacity-100 hover:bg-white/10" : "opacity-0 group-hover:opacity-60 hover:opacity-100 hover:bg-white/10"
+              )}
+              title="Close Workspace"
+            >
+              <X size={10} strokeWidth={2.5} />
+            </button>
+          )}
         </div>
       </PopoverAnchor>
 

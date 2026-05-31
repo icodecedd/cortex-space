@@ -135,6 +135,7 @@ export function AppHeader({
                       onColorChange={(newColor) => onColorWorkspace(ws.id, newColor)}
                       onCloseOthers={() => handleCloseOthers(ws.id)}
                       onCloseToRight={() => handleCloseToRight(ws.id)}
+                      canClose={workspaces.length > 1}
                     />
                   </div>
                 );

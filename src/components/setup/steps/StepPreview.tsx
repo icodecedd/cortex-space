@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Layout, Database, Terminal, Check, Info, ArrowRight, Layers, Cpu, ShieldCheck } from "lucide-react";
+import { Layout, Database, Terminal, Check, Info, Layers, Cpu, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { LayoutConfig, PaneConfig } from "@/lib/setup-constants";
@@ -29,7 +28,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] }
+      transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] as any }
     }
   };
 

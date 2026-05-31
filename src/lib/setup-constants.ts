@@ -29,8 +29,8 @@ export const AGENT_PRESETS = [
 ];
 
 export const DEFAULT_PRESETS = [
-  { label: "PROGRAMMING", path: "C:\\Users\\Chaoscedd\\Programming" },
-  { label: "WEB DEV", path: "C:\\Users\\Chaoscedd\\Programming\\web-development" },
+  { id: 'preset-prog', label: "PROGRAMMING", path: "C:\\Users\\Chaoscedd\\Programming" },
+  { id: 'preset-web', label: "WEB DEV", path: "C:\\Users\\Chaoscedd\\Programming\\web-development" },
 ];
 
 export interface PaneConfig {

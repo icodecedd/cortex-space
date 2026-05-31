@@ -1,5 +1,5 @@
-import { Cpu, Zap, Command, Terminal, Check, Info } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Zap, Command } from "lucide-react";
+import { motion } from "framer-motion";
 import { AGENT_PRESETS, PaneConfig } from "@/lib/setup-constants";
 import { PaneConfigCard } from "../ui-parts/PaneConfigCard";
 import { useState } from "react";
@@ -11,7 +11,6 @@ import {
   ComboboxList,
   ComboboxEmpty,
 } from "@/components/ui/combobox";
-import { Badge } from "@/components/ui/badge";
 
 interface StepConfigureProps {
   mode: 'normal' | 'agents';
@@ -38,7 +37,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] }
+      transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] as any }
     }
   };
 

@@ -18,7 +18,7 @@ export function SplashScreen({ splashKey, reducedMotion = false }: SplashScreenP
       filter: "blur(0px)",
       transition: {
         duration: 1.2,
-        ease: [0.22, 1, 0.36, 1], // Quintic ease-out
+        ease: [0.22, 1, 0.36, 1] as any, // Quintic ease-out
         staggerChildren: 0.2
       }
     },
@@ -28,7 +28,7 @@ export function SplashScreen({ splashKey, reducedMotion = false }: SplashScreenP
       filter: reducedMotion ? "none" : "blur(10px)",
       transition: {
         duration: 0.8,
-        ease: [0.645, 0.045, 0.355, 1] // ease-in-out-cubic
+        ease: [0.645, 0.045, 0.355, 1] as any // ease-in-out-cubic
       }
     }
   };
@@ -38,7 +38,7 @@ export function SplashScreen({ splashKey, reducedMotion = false }: SplashScreenP
     animate: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+      transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] as any }
     }
   };
 
@@ -48,7 +48,7 @@ export function SplashScreen({ splashKey, reducedMotion = false }: SplashScreenP
       transition: {
         duration: 1.5,
         repeat: Infinity,
-        ease: "easeInOut"
+        ease: "easeInOut" as any
       }
     }
   };

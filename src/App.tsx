@@ -46,6 +46,10 @@ function App() {
   const [isBackgroundRecessed, setIsBackgroundRecessed] = useState(false);
   const { theme, setTheme } = useTheme();
 
+  const { settings: colorSchemeSettings, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
+  const { settings: focusSettings, setFocusSetting, toggleZenMode, resetToDefaults: resetFocus } = useFocusSettings();
+  const { settings: demoSettings, setDemoSetting, resetToDefaults: resetDemo } = useDemoSettings();
+
   // Handle tiered motion effects via events
   useEffect(() => {
     const handleDepthChange = (e: Event) => {
@@ -54,7 +58,13 @@ function App() {
     };
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Logic for other global shortcuts can go here if needed
+      // Prevent Ctrl+R from refreshing the app if the setting is disabled
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
+        // If it's NOT Ctrl+Alt+R (which is our relaunch shortcut) AND refresh is disabled, prevent default
+        if (!e.altKey && !demoSettings.enableBrowserRefresh) {
+          e.preventDefault();
+        }
+      }
     };
 
     window.addEventListener('cortex:modal-depth-changed', handleDepthChange);
@@ -63,10 +73,7 @@ function App() {
       window.removeEventListener('cortex:modal-depth-changed', handleDepthChange);
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
-  }, []);
-  const { settings: colorSchemeSettings, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
-  const { settings: focusSettings, setFocusSetting, toggleZenMode, resetToDefaults: resetFocus } = useFocusSettings();
-  const { settings: demoSettings, setDemoSetting, resetToDefaults: resetDemo } = useDemoSettings();
+  }, [demoSettings.enableBrowserRefresh]);
 
   const { isWindowMaximized, handleMinimize, handleMaximize, handleClose } = useWindowControls();
   const { templates, captureCurrent, deleteTemplate } = useSpaceTemplates();
@@ -248,6 +255,21 @@ function App() {
   const handleCloseWorkspace = (id: string) => {
     const index = workspaces.findIndex(w => w.id === id);
     if (index === -1) return;
+
+    // If it's the last one, reset to mode-select instead of removing
+    if (workspaces.length <= 1) {
+      const newId = Date.now().toString();
+      setWorkspaces([{
+        id: newId,
+        name: '',
+        mode: 'normal',
+        config: null,
+        status: 'mode-select'
+      }]);
+      setActiveWorkspaceId(newId);
+      toast.info("Workspace Reset", { description: "Returning to mode selection." });
+      return;
+    }
 
     const updated = workspaces.filter(w => w.id !== id);
 
@@ -450,6 +472,10 @@ function App() {
       }
     });
     window.dispatchEvent(event);
+
+    // Close modals so the user can see the injection/execution
+    setTemplatesOpen(false);
+    setSwitcherOpen(false);
   };
 
   return (
@@ -512,6 +538,7 @@ function App() {
                       setWorkspaces(prev => prev.map(w => w.id === ws.id ? { ...w, mode, status: 'setup' } : w));
                     }}
                     showShortcutHints={demoSettings.showModeShortcutHints}
+                    showTemplatesHint={demoSettings.showTemplatesButton}
                   />                </div>
               );
             }
@@ -565,7 +592,7 @@ function App() {
                     isZenMode={focusSettings.isZenMode}
                     setIsZenMode={(v) => setFocusSetting('isZenMode', v)}
                     zenPadding={colorSchemeSettings.zenPadding}
-                    showPaneHeaders={focusSettings.showPaneHeaders}
+                    showPaneHeaders={focusSettings.showPaneHeaders as boolean}
                     onSplitPane={handleSplitPane}
                     onKillPane={handleKillPane}
                     onRenamePane={handleRenamePane}

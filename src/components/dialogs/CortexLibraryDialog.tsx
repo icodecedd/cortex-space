@@ -40,6 +40,14 @@ interface CortexLibraryDialogProps {
   onExecuteSnippet: (snippet: Snippet, execute: boolean) => void;
 }
 
+import { DirectoryPreset } from "@/hooks/usePresets";
+
+// Helper to normalize path for comparison
+const normalizePath = (p: string) => {
+  if (!p) return "";
+  return p.replace(/[\\/]+$/, "").replace(/\//g, "\\").toLowerCase().trim();
+};
+
 export function CortexLibraryDialog({
   isOpen,
   onOpenChange,
@@ -59,45 +67,97 @@ export function CortexLibraryDialog({
   const [isAddingSnippet, setIsAddSnippet] = useState(false);
 
   // Asset Management State (Directory Presets & Layouts)
-  const [presets, setPresets] = useState<{label: string, path: string}[]>([]);
+  const [presets, setPresets] = useState<DirectoryPreset[]>([]);
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
 
   useEffect(() => {
     async function loadAssets() {
-      const savedPresets = await getSetting("cortex_presets", []);
+      const savedPresets = await getSetting<DirectoryPreset[]>("cortex_presets", []);
+      // Migration: Ensure all have IDs
+      const sanitized = savedPresets.map(p => ({
+        ...p,
+        id: p.id || crypto.randomUUID()
+      }));
       const savedList = await getSetting<SavedLayout[]>("cortex_saved_layouts", INITIAL_LAYOUTS);
-      setPresets(savedPresets);
+      setPresets(sanitized);
       setSavedLayouts(savedList);
     }
     if (isOpen) loadAssets();
   }, [isOpen]);
 
   // Persist asset changes back to store
-  const handleRemovePreset = async (path: string) => {
-    const updated = presets.filter(p => p.path !== path);
+  const handleRemovePreset = async (id: string) => {
+    const preset = presets.find(p => p.id === id);
+    const label = preset?.label || "Preset";
+    
+    const updated = presets.filter(p => p.id !== id);
     setPresets(updated);
     await setSetting("cortex_presets", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
+    
+    toast.info("Preset Removed", {
+      description: `Targeting "${label}" has been removed from your library.`
+    });
   };
 
   const handleAddPreset = async (label: string, path: string) => {
-    const updated = [...presets, { label, path }];
+    const normalizedTarget = normalizePath(path);
+    const isDuplicate = presets.some(p => normalizePath(p.path) === normalizedTarget);
+
+    if (isDuplicate) {
+      toast.error("Duplicate Preset", {
+        description: "This directory is already in your favorites."
+      });
+      return;
+    }
+
+    const newPreset: DirectoryPreset = { 
+      id: crypto.randomUUID(),
+      label, 
+      path 
+    };
+    const updated = [...presets, newPreset];
     setPresets(updated);
     await setSetting("cortex_presets", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
+    toast.success("Preset Added", { 
+      description: `Label: ${label}` 
+    });
   };
 
   const handleRemoveLayout = async (id: string) => {
+    const layout = savedLayouts.find(l => l.id === id);
+    const name = layout?.name || "Layout";
+
     const updated = savedLayouts.filter(l => l.id !== id);
     setSavedLayouts(updated);
     await setSetting("cortex_saved_layouts", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
+
+    toast.info("Layout Removed", {
+      description: `Configuration "${name}" has been deleted.`
+    });
   };
 
   const handleAddLayout = async (name: string, config: LayoutConfig) => {
+    const finalName = name.trim().toUpperCase();
+    
+    // Check for duplicates (name or exact grid config)
+    const isDuplicate = savedLayouts.some(l => 
+      (name.trim() && l.name.toUpperCase() === finalName) ||
+      (l.rows === config.rows && l.cols === config.cols)
+    );
+
+    if (isDuplicate) {
+      toast.error("Duplicate Layout", {
+        description: "A layout with this name or configuration already exists."
+      });
+      return;
+    }
+
     const newLayout: SavedLayout = {
       id: `layout-${Date.now()}`,
-      name,
+      name: finalName,
       rows: config.rows,
       cols: config.cols
     };
@@ -105,6 +165,9 @@ export function CortexLibraryDialog({
     setSavedLayouts(updated);
     await setSetting("cortex_saved_layouts", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
+    toast.success("Layout Saved", {
+      description: `Created ${finalName} grid arrangement.`
+    });
   };
 
   const handleRestoreDefaults = async () => {

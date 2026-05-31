@@ -11,7 +11,8 @@ import { StepWorkspace } from "./setup/steps/StepWorkspace";
 import { StepConfigure } from "./setup/steps/StepConfigure";
 import { StepPreview } from "./setup/steps/StepPreview";
 import { gridToLayoutNode } from "@/lib/setup-utils";
-import { LayoutNode, PaneConfig } from "@/types";
+import { LayoutNode } from "@/types";
+import { PaneConfig } from "@/lib/setup-constants";
 import { ScrollArea } from "./ui/scroll-area";
 
 interface SetupViewProps {
@@ -52,7 +53,7 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
     updateAllPaneCommands,
     restoreDefaults,
     isInitialized
-  } = useSetupPanes(mode);
+  } = useSetupPanes();
 
   const isStepValid = useMemo(() => {
     if (step === 1) return (rootPath || defaultDir).trim() !== "";

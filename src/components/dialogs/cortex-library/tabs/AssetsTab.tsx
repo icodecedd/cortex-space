@@ -9,12 +9,15 @@ import { getGridCols, getGridRows, getPaneCount } from "@/lib/setup-utils";
 import { cn } from "@/lib/utils";
 import { open } from "@tauri-apps/plugin-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { toast } from "sonner";
+
+import { DirectoryPreset } from "@/hooks/usePresets";
 
 interface AssetsTabProps {
-  presets: { label: string; path: string }[];
+  presets: DirectoryPreset[];
   savedLayouts: SavedLayout[];
   searchQuery: string;
-  onRemovePreset: (path: string) => void;
+  onRemovePreset: (id: string) => void;
   onRemoveLayout: (id: string) => void;
   onAddPreset: (label: string, path: string) => void;
   onAddLayout: (name: string, config: LayoutConfig) => void;
@@ -68,24 +71,36 @@ export function AssetsTab({
   };
 
   const handleAddPreset = () => {
-    if (newPresetPath.trim()) {
-      const derivedName = newPresetPath.split(/[\\/]/).filter(Boolean).pop() || "ROOT";
-      onAddPreset(derivedName.toUpperCase(), newPresetPath);
-      setNewPresetPath("");
-      setShowAddPreset(false);
-    }
+    const trimmedPath = newPresetPath.trim();
+    if (!trimmedPath) return;
+
+    const derivedName = trimmedPath.split(/[\\/]/).filter(Boolean).pop() || "ROOT";
+    onAddPreset(derivedName.toUpperCase(), trimmedPath);
+    setNewPresetPath("");
+    setShowAddPreset(false);
   };
 
   const handleAddLayout = () => {
     const finalName = newLayoutName.trim() 
       ? newLayoutName.toUpperCase() 
       : `${newLayoutRows}X${newLayoutCols}`;
-      
+
     onAddLayout(finalName, { rows: newLayoutRows, cols: newLayoutCols });
     setNewLayoutName("");
     setNewLayoutRows(2);
     setNewLayoutCols(2);
     setShowAddLayout(false);
+  };
+
+  const handleNumericInput = (val: string, setter: (n: number) => void) => {
+    if (val === "") {
+      setter(0); // Allow clearing to type a new number
+      return;
+    }
+    const parsed = parseInt(val);
+    if (!isNaN(parsed)) {
+      setter(Math.min(4, Math.max(0, parsed)));
+    }
   };
 
   return (
@@ -181,7 +196,7 @@ export function AssetsTab({
             />
           ) : (
             filteredPresets.map((preset) => (
-              <Card key={preset.path} className="bg-white/[0.02] border-white/5 hover:border-emerald-500/30 transition-all group">
+              <Card key={preset.id} className="bg-white/[0.02] border-white/5 hover:border-emerald-500/30 transition-all group">
                 <CardContent className="p-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <Folder size={16} className="text-white/20 shrink-0" />
@@ -193,7 +208,7 @@ export function AssetsTab({
                   <Button 
                     variant="ghost" size="icon" 
                     className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400"
-                    onClick={() => onRemovePreset(preset.path)}
+                    onClick={() => onRemovePreset(preset.id)}
                   >
                     <Trash2 size={12} />
                   </Button>
@@ -263,8 +278,8 @@ export function AssetsTab({
                   type="number"
                   min={1} max={4}
                   className="bg-black/20 border-white/5 text-[13px] h-9 text-center font-mono"
-                  value={newLayoutRows}
-                  onChange={(e) => setNewLayoutRows(Math.min(4, Math.max(1, parseInt(e.target.value) || 1)))}
+                  value={newLayoutRows === 0 ? "" : newLayoutRows}
+                  onChange={(e) => handleNumericInput(e.target.value, setNewLayoutRows)}
                 />
               </div>
               <div className="space-y-2">
@@ -273,8 +288,8 @@ export function AssetsTab({
                   type="number"
                   min={1} max={4}
                   className="bg-black/20 border-white/5 text-[13px] h-9 text-center font-mono"
-                  value={newLayoutCols}
-                  onChange={(e) => setNewLayoutCols(Math.min(4, Math.max(1, parseInt(e.target.value) || 1)))}
+                  value={newLayoutCols === 0 ? "" : newLayoutCols}
+                  onChange={(e) => handleNumericInput(e.target.value, setNewLayoutCols)}
                 />
               </div>
             </div>
@@ -284,21 +299,22 @@ export function AssetsTab({
                 <div 
                   className="w-10 h-8 grid gap-[1px] bg-white/10 p-[1px] rounded-[2px]"
                   style={{
-                    gridTemplateColumns: `repeat(${newLayoutCols}, 1fr)`,
-                    gridTemplateRows: `repeat(${newLayoutRows}, 1fr)`
+                    gridTemplateColumns: `repeat(${newLayoutCols || 1}, 1fr)`,
+                    gridTemplateRows: `repeat(${newLayoutRows || 1}, 1fr)`
                   }}
                 >
-                  {Array.from({ length: newLayoutRows * newLayoutCols }).map((_, i) => (
+                  {Array.from({ length: (newLayoutRows || 1) * (newLayoutCols || 1) }).map((_, i) => (
                     <div key={i} className="bg-black/60" />
                   ))}
                 </div>
                 <div className="text-[10px] font-mono text-white/40">
-                   IDENTIFIER: <span className="text-blue-400 font-bold">{newLayoutName.trim() ? newLayoutName.toUpperCase() : `${newLayoutRows}X${newLayoutCols}`}</span>
+                   IDENTIFIER: <span className="text-blue-400 font-bold">{newLayoutName.trim() ? newLayoutName.toUpperCase() : `${newLayoutRows || 1}X${newLayoutCols || 1}`}</span>
                 </div>
               </div>
               <Button 
                 size="sm" 
                 onClick={handleAddLayout} 
+                disabled={newLayoutRows < 1 || newLayoutCols < 1}
                 className="bg-blue-600 text-white text-[11px] font-bold h-8 hover:bg-blue-500 px-6"
               >
                 SAVE CUSTOM LAYOUT

@@ -1,16 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { DEFAULT_PRESETS } from "@/lib/setup-constants";
 import { getSetting, setSetting } from "@/lib/store";
 
+export interface DirectoryPreset {
+  id: string;
+  label: string;
+  path: string;
+}
+
 export function usePresets(rootPath: string, isValidDir: boolean | null) {
-  const [presets, setPresets] = useState<{label: string, path: string}[]>([]);
+  const [presets, setPresets] = useState<DirectoryPreset[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const lastAddRef = useRef(0);
 
   useEffect(() => {
     async function init() {
-      const saved = await getSetting("cortex_presets", DEFAULT_PRESETS);
-      setPresets(saved);
+      const saved = await getSetting<DirectoryPreset[]>("cortex_presets", DEFAULT_PRESETS);
+      // Ensure all saved presets have IDs (migration for old data)
+      const sanitized = saved.map(p => ({
+        ...p,
+        id: p.id || crypto.randomUUID()
+      }));
+      setPresets(sanitized);
       setIsInitialized(true);
     }
     init();
@@ -26,44 +38,75 @@ export function usePresets(rootPath: string, isValidDir: boolean | null) {
     }
   }, [presets, isInitialized]);
 
-  const addPreset = () => {
-    if (!rootPath) return;
+  // Helper to normalize path for comparison
+  const normalizePath = (p: string) => {
+    if (!p) return "";
+    // Remove trailing slashes, replace forward with backslash, and lowercase
+    return p.replace(/[\\/]+$/, "").replace(/\//g, "\\").toLowerCase().trim();
+  };
+
+  const addPreset = useCallback(() => {
+    const targetPath = rootPath;
+    if (!targetPath) return;
+
+    const now = Date.now();
+    if (now - lastAddRef.current < 400) return;
+    lastAddRef.current = now;
     
     if (isValidDir === false) {
       toast.error("Invalid Directory", {
+        id: "preset-invalid",
         description: "Cannot save a preset for a directory that does not exist.",
       });
       return;
     }
 
-    const name = rootPath.split(/[\\/]/).filter(Boolean).pop() || "NEW PRESET";
-    if (presets.some(p => p.path === rootPath)) {
-      toast.error("Preset already exists", {
-        description: "This directory is already in your presets list.",
+    const normalizedTarget = normalizePath(targetPath);
+    const name = targetPath.split(/[\\/]/).filter(Boolean).pop() || "NEW PRESET";
+
+    setPresets(prev => {
+      const isDuplicate = prev.some(p => normalizePath(p.path) === normalizedTarget);
+
+      if (isDuplicate) {
+        toast.error("Preset already exists", {
+          id: `preset-dup-${normalizedTarget}`,
+          description: "This directory is already in your presets list.",
+        });
+        return prev;
+      }
+
+      const newPreset: DirectoryPreset = { 
+        id: crypto.randomUUID(),
+        label: name.toUpperCase(), 
+        path: targetPath 
+      };
+      
+      toast.success("Preset saved", {
+        id: `preset-save-${normalizedTarget}`,
+        description: `${name.toUpperCase()} has been added to your presets.`,
       });
-      return;
-    }
-    const newPreset = { label: name.toUpperCase(), path: rootPath };
-    setPresets([...presets, newPreset]);
-    toast.success("Preset saved", {
-      description: `${name.toUpperCase()} has been added to your presets.`,
+      
+      return [...prev, newPreset];
     });
-  };
+  }, [rootPath, isValidDir]);
 
-  const removePreset = (path: string) => {
-    const presetToRemove = presets.find(p => p.path === path);
-    if (!presetToRemove) return;
+  const removePreset = useCallback((path: string) => {
+    setPresets(prev => {
+      const presetToRemove = prev.find(p => p.path === path);
+      if (!presetToRemove) return prev;
 
-    setPresets(presets.filter(p => p.path !== path));
+      toast.info("Preset removed", {
+        id: `preset-del-${path}`,
+        description: `${presetToRemove.label} has been deleted.`,
+        action: {
+          label: "Undo",
+          onClick: () => setPresets(old => [...old, presetToRemove])
+        },
+      });
 
-    toast.info("Preset removed", {
-      description: `${presetToRemove.label} has been deleted.`,
-      action: {
-        label: "Undo",
-        onClick: () => setPresets(prev => [...prev, presetToRemove])
-      },
+      return prev.filter(p => p.path !== path);
     });
-  };
+  }, []);
 
   return {
     presets,

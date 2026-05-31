@@ -1,4 +1,4 @@
-import { CheckCircle2, Settings2, Trash2, Layers, Zap, Plus, X } from "lucide-react";
+import { CheckCircle2, Settings2, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LayoutType, LayoutConfig, SavedLayout } from "@/lib/setup-constants";
@@ -6,7 +6,6 @@ import { getGridCols, getGridRows, getPaneCount } from "@/lib/setup-utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { EmptyState } from "@/components/ui/empty-state";
 
 interface LayoutSelectorProps {
   currentLayout: LayoutType;
@@ -15,8 +14,6 @@ interface LayoutSelectorProps {
   onCustomLayoutChange: (config: Partial<LayoutConfig>) => void;
   savedLayouts: SavedLayout[];
   onRemoveSavedLayout?: (id: string) => void;
-  onRestoreDefaults?: () => void;
-  isInitialized?: boolean;
 }
 
 export function LayoutSelector({ 
@@ -25,9 +22,7 @@ export function LayoutSelector({
   customLayout, 
   onCustomLayoutChange,
   savedLayouts,
-  onRemoveSavedLayout,
-  onRestoreDefaults,
-  isInitialized
+  onRemoveSavedLayout
 }: LayoutSelectorProps) {
   // All layouts are now dynamic and come from savedLayouts
   const options = useMemo(() => [
@@ -35,10 +30,21 @@ export function LayoutSelector({
     { id: 'custom', name: 'CUSTOM', isSystem: true }
   ], [savedLayouts]);
 
+  const handleNumericInput = (val: string, key: 'rows' | 'cols') => {
+    if (val === "") {
+      onCustomLayoutChange({ [key]: 0 });
+      return;
+    }
+    const parsed = parseInt(val);
+    if (!isNaN(parsed)) {
+      onCustomLayoutChange({ [key]: Math.min(4, Math.max(0, parsed)) });
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {options.map((opt, index) => (
+        {options.map((opt) => (
           <motion.div
             key={opt.id}
             onClick={() => onLayoutChange(opt.id)}
@@ -116,7 +122,7 @@ export function LayoutSelector({
           >
             <CustomLayoutForm 
               customLayout={customLayout} 
-              onCustomLayoutChange={onCustomLayoutChange} 
+              handleNumericInput={handleNumericInput} 
             />
           </motion.div>
         )}
@@ -125,7 +131,13 @@ export function LayoutSelector({
   );
 }
 
-function CustomLayoutForm({ customLayout, onCustomLayoutChange }: { customLayout: LayoutConfig, onCustomLayoutChange: (config: Partial<LayoutConfig>) => void }) {
+function CustomLayoutForm({ 
+  customLayout, 
+  handleNumericInput 
+}: { 
+  customLayout: LayoutConfig, 
+  handleNumericInput: (val: string, key: 'rows' | 'cols') => void 
+}) {
   return (
     <div className="flex items-center gap-8 rounded-md border border-[var(--border-color)] bg-white/[0.02] p-5">
       <div className="flex items-center gap-4">
@@ -134,8 +146,8 @@ function CustomLayoutForm({ customLayout, onCustomLayoutChange }: { customLayout
           type="number" 
           min="1" 
           max="4" 
-          value={customLayout.rows}
-          onChange={(e) => onCustomLayoutChange({ rows: Math.min(4, Math.max(1, parseInt(e.target.value) || 1)) })}
+          value={customLayout.rows === 0 ? "" : customLayout.rows}
+          onChange={(e) => handleNumericInput(e.target.value, 'rows')}
           className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)]"
         />
       </div>
@@ -146,14 +158,14 @@ function CustomLayoutForm({ customLayout, onCustomLayoutChange }: { customLayout
           type="number" 
           min="1" 
           max="4" 
-          value={customLayout.cols}
-          onChange={(e) => onCustomLayoutChange({ cols: Math.min(4, Math.max(1, parseInt(e.target.value) || 1)) })}
+          value={customLayout.cols === 0 ? "" : customLayout.cols}
+          onChange={(e) => handleNumericInput(e.target.value, 'cols')}
           className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)]"
         />
       </div>
       <div className="ml-auto flex items-center gap-6">
         <div className="font-mono text-[10px] text-[var(--text-secondary)]">
-          PREVIEW: <span className="font-bold text-[var(--accent-primary)]">{customLayout.rows * customLayout.cols} PANES</span>
+          PREVIEW: <span className="font-bold text-[var(--accent-primary)]">{(customLayout.rows || 1) * (customLayout.cols || 1)} PANES</span>
         </div>
         <div className="h-10 w-10">
           <LayoutMiniPreview type="custom" customConfig={customLayout} />
@@ -167,7 +179,11 @@ function LayoutMiniPreview({ type, customConfig, savedLayouts }: { type: LayoutT
   let config: LayoutConfig | undefined;
   
   if (type === 'custom' && customConfig) {
-    config = customConfig;
+    // For preview purposes, ensure we show at least 1 row/col even during editing
+    config = {
+      rows: customConfig.rows || 1,
+      cols: customConfig.cols || 1
+    };
   } else {
     config = savedLayouts?.find(l => l.id === type);
   }

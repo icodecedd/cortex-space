@@ -16,7 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
-import { Kbd } from "@/components/ui/kbd";
 import { toast } from "sonner";
 import '@xterm/xterm/css/xterm.css';
 
@@ -50,8 +49,6 @@ export function XtermTerminal({
   onSaveSnippet
 }: XtermTerminalProps) {
   const workspaceId = id.substring(0, id.lastIndexOf(`-${paneId}`));
-  const isMac = typeof window !== 'undefined' && navigator.userAgent.includes('Mac');
-  const focusShortcut = isMac ? `⌘${index + 1}` : `Ctrl+${index + 1}`;
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -60,7 +57,6 @@ export function XtermTerminal({
   const [dimensions, setDimensions] = useState({ rows: 24, cols: 80 });
   const [defaultShell, setDefaultShell] = useState<string>('');
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
-  const [showShortcuts, setShowShortcuts] = useState(true);
   const [showFloatingHeader, setShowFloatingHeader] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
   const [tempName, setTempName] = useState(name || `PANE ${index + 1}`);
@@ -76,7 +72,6 @@ export function XtermTerminal({
       setDefaultShell(saved.defaultShell || '');
     });
     getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
-    getSetting('demo.showTerminalShortcutHints', true).then(setShowShortcuts);
     getSetting('demo.showFloatingTerminalHeader', true).then(setShowFloatingHeader);
   }, []);
 
@@ -177,7 +172,7 @@ export function XtermTerminal({
       const isEscape = e.key === 'Escape';
       const isNumKey = e.key >= '1' && e.key <= '9';
       const isArrowKey = e.key.startsWith('Arrow');
-      const isDirectionalNav = (e.ctrlKey || e.metaKey) && e.altKey && isArrowKey;
+      const isDirectionalNav = e.altKey && isArrowKey;
       const isPaneFocus = (e.ctrlKey || e.metaKey) && isNumKey;
       const isMaximize = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'm';
       const isRelaunch = (e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r';
@@ -299,9 +294,6 @@ export function XtermTerminal({
   useEffect(() => {
     const handleDemoSettingsChange = (e: Event) => {
       const evt = e as CustomEvent<Partial<DemoSettings>>;
-      if (evt.detail?.showTerminalShortcutHints !== undefined) {
-        setShowShortcuts(evt.detail.showTerminalShortcutHints);
-      }
       if (evt.detail?.showFloatingTerminalHeader !== undefined) {
         setShowFloatingHeader(evt.detail.showFloatingTerminalHeader);
       }
@@ -492,7 +484,6 @@ export function XtermTerminal({
                 <DropdownMenuItem onClick={() => {
                   if (onSaveSnippet && (command || '')) {
                     onSaveSnippet(command || '');
-                    toast.success("Snippet Saved", { description: `Saved "${command}" to your library.` });
                   }
                 }}>
                   <BookmarkPlus className="mr-2 h-3.5 w-3.5" />
@@ -522,7 +513,7 @@ export function XtermTerminal({
       />
       <div style={{
         position: 'absolute', inset: 0, background: 'rgba(5, 5, 5, 0.85)', backdropFilter: 'blur(8px)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, gap: '0.75rem', fontFamily: 'JetBrains Mono, monospace',
         display: isTerminated ? 'flex' : 'none'
       }}>

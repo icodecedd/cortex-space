@@ -1,5 +1,5 @@
 import { LayoutConfig, PaneConfig } from "./setup-constants";
-import { LayoutNode, SplitNode } from "@/types";
+import { LayoutNode, SplitNode, PaneNode } from "@/types";
 
 export function getPaneCount(layout: LayoutConfig) {
   return layout.rows * layout.cols;
@@ -127,7 +127,7 @@ export function removeNode(root: LayoutNode, targetId: string): LayoutNode | nul
 /**
  * Recursively find a pane by ID and apply updates.
  */
-export function updatePaneNode(root: LayoutNode, targetId: string, updates: Partial<LayoutNode>): LayoutNode {
+export function updatePaneNode(root: LayoutNode, targetId: string, updates: Partial<PaneNode>): LayoutNode {
   if (root.type === 'pane') {
     if (root.id === targetId) {
       return { ...root, ...updates };

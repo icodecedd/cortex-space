@@ -830,6 +830,17 @@ export function SettingsDialog({
                     onCheckedChange={(v) => setDemoSetting("showFloatingTerminalHeader", v)}
                   />
                 </SettingsRow>
+                <SettingsRow
+                  label="Enable Browser Refresh"
+                  description="Allow Ctrl+R to reload the application. Keep enabled for development."
+                  htmlFor="demo-browser-refresh-toggle"
+                >
+                  <Switch
+                    id="demo-browser-refresh-toggle"
+                    checked={demo.enableBrowserRefresh}
+                    onCheckedChange={(v) => setDemoSetting("enableBrowserRefresh", v)}
+                  />
+                </SettingsRow>
               </div>
             </TabsContent>
 

@@ -42,7 +42,6 @@ export function SpaceView({
   config, 
   isZenMode, 
   zenPadding = 32,
-  showPaneHeaders = true,
   onSplitPane,
   onKillPane,
   onRenamePane,
@@ -144,7 +143,7 @@ export function SpaceView({
           onFocus={() => setFocusedPaneId(node.id)}
           rootPath={config.rootPath}
           isZenMode={isZenMode}
-          showPaneHeader={showPaneHeaders}
+          
           onSplit={onSplitPane}
           onKill={onKillPane}
           onRename={onRenamePane}
@@ -191,7 +190,7 @@ export function SpaceView({
                 onFocus={() => {}}
                 rootPath={config.rootPath}
                 isZenMode={true}
-                showPaneHeader={showPaneHeaders}
+                
                 onSplit={onSplitPane}
                 onKill={onKillPane}
                 onRename={onRenamePane}
@@ -228,7 +227,7 @@ export function SpaceView({
                 isMultiPane={false}
                 onFocus={() => {}}
                 rootPath={config.rootPath}
-                showPaneHeader={showPaneHeaders}
+                
                 onSplit={onSplitPane}
                 onKill={onKillPane}
                 onRename={onRenamePane}
@@ -255,7 +254,7 @@ export function SpaceView({
                         isMultiPane={allPanes.length > 1}
                         onFocus={() => setFocusedPaneId(pane.id)}
                         rootPath={config.rootPath}
-                        showPaneHeader={showPaneHeaders}
+                        
                         onSplit={onSplitPane}
                         onKill={onKillPane}
                         onRename={onRenamePane}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getSetting, setSetting } from "@/lib/store";
 import { SpaceTemplate, LayoutNode, PaneNode, Mode } from "@/types";
 import { toast } from "sonner";
@@ -7,11 +7,19 @@ import { LayoutType, PaneConfig } from "@/lib/setup-constants";
 export function useSpaceTemplates() {
   const [templates, setTemplates] = useState<SpaceTemplate[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const templatesRef = useRef<SpaceTemplate[]>([]);
+  const lastCaptureRef = useRef(0);
+
+  // Sync ref with state
+  useEffect(() => {
+    templatesRef.current = templates;
+  }, [templates]);
 
   useEffect(() => {
     async function loadTemplates() {
       const saved = await getSetting<SpaceTemplate[]>("cortex_templates", []);
       setTemplates(saved);
+      templatesRef.current = saved;
       setIsInitialized(true);
     }
     loadTemplates();
@@ -23,6 +31,12 @@ export function useSpaceTemplates() {
     }
   }, [templates, isInitialized]);
 
+  // Helper to normalize path for comparison
+  const normalizePath = (p: string) => {
+    if (!p) return "";
+    return p.replace(/[\\/]+$/, "").replace(/\//g, "\\").toLowerCase();
+  };
+
   const captureCurrent = useCallback((
     name: string,
     rootPath: string,
@@ -31,12 +45,35 @@ export function useSpaceTemplates() {
     mode: Mode,
     description?: string
   ) => {
+    const now = Date.now();
+    if (now - lastCaptureRef.current < 500) return;
+    lastCaptureRef.current = now;
+
     let layoutNode: LayoutNode;
     
     if (typeof layout === 'string') {
       layoutNode = convertGridLayoutToTree(layout, panes);
     } else {
       layoutNode = layout;
+    }
+
+    const currentTemplates = templatesRef.current;
+    const normalizedTarget = normalizePath(rootPath);
+    const layoutStr = JSON.stringify(layoutNode);
+
+    // Validation: Check for duplicates (Same Path + Same Layout + Same Mode)
+    const isDuplicate = currentTemplates.some(t => 
+      normalizePath(t.rootPath) === normalizedTarget && 
+      JSON.stringify(t.layout) === layoutStr &&
+      t.mode === mode
+    );
+
+    if (isDuplicate) {
+      toast.error("Template already exists", {
+        id: `tpl-dup-${normalizedTarget}`,
+        description: "An identical configuration is already in your library."
+      });
+      return;
     }
     
     const newTemplate: SpaceTemplate = {
@@ -51,13 +88,14 @@ export function useSpaceTemplates() {
 
     setTemplates(prev => [newTemplate, ...prev]);
     toast.success("Template Captured", {
+      id: `tpl-save-${normalizedTarget}`,
       description: `"${name}" has been saved to your library.`,
     });
   }, []);
 
   const deleteTemplate = useCallback((id: string) => {
     setTemplates(prev => prev.filter(t => t.id !== id));
-    toast.info("Template Deleted");
+    toast.info("Template Deleted", { id: `tpl-del-${id}` });
   }, []);
 
   return {

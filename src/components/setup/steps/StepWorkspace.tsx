@@ -1,4 +1,4 @@
-import { FolderOpen, Grid3X3, Lock, X, BookmarkPlus, Save, Database, Layout } from "lucide-react";
+import { FolderOpen, Lock, X, Save, Database, Layout } from "lucide-react";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -47,8 +47,6 @@ export function StepWorkspace({
   savedLayouts,
   addSavedLayout,
   removeSavedLayout,
-  onRestoreLayouts,
-  isInitialized
 }: StepWorkspaceProps) {
   const [layoutName, setLayoutName] = useState("");
 
@@ -78,9 +76,12 @@ export function StepWorkspace({
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] }
+      transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] as any }
     }
   };
+
+  const activePath = rootPath || defaultDir;
+  const isPathPreset = presets.some(p => p.path === activePath);
 
   return (
     <motion.div 
@@ -204,8 +205,6 @@ export function StepWorkspace({
           onCustomLayoutChange={setCustomLayout}
           savedLayouts={savedLayouts}
           onRemoveSavedLayout={removeSavedLayout}
-          onRestoreDefaults={onRestoreLayouts}
-          isInitialized={isInitialized}
         />
 
         {layout === 'custom' && (
@@ -246,6 +245,7 @@ export function StepWorkspace({
                   variant="outline"
                   size="sm"
                   onClick={handleSaveLayout}
+                  disabled={customLayout.rows < 1 || customLayout.cols < 1}
                   className="h-9 px-6 bg-[var(--accent-primary)] text-[var(--accent-contrast)] border-[var(--accent-primary)] hover:brightness-110 font-bold text-[10px] tracking-widest rounded-md transition-all"
                 >
                   REGISTER LAYOUT

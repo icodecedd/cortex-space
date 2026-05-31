@@ -8,9 +8,10 @@ import { Kbd } from "@/components/ui/kbd";
 interface ModeSelectorScreenProps {
   onSelectMode: (mode: Mode) => void;
   showShortcutHints?: boolean;
+  showTemplatesHint?: boolean;
 }
 
-export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: ModeSelectorScreenProps) {
+export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, showTemplatesHint = true }: ModeSelectorScreenProps) {
   const shouldReduceMotion = useReducedMotion();
 
   const handleSelectMode = async (mode: Mode) => {
@@ -63,7 +64,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
       scale: 1,
       transition: {
         duration: 0.4,
-        ease: [0.22, 1, 0.36, 1] // Quintic ease-out: professional & snappy
+        ease: [0.22, 1, 0.36, 1] as any // Quintic ease-out: professional & snappy
       }
     }
   };
@@ -291,6 +292,22 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
               flexWrap: "wrap",
             }}
           >
+            {showTemplatesHint && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  color: "var(--text-secondary)",
+                  fontSize: "0.75rem",
+                }}
+              >
+                <Kbd className="bg-white/5 border-white/10 text-white/70">
+                  Ctrl + Shift + T
+                </Kbd>
+                <span>Templates</span>
+              </div>
+            )}
             <div
               style={{
                 display: "flex",
@@ -302,20 +319,6 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
             >
               <Kbd className="bg-white/5 border-white/10 text-white/70">
                 Ctrl + T
-              </Kbd>
-              <span>Templates</span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                color: "var(--text-secondary)",
-                fontSize: "0.75rem",
-              }}
-            >
-              <Kbd className="bg-white/5 border-white/10 text-white/70">
-                Ctrl + Alt + N
               </Kbd>
               <span>New Space</span>
             </div>
