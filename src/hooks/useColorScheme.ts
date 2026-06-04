@@ -10,78 +10,120 @@ import {
 
 const PREFIX = 'appearance';
 
+// Shared global state to keep all hook instances in sync
+let globalSettings: AppearanceSettings = APPEARANCE_DEFAULTS;
+let globalResolvedScheme: 'light' | 'dark' = 'dark';
+let isInitialLoaded = false;
+const listeners = new Set<(settings: AppearanceSettings, resolved: 'light' | 'dark') => void>();
+
+function getSystemPreference(): 'light' | 'dark' {
+  if (typeof window === 'undefined') return 'dark';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 function applyColorScheme(scheme: ColorScheme) {
+  if (typeof document === 'undefined') return scheme === 'light' ? 'light' : 'dark';
   const html = document.documentElement;
-  if (scheme === 'dark') {
-    html.setAttribute('data-color-scheme', 'dark');
-  } else if (scheme === 'light') {
-    html.setAttribute('data-color-scheme', 'light');
+  const resolved = scheme === 'system' ? getSystemPreference() : scheme;
+  
+  html.setAttribute('data-color-scheme', resolved);
+  if (resolved === 'dark') {
+    html.classList.add('dark');
   } else {
-    // system — derive from OS preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    html.setAttribute('data-color-scheme', prefersDark ? 'dark' : 'light');
+    html.classList.remove('dark');
   }
+  return resolved;
 }
 
 function applyFontScale(scale: number) {
-  // scale is 80–150 representing percentage
+  if (typeof document === 'undefined') return;
   document.documentElement.style.setProperty('--ui-font-scale', String(scale / 100));
 }
 
-export function useColorScheme() {
-  const [settings, setSettings] = useState<AppearanceSettings>(APPEARANCE_DEFAULTS);
-  const [isLoaded, setIsLoaded] = useState(false);
+function notifyListeners() {
+  listeners.forEach(listener => listener(globalSettings, globalResolvedScheme));
+}
 
-  // Media query listener for system theme
+export function useColorScheme() {
+  const [settings, setSettings] = useState<AppearanceSettings>(globalSettings);
+  const [resolvedScheme, setResolvedScheme] = useState<'light' | 'dark'>(globalResolvedScheme);
+  const [isLoaded, setIsLoaded] = useState(isInitialLoaded);
+
+  // Register listener and handle initial load
   useEffect(() => {
+    const listener = (newSettings: AppearanceSettings, newResolved: 'light' | 'dark') => {
+      setSettings(newSettings);
+      setResolvedScheme(newResolved);
+      setIsLoaded(true);
+    };
+
+    listeners.add(listener);
+
+    if (!isInitialLoaded) {
+      getSettingsGroup<AppearanceSettings>(PREFIX, APPEARANCE_DEFAULTS).then((saved) => {
+        globalSettings = saved;
+        globalResolvedScheme = applyColorScheme(saved.colorScheme);
+        applyFontScale(saved.uiFontScale);
+        isInitialLoaded = true;
+        setIsLoaded(true);
+        notifyListeners();
+      });
+    }
+
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
+
+  // Media query listener for system theme changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = () => {
-      if (settings.colorScheme === 'system') {
-        applyColorScheme('system');
+      if (globalSettings.colorScheme === 'system') {
+        const resolved = applyColorScheme('system');
+        globalResolvedScheme = resolved;
+        notifyListeners();
       }
     };
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
-  }, [settings.colorScheme]);
-
-  // Load from store on mount
-  useEffect(() => {
-    getSettingsGroup<AppearanceSettings>(PREFIX, APPEARANCE_DEFAULTS).then((saved) => {
-      setSettings(saved);
-      applyColorScheme(saved.colorScheme);
-      applyFontScale(saved.uiFontScale);
-      setIsLoaded(true);
-    });
   }, []);
 
   const setColorScheme = useCallback(async (scheme: ColorScheme) => {
-    setSettings((prev) => ({ ...prev, colorScheme: scheme }));
-    applyColorScheme(scheme);
+    globalSettings = { ...globalSettings, colorScheme: scheme };
+    globalResolvedScheme = applyColorScheme(scheme);
+    notifyListeners();
     await setSetting(`${PREFIX}.colorScheme`, scheme);
   }, []);
 
   const setUiFontScale = useCallback(async (scale: number) => {
-    setSettings((prev) => ({ ...prev, uiFontScale: scale }));
+    globalSettings = { ...globalSettings, uiFontScale: scale };
     applyFontScale(scale);
+    notifyListeners();
     await setSetting(`${PREFIX}.uiFontScale`, scale);
   }, []);
 
   const setZenPadding = useCallback(async (padding: number) => {
-    setSettings((prev) => ({ ...prev, zenPadding: padding }));
+    globalSettings = { ...globalSettings, zenPadding: padding };
+    notifyListeners();
     await setSetting(`${PREFIX}.zenPadding`, padding);
   }, []);
 
   const setReducedMotion = useCallback(async (reduced: boolean) => {
-    setSettings((prev) => ({ ...prev, reducedMotion: reduced }));
+    globalSettings = { ...globalSettings, reducedMotion: reduced };
+    notifyListeners();
     await setSetting(`${PREFIX}.reducedMotion`, reduced);
   }, []);
 
   const resetToDefaults = useCallback(async () => {
-    setSettings(APPEARANCE_DEFAULTS);
-    applyColorScheme(APPEARANCE_DEFAULTS.colorScheme);
+    globalSettings = APPEARANCE_DEFAULTS;
+    globalResolvedScheme = applyColorScheme(APPEARANCE_DEFAULTS.colorScheme);
     applyFontScale(APPEARANCE_DEFAULTS.uiFontScale);
+    notifyListeners();
     await setSettingsGroup<AppearanceSettings>(PREFIX, APPEARANCE_DEFAULTS);
   }, []);
 
-  return { settings, isLoaded, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults };
+  return { settings, resolvedScheme, isLoaded, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults };
 }

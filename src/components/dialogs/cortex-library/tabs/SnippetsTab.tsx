@@ -50,31 +50,31 @@ export function SnippetsTab({
   return (
     <div className="space-y-4">
       {isAdding && (
-        <Card className="bg-amber-500/5 border-amber-500/20 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+        <Card className="bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20 p-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-amber-500/80 uppercase tracking-wider">Snippet Label</label>
+              <label className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-wider">Snippet Label</label>
               <Input 
                 autoFocus
                 placeholder="e.g. Docker Fresh Build"
-                className="bg-black/20 border-white/5 text-[13px] h-9"
+                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9"
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-amber-500/80 uppercase tracking-wider">Terminal Command</label>
+              <label className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-wider">Terminal Command</label>
               <Input 
                 placeholder="e.g. docker-compose up --build"
-                className="bg-black/20 border-white/5 text-[13px] font-mono h-9"
+                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] font-mono h-9"
                 value={newCommand}
                 onChange={(e) => setNewCommand(e.target.value)}
               />
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)} className="text-[11px] h-8 text-white/40 hover:text-white">CANCEL</Button>
-            <Button size="sm" onClick={handleSave} className="bg-amber-500 text-black text-[11px] font-bold h-8 hover:bg-amber-400">SAVE SNIPPET</Button>
+            <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)} className="text-[11px] h-8 text-[var(--text-secondary)] hover:text-[var(--text-primary)]">CANCEL</Button>
+            <Button size="sm" onClick={handleSave} className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] text-[11px] font-bold h-8 hover:opacity-90">SAVE SNIPPET</Button>
           </div>
         </Card>
       )}
@@ -87,7 +87,7 @@ export function SnippetsTab({
             ? `No commands matching "${searchQuery}" were found in your snippet library.`
             : "Save your frequently used terminal commands as snippets to inject them instantly into any active pane."
           }
-          iconColor="text-amber-500/40"
+          iconColor="text-[var(--accent-primary)]/40"
           action={!isAdding && !searchQuery ? {
             label: "Create New Snippet",
             onClick: () => setIsAdding(true),
@@ -122,8 +122,8 @@ function SnippetRow({ snippet, isSelected, onToggleSelection, onDelete, onExecut
   return (
     <div 
        className={cn(
-         "group flex items-center justify-between p-4 bg-white/[0.02] hover:bg-white/[0.04] border rounded-lg transition-all cursor-default",
-         isSelected ? "border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/[0.03]" : "border-white/5"
+         "group flex items-center justify-between p-4 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.04] border rounded-lg transition-all cursor-default",
+         isSelected ? "border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/[0.03]" : "border-[var(--border-color)]"
        )}
     >
        <div className="flex items-center gap-4 min-w-0">
@@ -131,19 +131,19 @@ function SnippetRow({ snippet, isSelected, onToggleSelection, onDelete, onExecut
             onClick={onToggleSelection}
             className={cn(
               "w-5 h-5 rounded border transition-all flex items-center justify-center cursor-pointer shrink-0",
-              isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-white/10 group-hover:border-white/30"
+              isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] group-hover:border-[var(--text-primary)]/30"
             )}
           >
             {isSelected && <Plus size={12} className="text-black rotate-45" />}
           </div>
 
-          <div className="w-10 h-10 rounded bg-amber-500/5 border border-amber-500/10 flex items-center justify-center shrink-0">
-             <Terminal size={18} className="text-amber-500/60" />
+          <div className="w-10 h-10 rounded bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center shrink-0">
+             <Terminal size={18} className="text-[var(--accent-primary)]" />
           </div>
           <div className="min-w-0">
-             <h4 className="text-[13px] font-bold text-white/90 leading-none mb-1.5">{snippet.label}</h4>
+             <h4 className="text-[13px] font-bold text-[var(--text-primary)] leading-none mb-1.5">{snippet.label}</h4>
              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-black/30 border border-white/5 font-mono text-[11px] text-white/40">
+                <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-[var(--bg-color)]/30 border border-[var(--border-color)] font-mono text-[11px] text-[var(--text-secondary)]">
                    <ChevronRightSquare size={10} />
                    <span className="truncate max-w-[300px] lg:max-w-[450px]">{snippet.command}</span>
                 </div>
@@ -154,22 +154,22 @@ function SnippetRow({ snippet, isSelected, onToggleSelection, onDelete, onExecut
        <div className="flex items-center gap-2">
           <Button 
             variant="ghost" size="sm" 
-            className="text-[10px] font-bold text-white/20 hover:text-amber-500 hover:bg-amber-500/5 px-2 h-7"
+            className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 px-2 h-7"
             onClick={() => onExecute(false)}
           >
              INJECT
           </Button>
           <Button 
             size="sm" 
-            className="text-[10px] font-bold bg-amber-500 text-black px-3 h-7 hover:opacity-90"
+            className="text-[10px] font-bold bg-[var(--accent-primary)] text-[var(--accent-contrast)] px-3 h-7 hover:opacity-90"
             onClick={() => onExecute(true)}
           >
              RUN
           </Button>
-          <div className="w-px h-4 bg-white/5 mx-1" />
+          <div className="w-px h-4 bg-[var(--border-color)] mx-1" />
           <Button 
             variant="ghost" size="icon" 
-            className="h-7 w-7 text-white/20 hover:bg-red-500/10 hover:text-red-400"
+            className="h-7 w-7 text-[var(--text-secondary)]/60 hover:bg-ansi-red/10 hover:text-ansi-red"
             onClick={onDelete}
           >
             <Trash2 size={14} />

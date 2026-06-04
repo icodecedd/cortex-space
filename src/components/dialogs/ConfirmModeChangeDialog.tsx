@@ -77,10 +77,7 @@ export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDi
           <DialogTitle className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
             Confirm Mode Change
           </DialogTitle>
-          <DialogDescription
-            className="text-sm leading-relaxed"
-            style={{ color: 'rgba(255, 255, 255, 0.7)' }}
-          >
+          <DialogDescription className="text-sm leading-relaxed">
             This action will reset your current workspace progress and return you to the initial mode selection screen. This cannot be undone.
           </DialogDescription>
         </DialogHeader>
@@ -107,8 +104,7 @@ export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDi
             gap: '0.75rem',
             margin: '1.5rem -1.5rem -1.5rem -1.5rem',
             padding: '1.25rem 1.5rem',
-            borderTop: '1px solid var(--border-color)',
-            background: 'rgba(255, 255, 255, 0.015)'
+            borderTop: '1px solid var(--border-color)'
           }}
         >
           <DialogClose asChild>

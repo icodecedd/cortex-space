@@ -44,9 +44,8 @@ function App() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [isBackgroundRecessed, setIsBackgroundRecessed] = useState(false);
-  const { theme, setTheme } = useTheme();
-
-  const { settings: colorSchemeSettings, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
+  const { settings: colorSchemeSettings, resolvedScheme, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
+  const { theme, setTheme, allThemes, addCustomTheme, removeCustomTheme, previewTheme, cancelPreview } = useTheme();
   const { settings: focusSettings, setFocusSetting, toggleZenMode, resetToDefaults: resetFocus } = useFocusSettings();
   const { settings: demoSettings, setDemoSetting, resetToDefaults: resetDemo } = useDemoSettings();
 
@@ -610,6 +609,7 @@ function App() {
           <AppFooter
             theme={theme}
             setTheme={(newTheme) => setTheme(newTheme as ThemeName)}
+            allThemes={allThemes}
           />
         )}
       </motion.div>
@@ -620,6 +620,11 @@ function App() {
         onOpenChange={setSettingsOpen}
         theme={theme}
         setTheme={setTheme}
+        allThemes={allThemes}
+        addCustomTheme={addCustomTheme}
+        removeCustomTheme={removeCustomTheme}
+        previewTheme={previewTheme}
+        cancelPreview={cancelPreview}
         colorScheme={colorSchemeSettings.colorScheme}
         setColorScheme={setColorScheme}
         uiFontScale={colorSchemeSettings.uiFontScale}
@@ -665,9 +670,10 @@ function App() {
         onOpenShortcuts={() => setShortcutsOpen(true)}
         onOpenTemplates={() => setTemplatesOpen(true)}
         onSetTheme={setTheme}
+        allThemes={allThemes}
       />
 
-      <Toaster position="bottom-right" theme="dark" closeButton richColors />
+      <Toaster position="bottom-right" closeButton richColors theme={resolvedScheme as any} />
     </div>
   );
 }

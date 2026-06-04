@@ -77,7 +77,7 @@ export function SplashScreen({ splashKey, reducedMotion = false }: SplashScreenP
         }}
       >
         <motion.div variants={textVariants} className="splash-text">
-          CORTEX<span style={{ opacity: 0.5 }}> SPACE</span>
+          CORTEX<span style={{ color: "var(--accent-primary)" }}> SPACE</span>
         </motion.div>
         
         <motion.div 

@@ -51,11 +51,11 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
       <motion.div variants={itemVariants} className="flex flex-col gap-1 mb-10">
         <div className="flex items-center gap-2 mb-1">
           <Command size={16} className="text-[var(--accent-primary)]" />
-          <h3 className="text-lg font-semibold tracking-tight text-white uppercase">
+          <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
             {mode === 'agents' ? 'Assign AI Agents' : 'Define Command Protocol'}
           </h3>
         </div>
-        <p className="text-sm text-[var(--text-secondary)]">
+        <p className="text-sm text-[var(--text-secondary)] font-medium">
           {mode === 'agents' 
             ? 'Select specialized agents for each terminal pane or apply a global template.' 
             : 'Specify the initialization commands for each pane in your workspace matrix.'}
@@ -65,7 +65,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
       {mode === 'agents' && (
         <motion.div 
           variants={itemVariants}
-          className="mb-10 relative overflow-hidden rounded-md border border-white/5 bg-white/[0.02] p-8 group"
+          className="mb-10 relative overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--text-primary)]/[0.02] p-8 group"
         >
           {/* Subtle gradient accent */}
           <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent opacity-50" />
@@ -78,7 +78,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
                   Global Agent Protocol
                 </h4>
               </div>
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold">
                 Applying a global agent will initialize all {activePanes.length} workspace panes with the same identity. This can be overridden per pane.
               </p>
             </div>
@@ -98,11 +98,11 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
                 <div className="relative">
                   <ComboboxInput
                     placeholder="Select global identity..."
-                    className="font-mono h-10 bg-black/40 border-white/10 text-xs focus:border-[var(--accent-primary)] transition-all rounded-md"
+                    className="font-mono h-10 bg-[var(--bg-color)]/40 border-[var(--border-color)] text-xs focus:border-[var(--accent-primary)] transition-all rounded-md placeholder:text-[var(--text-secondary)]/60"
                   />
                 </div>
                 <ComboboxContent
-                  className="bg-[var(--surface-color)] border-white/10 rounded-md"
+                  className="bg-[var(--surface-color)] border-[var(--border-color)] rounded-md"
                   style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}
                 >
                   <ComboboxEmpty className="text-[10px] font-mono p-4">Identity matrix not found.</ComboboxEmpty>
@@ -111,10 +111,10 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
                       <ComboboxItem
                         key={preset.label}
                         value={preset.command}
-                        className="flex items-center justify-between gap-4 font-mono text-[11px] py-2.5 px-4 cursor-pointer hover:bg-white/5 transition-colors"
+                        className="flex items-center justify-between gap-4 font-mono text-[11px] py-2.5 px-4 cursor-pointer hover:bg-[var(--text-primary)]/5 transition-colors"
                       >
-                        <span className="font-bold text-white/80">{preset.label}</span>
-                        <span className="text-[9px] opacity-30 truncate">
+                        <span className="font-bold text-[var(--text-primary)]">{preset.label}</span>
+                        <span className="text-[9px] text-[var(--text-secondary)] font-bold truncate opacity-80">
                           {preset.command}
                         </span>
                       </ComboboxItem>
@@ -122,8 +122,8 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
                   </ComboboxList>
                 </ComboboxContent>
               </Combobox>
-              <div className="flex items-center gap-2 opacity-40">
-                <span className="text-[9px] font-mono text-[var(--text-secondary)] uppercase tracking-tighter">Overrides enabled per pane</span>
+              <div className="flex items-center gap-2 opacity-80">
+                <span className="text-[9px] font-mono text-[var(--text-secondary)] font-bold uppercase tracking-tighter">Overrides enabled per pane</span>
               </div>
             </div>
           </div>

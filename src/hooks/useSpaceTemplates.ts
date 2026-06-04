@@ -94,8 +94,14 @@ export function useSpaceTemplates() {
   }, []);
 
   const deleteTemplate = useCallback((id: string) => {
+    const template = templatesRef.current.find(t => t.id === id);
+    const name = template?.name || "Template";
+    
     setTemplates(prev => prev.filter(t => t.id !== id));
-    toast.info("Template Deleted", { id: `tpl-del-${id}` });
+    toast.info("Template Removed", { 
+      id: `tpl-del-${id}`,
+      description: `"${name}" has been deleted from your library.`
+    });
   }, []);
 
   return {

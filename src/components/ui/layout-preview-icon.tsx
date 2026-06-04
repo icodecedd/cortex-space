@@ -13,7 +13,7 @@ export function LayoutPreviewIcon({ layout, className }: LayoutPreviewIconProps)
       return (
         <div 
           className={cn(
-            "flex-1 border-[0.5px] border-white/20 bg-white/5",
+            "flex-1 border-[0.5px] border-[var(--border-color)] bg-[var(--text-primary)]/5",
             isRoot && "rounded-[2px]"
           )}
         />
@@ -40,7 +40,7 @@ export function LayoutPreviewIcon({ layout, className }: LayoutPreviewIconProps)
   };
 
   return (
-    <div className={cn("w-12 h-10 flex border border-white/10 rounded-[4px] overflow-hidden p-[1px] bg-black/40", className)}>
+    <div className={cn("w-12 h-10 flex border border-[var(--border-color)] rounded-[4px] overflow-hidden p-[1px] bg-[var(--bg-color)]/40", className)}>
       {renderNode(layout, true)}
     </div>
   );

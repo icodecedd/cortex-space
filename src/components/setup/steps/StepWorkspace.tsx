@@ -9,6 +9,8 @@ import { PresetManager } from "../ui-parts/PresetManager";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
+import { DirectoryPreset } from "@/hooks/usePresets";
+
 interface StepWorkspaceProps {
   rootPath: string;
   setRootPath: (path: string) => void;
@@ -16,7 +18,7 @@ interface StepWorkspaceProps {
   isValidDir: boolean | null;
   handleBrowse: () => void;
   handleBreadcrumbClick: (index: number) => void;
-  presets: { label: string; path: string }[];
+  presets: DirectoryPreset[];
   addPreset: () => void;
   removePreset: (path: string) => void;
   layout: LayoutType;
@@ -80,9 +82,6 @@ export function StepWorkspace({
     }
   };
 
-  const activePath = rootPath || defaultDir;
-  const isPathPreset = presets.some(p => p.path === activePath);
-
   return (
     <motion.div 
       className="max-w-4xl mx-auto w-full py-2"
@@ -95,25 +94,25 @@ export function StepWorkspace({
         <div className="flex flex-col gap-1 mb-8">
           <div className="flex items-center gap-2 mb-1">
             <Database size={16} className="text-[var(--accent-primary)]" />
-            <h3 className="text-lg font-semibold tracking-tight text-white uppercase">
+            <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
               Workspace Context
             </h3>
           </div>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)] font-medium">
             Define the physical mounting point for your terminal operations.
           </p>
         </div>
 
         <div className={cn(
-          "group relative flex items-center gap-4 rounded-md border bg-white/[0.02] p-2 pr-4 transition-all duration-300",
-          isValidDir === false ? "border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]" : "border-white/5 focus-within:border-white/15 focus-within:bg-white/[0.04] shadow-sm"
+          "group relative flex items-center gap-4 rounded-md border bg-[var(--text-primary)]/[0.02] p-2 pr-4 transition-all duration-300",
+          isValidDir === false ? "border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]" : "border-[var(--text-primary)]/10 focus-within:border-[var(--text-primary)]/20 focus-within:bg-[var(--text-primary)]/[0.04] shadow-sm"
         )}>
-          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-white/5 text-[var(--text-secondary)] group-focus-within:text-[var(--accent-primary)] transition-colors">
+          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-[var(--text-primary)]/5 text-[var(--text-secondary)] group-focus-within:text-[var(--accent-primary)] transition-colors">
             <FolderOpen size={18} />
           </div>
           
           <div className="flex-1 flex flex-col">
-            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-60 mb-0.5 ml-0.5">
+            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-0.5 ml-0.5">
               Mounting Path
             </label>
             <Input
@@ -121,7 +120,7 @@ export function StepWorkspace({
               value={rootPath}
               onChange={(e) => setRootPath(e.target.value)}
               placeholder={defaultDir || "SELECT A TARGET DIRECTORY"}
-              className="h-7 border-none bg-transparent px-0.5 font-mono text-[13px] text-white shadow-none focus-visible:ring-0 placeholder:opacity-20"
+              className="h-7 border-none bg-transparent px-0.5 font-mono text-[13px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/50"
             />
           </div>
 
@@ -131,17 +130,17 @@ export function StepWorkspace({
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setRootPath("")}
-                className="h-8 w-8 text-[var(--text-secondary)] hover:text-white hover:bg-white/5 rounded-md"
+                className="h-8 w-8 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-md"
               >
                 <X size={14} />
               </Button>
             )}
-            <div className="w-px h-6 bg-white/5 mx-1" />
+            <div className="w-px h-6 bg-[var(--border-color)] mx-1" />
             <Button
               variant="outline"
               size="sm"
               onClick={handleBrowse}
-              className="h-9 px-4 bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10 text-[10px] font-bold tracking-widest text-white rounded-md transition-all"
+              className="h-9 px-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] hover:bg-[var(--text-primary)]/10 hover:border-[var(--text-primary)]/20 text-[10px] font-bold tracking-widest text-[var(--text-primary)] rounded-md transition-all"
             >
               BROWSE
             </Button>
@@ -149,24 +148,24 @@ export function StepWorkspace({
         </div>
 
         {currentPath && (
-          <div className="animate-in fade-in mt-6 flex flex-wrap items-center gap-1.5 font-mono text-[10px] px-2 opacity-80">
-            <Lock size={10} className="text-[var(--text-secondary)] mr-1 opacity-40" />
+          <div className="animate-in fade-in mt-6 flex flex-wrap items-center gap-1.5 font-mono text-[10px] px-2">
+            <Lock size={10} className="text-[var(--text-secondary)] mr-1 opacity-80" />
             {currentPath.split(/[\\/]/).filter(Boolean).map((part, i, arr) => (
               <span key={i} className="flex items-center gap-1.5">
                 <button
                   onClick={() => handleBreadcrumbClick(i)}
                   className={cn(
                     "rounded-md px-2 py-1 transition-all hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)]",
-                    i === arr.length - 1 ? "text-[var(--accent-primary)] font-bold bg-[var(--accent-primary)]/5" : "text-[var(--text-secondary)]"
+                    i === arr.length - 1 ? "text-[var(--accent-primary)] font-bold bg-[var(--accent-primary)]/5" : "text-[var(--text-secondary)] font-bold"
                   )}
                 >
                   {part.toUpperCase()}
                 </button>
-                {i < arr.length - 1 && <span className="text-white/10">/</span>}
+                {i < arr.length - 1 && <span className="text-[var(--text-secondary)]/30 font-bold">/</span>}
               </span>
             ))}
             {!rootPath && (
-              <Badge variant="outline" className="ml-3 h-5 px-2 text-[8px] font-bold bg-[var(--accent-primary)]/5 text-[var(--accent-primary)] border-[var(--accent-primary)]/20 uppercase tracking-tighter rounded-full">
+              <Badge variant="outline" className="ml-3 h-5 px-2 text-[8px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30 uppercase tracking-tighter rounded-full">
                 System Default
               </Badge>
             )}
@@ -189,11 +188,11 @@ export function StepWorkspace({
         <div className="flex flex-col gap-1 mb-8">
           <div className="flex items-center gap-2 mb-1">
             <Layout size={16} className="text-[var(--accent-primary)]" />
-            <h3 className="text-lg font-semibold tracking-tight text-white uppercase">
+            <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
               Architectural Layout
             </h3>
           </div>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)] font-medium">
             Configure the physical grid topology for your process matrix.
           </p>
         </div>
@@ -211,17 +210,17 @@ export function StepWorkspace({
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8 relative overflow-hidden rounded-md border border-white/5 bg-white/[0.02] p-6 group"
+            className="mt-8 relative overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--text-primary)]/[0.02] p-6 group"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent opacity-50" />
             
             <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex flex-1 items-center gap-4">
-                <div className="w-10 h-10 rounded-md bg-white/5 flex items-center justify-center text-[var(--text-secondary)]">
+                <div className="w-10 h-10 rounded-md bg-[var(--text-primary)]/5 flex items-center justify-center text-[var(--text-secondary)]">
                   <Save size={18} />
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-60 mb-0.5 ml-0.5">
+                  <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-0.5 ml-0.5">
                     Layout Registry Name
                   </label>
                   <Input
@@ -229,14 +228,14 @@ export function StepWorkspace({
                     placeholder={`ID: ${customLayout.rows}X${customLayout.cols} (OPTIONAL)`}
                     value={layoutName}
                     onChange={(e) => setLayoutName(e.target.value.toUpperCase())}
-                    className="h-7 border-none bg-transparent px-0.5 font-mono text-[12px] text-white shadow-none focus-visible:ring-0 placeholder:opacity-20"
+                    className="h-7 border-none bg-transparent px-0.5 font-mono text-[12px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/50"
                   />
                 </div>
               </div>
               
               <div className="flex items-center gap-4 pl-14 md:pl-0">
                 <div className="hidden md:flex flex-col items-end gap-0.5 mr-2">
-                  <span className="text-[8px] font-mono font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-40 text-right">Topology ID</span>
+                  <span className="text-[8px] font-mono font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-80 text-right">Topology ID</span>
                   <span className="text-[10px] font-mono font-bold text-[var(--accent-primary)] text-right">
                     {layoutName.trim() ? layoutName : `${customLayout.rows}X${customLayout.cols}`}
                   </span>

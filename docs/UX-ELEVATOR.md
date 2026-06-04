@@ -33,7 +33,15 @@ The "UX Elevator" provides a streamlined, non-intrusive interface for managing i
 1. `App.tsx`: Manages `workspaces` state and houses mutation handlers.
 2. `SpaceView.tsx`: Recursively renders the `LayoutNode` tree and calculates pane indices.
 3. `TerminalPane.tsx`: Acts as the visual container and focus manager.
-4. `XtermTerminal.tsx`: Implements the floating header UI and terminal process bridge.
+4. `XtermTerminal.tsx`: Hosts the terminal instance.
+5. `PaneElevator.tsx`: Standalone UI for pane management (the "UX Elevator").
+
+### Elevator Enhancements
+- **Refactored**: Extracted from `XtermTerminal` for better maintainability and testability.
+- **Improved Visibility**: Now accessible on hover even for unfocused panes.
+- **Precision Triggering**: Restricted to a top-right 30% trigger zone to reduce visual noise.
+- **Flexible UI**: Added a toggle for "Compact" (icons only) vs "Expanded" (labels + focus hints + direct split buttons) modes.
+- **Non-blocking**: Utilizes `pointer-events: none` on the trigger container to ensure the terminal remains fully interactive until the elevator is explicitly summoned.
 
 ### Tree Mutation Utilities (`src/lib/setup-utils.ts`)
 - `splitNode`: Replaces a `PaneNode` with a `SplitNode` containing the original and a fresh pane.

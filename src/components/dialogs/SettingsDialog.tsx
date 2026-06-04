@@ -11,9 +11,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -23,7 +26,8 @@ import {
 } from "@/components/ui/select";
 import { getSetting, setSetting, getSettingsGroup, setSettingsGroup, ShortcutSettings, SHORTCUT_DEFAULTS, FocusSettings, DemoSettings } from "@/lib/store";
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
-import { ThemeName } from "@/hooks/useTheme";
+import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
+import { useColorScheme } from "@/hooks/useColorScheme";
 import { ColorScheme, OpenOnLaunch } from "@/lib/store";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
@@ -36,6 +40,10 @@ import {
   Target,
   Keyboard,
   FlaskConical,
+  Plus,
+  Trash2,
+  Code,
+  Check,
 } from "lucide-react";
 
 interface SettingsDialogProps {
@@ -43,6 +51,11 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
+  allThemes: ThemeDefinition[];
+  addCustomTheme: (theme: ThemeDefinition) => Promise<void>;
+  removeCustomTheme: (id: string) => Promise<void>;
+  previewTheme: (config: ThemeDefinition) => void;
+  cancelPreview: () => void;
   colorScheme: ColorScheme;
   setColorScheme: (scheme: ColorScheme) => void;
   uiFontScale: number;
@@ -104,8 +117,7 @@ function SectionHeader({
   return (
     <div className="flex items-center justify-between mb-3">
       <h3
-        className="text-[11px] font-semibold uppercase tracking-wider"
-        style={{ color: "var(--text-secondary)" }}
+        className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]"
       >
         {title}
       </h3>
@@ -195,12 +207,69 @@ function SegmentedControl<T extends string>({
   );
 }
 
+function normalizeThemeInput(parsed: any): ThemeDefinition {
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error("Invalid theme object");
+  }
+  if (!parsed.id || typeof parsed.id !== 'string') {
+    throw new Error("Missing or invalid 'id' property.");
+  }
+  if (!parsed.name || typeof parsed.name !== 'string') {
+    throw new Error("Missing or invalid 'name' property.");
+  }
+
+  if (parsed.dark && typeof parsed.dark === 'object') {
+    const requiredPalette = ['bg', 'headerBg', 'footerBg', 'surface', 'border', 'textPrimary', 'textSecondary', 'accent'];
+    for (const key of requiredPalette) {
+      if (!parsed.dark[key]) {
+        throw new Error(`Missing required theme palette property under dark: ${key}`);
+      }
+    }
+    return {
+      id: parsed.id,
+      name: parsed.name,
+      dark: parsed.dark,
+      light: parsed.light,
+      isCustom: true
+    };
+  } else {
+    const required = ['bg', 'headerBg', 'footerBg', 'surface', 'border', 'textPrimary', 'textSecondary', 'accent'];
+    for (const key of required) {
+      if (!parsed[key]) {
+        throw new Error(`Missing required theme property: ${key}`);
+      }
+    }
+    return {
+      id: parsed.id,
+      name: parsed.name,
+      dark: {
+        bg: parsed.bg,
+        headerBg: parsed.headerBg,
+        footerBg: parsed.footerBg,
+        surface: parsed.surface,
+        border: parsed.border,
+        textPrimary: parsed.textPrimary,
+        textSecondary: parsed.textSecondary,
+        accent: parsed.accent,
+        ansi: parsed.ansi
+      },
+      light: parsed.light,
+      isCustom: true
+    };
+  }
+}
+
 // ─── Main Dialog ──────────────────────────────────────────────────────────────
 export function SettingsDialog({
   open: isOpen,
   onOpenChange,
   theme,
   setTheme,
+  allThemes,
+  addCustomTheme,
+  removeCustomTheme,
+  previewTheme,
+  cancelPreview,
   colorScheme,
   setColorScheme,
   uiFontScale,
@@ -217,6 +286,7 @@ export function SettingsDialog({
   setDemoSetting,
   resetDemo,
 }: SettingsDialogProps) {
+  const { resolvedScheme } = useColorScheme();
   const [defaultPath, setDefaultPath] = useState<string>("");
 
   // Startup settings (local state, persisted on change)
@@ -226,6 +296,11 @@ export function SettingsDialog({
   const [checkUpdates, setCheckUpdates] = useState(true);
   const [confirmModeChange, setConfirmModeChange] = useState(true);
   const [defaultShell, setDefaultShell] = useState("");
+
+  // Custom theme import state
+  const [jsonInput, setJsonInput] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
   // Focus settings
   const focus = focusSettings;
@@ -268,6 +343,22 @@ export function SettingsDialog({
       setShortcuts(savedShortcuts);
     })();
   }, [isOpen]);
+
+  // Live Preview Logic
+  useEffect(() => {
+    if (!isPreviewing || !jsonInput.trim()) {
+      if (!isPreviewing) cancelPreview();
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(jsonInput);
+      const normalized = normalizeThemeInput(parsed);
+      previewTheme(normalized);
+    } catch (e) {
+      // Silently fail preview for invalid JSON
+    }
+  }, [jsonInput, isPreviewing, previewTheme, cancelPreview]);
 
   const handleSetPath = async () => {
     try {
@@ -328,58 +419,30 @@ export function SettingsDialog({
     }));
   };
 
-  const themes: {
-    id: ThemeName;
-    label: string;
-    desc: string;
-    colors: string[];
-  }[] = [
-    {
-      id: "cortex",
-      label: "Cortex Default",
-      desc: "Signature dark theme with vibrant neon pink accents.",
-      colors: ["#090B0C", "#121517", "#FF3399"],
-    },
-    {
-      id: "soft-monochrome",
-      label: "Soft Monochrome",
-      desc: "Gentle, low-contrast grayscale tailored for deep focus.",
-      colors: ["#121212", "#1a1a1a", "#e5e5e5"],
-    },
-    {
-      id: "monochrome",
-      label: "Monochromatic Luxe",
-      desc: "Deep true blacks with stark white contrasts.",
-      colors: ["#050505", "#0f0f0f", "#ffffff"],
-    },
-    {
-      id: "ayu",
-      label: "Ayu Mirage",
-      desc: "Warm, elegant dark theme with soft gold highlights.",
-      colors: ["#1a1f29", "#191e2a", "#ffcc66"],
-    },
-    {
-      id: "catppuccin",
-      label: "Catppuccin Mocha",
-      desc: "Soothing pastel colors on a deep purple-grey base.",
-      colors: ["#181825", "#1e1e2e", "#89b4fa"],
-    },
-    {
-      id: "iceberg",
-      label: "Iceberg Dark",
-      desc: "Cool, icy blue tones on a deep navy background.",
-      colors: ["#11131a", "#1e2132", "#84a0c6"],
-    },
-    {
-      id: "nvim",
-      label: "Nvim Dark",
-      desc: "Classic, high-contrast dark theme inspired by Neovim.",
-      colors: ["#101115", "#07080d", "#a6dbff"],
-    },
-  ];
+  const handleImportTheme = async () => {
+    if (!jsonInput.trim()) return;
 
-  const
-  fontFamilies = [
+    try {
+      const parsed = JSON.parse(jsonInput);
+      const normalized = normalizeThemeInput(parsed);
+
+      await addCustomTheme(normalized);
+      toast.success("Theme Imported", { description: `Successfully added "${normalized.name}" to your library.` });
+      setJsonInput("");
+      setIsImporting(false);
+      setIsPreviewing(false);
+    } catch (err: any) {
+      toast.error("Invalid Theme JSON", { description: err.message || "Please check your formatting and required keys." });
+    }
+  };
+
+  const handleCopyJson = (t: ThemeDefinition) => {
+    const { isCustom, ...rest } = t; // Strip internal flag
+    navigator.clipboard.writeText(JSON.stringify(rest, null, 2));
+    toast.success("Copied to Clipboard", { description: `Theme JSON for "${t.name}" ready to paste.` });
+  };
+
+  const fontFamilies = [
     // Standard monospace fonts
     { value: 'JetBrains Mono', label: 'JetBrains Mono' },
     { value: 'Fira Code', label: 'Fira Code' },
@@ -411,6 +474,7 @@ export function SettingsDialog({
           width: "calc(100% - 2rem)",
           height: "700px",
           maxHeight: "90vh",
+          boxShadow: '0 30px 60px rgba(0, 0, 0, 0.4), 0 0 20px rgba(var(--accent-primary-rgb), 0.05)'
         }}
       >
         <DialogHeader className="gap-2 text-left sm:text-left shrink-0">
@@ -418,8 +482,7 @@ export function SettingsDialog({
             Preferences
           </DialogTitle>
           <DialogDescription
-            className="text-sm leading-relaxed"
-            style={{ color: "var(--text-secondary)" }}
+            className="text-sm leading-relaxed text-[var(--text-secondary)] font-medium"
           >
             Manage your workspace layout, behavior, and visual appearance.
           </DialogDescription>
@@ -503,7 +566,7 @@ export function SettingsDialog({
                     options={[
                       { value: "system", label: "System" },
                       { value: "dark", label: "Dark" },
-                      { value: "light", label: "Light", disabled: true },
+                      { value: "light", label: "Light" },
                     ]}
                   />
                 </SettingsRow>
@@ -647,7 +710,7 @@ export function SettingsDialog({
                         detail: { startup: { defaultShell: v } } 
                       }));
                     }}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)]"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)]"
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -701,7 +764,7 @@ export function SettingsDialog({
                   <Input
                     readOnly
                     value={defaultPath || "System Default (Home)"}
-                    className="font-mono text-[13px] bg-[#101014] text-[var(--text-secondary)] border-[var(--border-color)]"
+                    className="font-mono text-[13px] bg-[var(--bg-color)] text-[var(--text-secondary)] border-[var(--border-color)]"
                   />
                   <Button
                     variant="outline"
@@ -777,7 +840,8 @@ export function SettingsDialog({
                   />
                 </SettingsRow>
                 <SettingsRow
-                  label="Show Cortex Library Button"                  description="Toggle visibility of the Space Templates (Rocket) button in the header."
+                  label="Show Cortex Library Button"
+                  description="Toggle visibility of the Space Templates (Rocket) button in the header."
                   htmlFor="demo-templates-toggle"
                 >
                   <Switch
@@ -820,17 +884,6 @@ export function SettingsDialog({
                   />
                 </SettingsRow>
                 <SettingsRow
-                  label="Show Floating Terminal Header"
-                  description="Toggle the skeuomorphic floating capsule headers on terminal panes."
-                  htmlFor="demo-floating-header-toggle"
-                >
-                  <Switch
-                    id="demo-floating-header-toggle"
-                    checked={demo.showFloatingTerminalHeader}
-                    onCheckedChange={(v) => setDemoSetting("showFloatingTerminalHeader", v)}
-                  />
-                </SettingsRow>
-                <SettingsRow
                   label="Enable Browser Refresh"
                   description="Allow Ctrl+R to reload the application. Keep enabled for development."
                   htmlFor="demo-browser-refresh-toggle"
@@ -858,7 +911,7 @@ export function SettingsDialog({
                   <Input
                     value={shortcuts.toggleZenMode}
                     onChange={(e) => handleShortcutChange('toggleZenMode', e.target.value)}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)] text-right"
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -868,7 +921,7 @@ export function SettingsDialog({
                   <Input
                     value={shortcuts.newWorkspace}
                     onChange={(e) => handleShortcutChange('newWorkspace', e.target.value)}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)] text-right"
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -878,7 +931,7 @@ export function SettingsDialog({
                   <Input
                     value={shortcuts.closeWorkspace}
                     onChange={(e) => handleShortcutChange('closeWorkspace', e.target.value)}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)] text-right"
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -887,7 +940,7 @@ export function SettingsDialog({
                   <Input
                     value={shortcuts.cycleNextWorkspace}
                     onChange={(e) => handleShortcutChange('cycleNextWorkspace', e.target.value)}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)] text-right"
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -896,7 +949,7 @@ export function SettingsDialog({
                   <Input
                     value={shortcuts.cyclePrevWorkspace}
                     onChange={(e) => handleShortcutChange('cyclePrevWorkspace', e.target.value)}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)] text-right"
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -906,7 +959,7 @@ export function SettingsDialog({
                   <Input
                     value={shortcuts.quickSwitcher}
                     onChange={(e) => handleShortcutChange('quickSwitcher', e.target.value)}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)] text-right"
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -915,7 +968,7 @@ export function SettingsDialog({
                   <Input
                     value={shortcuts.openShortcuts}
                     onChange={(e) => handleShortcutChange('openShortcuts', e.target.value)}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)] text-right"
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -924,7 +977,7 @@ export function SettingsDialog({
                   <Input
                     value={shortcuts.openTemplates}
                     onChange={(e) => handleShortcutChange('openTemplates', e.target.value)}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)] text-right"
                   />
                 </SettingsRow>
                 <SettingsRow
@@ -933,7 +986,7 @@ export function SettingsDialog({
                   <Input
                     value={shortcuts.openSettings}
                     onChange={(e) => handleShortcutChange('openSettings', e.target.value)}
-                    className="w-[160px] h-8 text-[12px] font-mono bg-[#101014] border-[var(--border-color)] text-right"
+                    className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)] text-right"
                   />
                 </SettingsRow>
               </div>
@@ -946,6 +999,36 @@ export function SettingsDialog({
             >
               {isLoaded && (
                 <>
+                  <SectionHeader title="Interface" />
+                  <div className="space-y-1">
+                    <SettingsRow
+                      label="Show Floating Header"
+                      description="Toggle the sleek floating action bar on terminal panes."
+                      htmlFor="terminal-header-toggle"
+                    >
+                      <Switch
+                        id="terminal-header-toggle"
+                        checked={demo.showFloatingTerminalHeader}
+                        onCheckedChange={(v) => setDemoSetting("showFloatingTerminalHeader", v)}
+                      />
+                    </SettingsRow>
+                    <SettingsRow
+                      label="Header Visibility"
+                      description="Choose if the header should be always visible or reveal on hover."
+                    >
+                      <SegmentedControl<'hover' | 'always'>
+                        value={demo.terminalHeaderVisibility || 'hover'}
+                        onChange={(v) => setDemoSetting("terminalHeaderVisibility", v)}
+                        options={[
+                          { value: "hover", label: "Reveal on Hover" },
+                          { value: "always", label: "Always Visible" },
+                        ]}
+                      />
+                    </SettingsRow>
+                  </div>
+
+                  <Divider />
+
                   <SectionHeader title="Font" onReset={resetTerminal} />
                   <div className="space-y-1">
                     <SettingsRow
@@ -1120,7 +1203,7 @@ export function SettingsDialog({
                           );
                           updateSetting("scrollbackLines", v);
                         }}
-                        className="w-[110px] text-[12px] font-mono text-right bg-[#101014] border-[var(--border-color)]"
+                        className="w-[110px] text-[12px] font-mono text-right bg-[var(--bg-color)] border-[var(--border-color)]"
                       />
                     </SettingsRow>
                   </div>
@@ -1131,48 +1214,148 @@ export function SettingsDialog({
             </TabsContent>
 
             {/* ── THEMES TAB ── */}
-            <TabsContent value="themes" className="m-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 animate-in fade-in-0 slide-in-from-bottom-1 duration-300 pb-2">
-                {themes.map((t) => {
+            <TabsContent value="themes" className="m-0 space-y-6">
+              <div className="flex items-center justify-between">
+                <SectionHeader title="Select Theme" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsImporting(!isImporting)}
+                  className="h-7 text-[10px] gap-1.5 bg-[var(--text-primary)]/5 hover:bg-[var(--text-primary)]/10"
+                >
+                  <Plus size={10} />
+                  Import JSON
+                </Button>
+              </div>
+
+              {isImporting && (
+                <Card className="border-[var(--border-color)] bg-[var(--text-primary)]/5 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Code size={14} className="text-[var(--accent-primary)]" />
+                        <span className="text-[12px] font-bold">Theme JSON Payload</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-[var(--text-secondary)] font-bold">Live Preview</span>
+                          <Switch 
+                            checked={isPreviewing} 
+                            onCheckedChange={setIsPreviewing} 
+                            className="scale-75 origin-right"
+                          />
+                        </div>
+                        <Badge variant="outline" className="text-[9px] border-[var(--border-color)] text-[var(--text-secondary)] font-bold">Standard Schema</Badge>
+                      </div>
+                    </div>
+                    <Textarea 
+                      placeholder='{ "id": "my-theme", "name": "My Theme", "dark": { "bg": "#...", ... }, "light": { ... } }'
+                      value={jsonInput}
+                      onChange={(e) => setJsonInput(e.target.value)}
+                      className="min-h-[120px] font-mono text-[11px] bg-[var(--bg-color)]/40 border-[var(--text-primary)]/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)]"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => { setIsImporting(false); setIsPreviewing(false); cancelPreview(); }} className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Cancel</Button>
+                      <Button 
+                        size="sm" 
+                        onClick={handleImportTheme} 
+                        className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] text-[11px] gap-1.5"
+                      >
+                        <Check size={12} />
+                        Add to Library
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in-0 slide-in-from-bottom-1 duration-300 pb-2">
+                {allThemes.map((t) => {
                   const isActive = theme === t.id;
                   return (
                     <Card
                       key={t.id}
                       onClick={() => setTheme(t.id)}
-                      className={`cursor-pointer transition-all hover:bg-[var(--border-color)]/30 text-left overflow-hidden ${
+                      className={`group cursor-pointer transition-all hover:bg-[var(--text-primary)]/5 text-left overflow-hidden ${
                         isActive
-                          ? "border-[var(--accent-primary)] bg-white/5"
+                          ? "border-[var(--accent-primary)] bg-[var(--text-primary)]/5 shadow-[0_0_20px_rgba(var(--accent-primary-rgb),0.05)]"
                           : "border-[var(--border-color)] bg-transparent"
                       }`}
                       style={{ padding: 0, gap: 0 }}
                     >
                       <CardContent
-                        className="flex flex-col h-full"
+                        className="flex flex-col h-full relative"
                         style={{ padding: "1.25rem", gap: 0 }}
                       >
                         <div className="flex items-center w-full mb-4 justify-between">
                           <div className="flex -space-x-2 shrink-0">
-                            <div
-                              className="w-6 h-6 rounded-full border-2 border-[var(--surface-color)] shadow-sm"
-                              style={{ backgroundColor: t.colors[0], zIndex: 3 }}
-                            />
-                            <div
-                              className="w-6 h-6 rounded-full border-2 border-[var(--surface-color)] shadow-sm"
-                              style={{ backgroundColor: t.colors[1], zIndex: 2 }}
-                            />
-                            <div
-                              className="w-6 h-6 rounded-full border-2 border-[var(--surface-color)] shadow-sm"
-                              style={{ backgroundColor: t.colors[2], zIndex: 1 }}
-                            />
+                            {(() => {
+                              const previewPalette = resolvedScheme === 'light'
+                                ? (t.light || {
+                                    bg: "#FAFAFA",
+                                    surface: "#FFFFFF",
+                                    accent: t.dark.accent
+                                  })
+                                : t.dark;
+                              return (
+                                <>
+                                  <div
+                                    className="w-6 h-6 rounded-full border-2 border-[var(--surface-color)] shadow-sm"
+                                    style={{ backgroundColor: previewPalette.bg || "transparent", zIndex: 3 }}
+                                  />
+                                  <div
+                                    className="w-6 h-6 rounded-full border-2 border-[var(--surface-color)] shadow-sm"
+                                    style={{ backgroundColor: previewPalette.surface || "transparent", zIndex: 2 }}
+                                  />
+                                  <div
+                                    className="w-6 h-6 rounded-full border-2 border-[var(--surface-color)] shadow-sm"
+                                    style={{ backgroundColor: previewPalette.accent || "transparent", zIndex: 1 }}
+                                  />
+                                </>
+                              );
+                            })()}
                           </div>
-                          {isActive && (
-                            <Badge
-                              variant="default"
-                              className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:bg-[var(--accent-primary)]/90"
-                            >
-                              Active
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopyJson(t);
+                                  }}
+                                  className="w-6 h-6 rounded-md opacity-0 group-hover:opacity-100 text-[var(--text-secondary)]/40 hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 transition-all"
+                                >
+                                  <Code size={12} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+                                Copy JSON to clipboard
+                              </TooltipContent>
+                            </Tooltip>
+                            {t.isCustom && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeCustomTheme(t.id);
+                                }}
+                                className="w-6 h-6 rounded-md opacity-0 group-hover:opacity-100 text-[var(--text-secondary)]/40 hover:text-ansi-red hover:bg-ansi-red/10 transition-all"
+                              >
+                                <Trash2 size={12} />
+                              </Button>
+                            )}
+                            {isActive && (
+                              <Badge
+                                variant="default"
+                                className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:bg-[var(--accent-primary)]/90 text-[9px] px-1.5 h-5 ml-1"
+                              >
+                                Active
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="flex flex-col text-left mt-auto">
                           <span
@@ -1183,10 +1366,10 @@ export function SettingsDialog({
                                 : "var(--text-primary)",
                             }}
                           >
-                            {t.label}
+                            {t.name}
                           </span>
-                          <span className="text-[11px] text-[var(--text-secondary)] mt-1.5 leading-relaxed line-clamp-2">
-                            {t.desc}
+                          <span className="text-[11px] text-[var(--text-secondary)] mt-1.5 leading-relaxed line-clamp-1">
+                            {t.isCustom ? "User-imported theme" : "Core Cortex preset"}
                           </span>
                         </div>
                       </CardContent>

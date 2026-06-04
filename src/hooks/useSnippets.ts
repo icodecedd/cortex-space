@@ -40,7 +40,9 @@ export function useSnippets() {
     const trimmedCommand = command?.trim();
     
     if (!trimmedCommand) {
-      toast.error("Cannot save empty command");
+      toast.error("Empty Command", {
+        description: "Please enter a valid command to save as a snippet."
+      });
       return;
     }
 

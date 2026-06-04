@@ -72,23 +72,21 @@ export function TemplateLibraryDialog({
         }}
       >
         <DialogHeader 
-          className="p-6 shrink-0 border-b"
-          style={{ borderColor: "var(--border-color)", background: "rgba(255,255,255,0.01)" }}
+          className="p-6 shrink-0 border-b border-[var(--border-color)] bg-[var(--text-primary)]/[0.01]"
         >
           <div className="flex items-center justify-between">
             <div className="space-y-1.5 text-left">
               <DialogTitle className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
                 Space Templates
               </DialogTitle>
-              <DialogDescription className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              <DialogDescription className="text-sm leading-relaxed text-[var(--text-secondary)] font-medium">
                 Instant-launch your curated multi-pane environments.
               </DialogDescription>
             </div>
             <Button 
               onClick={onCapture}
               variant="secondary"
-              className="btn-tactile gap-2 h-[36px] px-4 font-bold text-[13px] rounded-md shadow-sm border-[var(--border-color)] transition-all"
-              style={{ color: "var(--text-primary)" }}
+              className="btn-tactile gap-2 h-[36px] px-4 font-bold text-[13px] rounded-md shadow-sm border-[var(--border-color)] text-[var(--text-primary)] transition-all"
             >
               <Plus className="w-4 h-4" />
               Capture Current
@@ -97,13 +95,11 @@ export function TemplateLibraryDialog({
           
           <div className="relative mt-5">
             <Search 
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" 
-              style={{ color: "var(--text-secondary)" }} 
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/80" 
             />
             <Input 
               placeholder="Search templates, paths, or commands..." 
-              className="pl-9 text-[13px] h-[38px] transition-all bg-[#101014] border-[var(--border-color)] focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
-              style={{ color: "var(--text-primary)" }}
+              className="pl-9 text-[13px] h-[38px] transition-all bg-[var(--bg-color)] border-[var(--border-color)] focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -115,14 +111,13 @@ export function TemplateLibraryDialog({
             {filteredTemplates.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20">
                 <div 
-                  className="w-14 h-14 rounded-full flex items-center justify-center border shadow-sm"
-                  style={{ background: "var(--surface-color)", borderColor: "var(--border-color)" }}
+                  className="w-14 h-14 rounded-full flex items-center justify-center border border-[var(--border-color)] shadow-sm bg-[var(--surface-color)]"
                 >
-                  <Search className="w-6 h-6 opacity-40" style={{ color: "var(--text-primary)" }} />
+                  <Search className="w-6 h-6 opacity-60 text-[var(--text-primary)]" />
                 </div>
                 <div className="space-y-1">
-                  <p className="font-semibold text-[15px]" style={{ color: "var(--text-primary)" }}>No templates found</p>
-                  <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>Try searching for something else or capture your first template.</p>
+                  <p className="font-bold text-[15px] text-[var(--text-primary)]">No templates found</p>
+                  <p className="text-[13px] text-[var(--text-secondary)] font-medium">Try searching for something else or capture your first template.</p>
                 </div>
               </div>
             ) : (
@@ -155,53 +150,45 @@ function TemplateCard({
 }) {
   return (
     <Card 
-      className="group relative flex flex-col p-0 bg-transparent transition-all duration-300 cursor-pointer overflow-hidden border"
-      style={{ 
-        borderColor: "var(--border-color)",
-      }}
+      className="group relative flex flex-col p-0 bg-transparent transition-all duration-300 cursor-pointer overflow-hidden border border-[var(--border-color)]"
       onClick={onLaunch}
     >
       {/* Dynamic Hover Background */}
       <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-        style={{ background: "rgba(255, 255, 255, 0.02)" }}
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-[var(--text-primary)]/[0.02]"
       />
       {/* Accent Glow on Hover */}
       <div 
-        className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-0 group-hover:opacity-10 transition-all duration-500 pointer-events-none blur-2xl" 
-        style={{ background: "var(--accent-primary)" }}
+        className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 opacity-0 group-hover:opacity-10 transition-all duration-500 pointer-events-none blur-2xl bg-[var(--accent-primary)]" 
       />
 
-      <CardHeader className="p-5 border-none relative z-10">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3.5 min-w-0">
+      <CardHeader className="p-5 pb-3 border-none relative z-10">
+        <div className="flex items-start justify-between gap-3 min-w-0">
+          <div className="flex items-center gap-3.5 min-w-0 flex-1">
             <LayoutPreviewIcon 
               layout={template.layout} 
-              className="w-12 h-10 border bg-[#090B0C] shadow-sm shrink-0 rounded-sm border-white/10" 
+              className="w-12 h-10 border bg-[var(--bg-color)] border-[var(--border-color)] shrink-0" 
             />
-            <div className="space-y-1 min-w-0">
+            <div className="space-y-1 min-w-0 flex-1">
               <CardTitle 
-                className="text-[14px] font-bold tracking-tight truncate group-hover:text-[var(--accent-primary)] transition-colors duration-200"
-                style={{ color: "var(--text-primary)" }}
+                className="text-[14px] font-bold tracking-tight truncate group-hover:text-[var(--accent-primary)] transition-colors duration-200 text-[var(--text-primary)]"
               >
                 {template.name}
               </CardTitle>
               <div 
-                className="flex items-center gap-1.5 text-[11px] font-medium truncate"
-                style={{ color: "var(--text-secondary)" }}
+                className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--text-secondary)] min-w-0"
               >
-                <Folder className="w-3.5 h-3.5 shrink-0 opacity-70" />
-                <span className="truncate">{template.rootPath}</span>
+                <Folder className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                <span className="truncate flex-1">{template.rootPath}</span>
               </div>
             </div>
           </div>
           
-          <CardAction>
+          <CardAction className="shrink-0">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400"
-              style={{ color: "var(--text-secondary)" }}
+              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-500/10 hover:text-red-600 text-[var(--text-secondary)]"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();
@@ -213,19 +200,17 @@ function TemplateCard({
         </div>
       </CardHeader>
 
-      <CardContent className="px-5 py-0 flex-1 relative z-10">
+      <CardContent className="px-5 py-0 flex-1 relative z-10 min-w-0">
         <div className="min-h-[2.5rem] py-1">
           {template.description ? (
             <p 
-              className="text-[12px] leading-relaxed line-clamp-2"
-              style={{ color: "var(--text-secondary)" }}
+              className="text-[12px] leading-relaxed line-clamp-2 text-[var(--text-secondary)] font-medium"
             >
               {template.description}
             </p>
           ) : (
             <p 
-              className="text-[11px] uppercase tracking-wider font-medium opacity-50"
-              style={{ color: "var(--text-secondary)" }}
+              className="text-[11px] uppercase tracking-wider font-bold opacity-30 text-[var(--text-secondary)]"
             >
               No description
             </p>
@@ -234,25 +219,18 @@ function TemplateCard({
       </CardContent>
 
       <CardFooter 
-        className="px-5 py-3.5 mt-4 flex items-center justify-between border-t relative z-10"
-        style={{ borderColor: "var(--border-color)", background: "rgba(0,0,0,0.1)" }}
+        className="px-5 py-3.5 mt-4 flex items-center justify-between border-t border-[var(--border-color)] bg-[var(--text-primary)]/[0.03] relative z-10"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <div 
-            className="flex items-center gap-1.5 text-[11px] font-medium"
-            style={{ color: "var(--text-secondary)" }}
+            className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--text-secondary)]"
           >
-            <Clock className="w-3 h-3 opacity-70" />
+            <Clock className="w-3 h-3 opacity-80" />
             {formatTimeAgo(template.createdAt)}
           </div>
           {template.mode && (
              <span 
-               className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border"
-               style={{ 
-                 background: "var(--surface-color)", 
-                 borderColor: "var(--border-color)", 
-                 color: "var(--text-secondary)" 
-               }}
+               className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]"
              >
               {template.mode}
             </span>
@@ -260,8 +238,7 @@ function TemplateCard({
         </div>
         
         <div 
-          className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
-          style={{ color: "var(--accent-primary)" }}
+          className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-[var(--accent-primary)] shrink-0"
         >
           Launch <ExternalLink className="w-3 h-3" />
         </div>

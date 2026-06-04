@@ -72,6 +72,12 @@ export function gridToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): Lay
   return buildGridTree(panes.slice(0, rows * cols), rows, cols);
 }
 
+export function countPanes(node: LayoutNode | null): number {
+  if (!node) return 0;
+  if (node.type === 'pane') return 1;
+  return countPanes(node.children[0]) + countPanes(node.children[1]);
+}
+
 /**
  * Recursively find a pane by ID and replace it with a split containing the original and a new pane.
  */

@@ -29,23 +29,23 @@ export function PaneConfigCard({ pane, index, mode, onUpdate }: PaneConfigCardPr
       className={`
         group relative overflow-hidden flex flex-col p-5 rounded-md border transition-all duration-300
         ${isPopulated 
-          ? "bg-white/[0.03] border-white/10 shadow-lg" 
-          : "bg-white/[0.01] border-white/5 hover:border-white/10"}
+          ? "bg-[var(--text-primary)]/[0.03] border-[var(--border-color)] shadow-lg" 
+          : "bg-[var(--text-primary)]/[0.01] border-[var(--border-color)] hover:border-[var(--text-primary)]/10"}
       `}
     >
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <div className={`
             w-8 h-8 rounded-md flex items-center justify-center transition-colors
-            ${isPopulated ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]" : "bg-white/5 text-[var(--text-secondary)]"}
+            ${isPopulated ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]" : "bg-[var(--text-primary)]/5 text-[var(--text-secondary)]"}
           `}>
             {mode === 'agents' ? <Cpu size={14} /> : <Terminal size={14} />}
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] font-mono font-bold text-[var(--accent-primary)] opacity-40 uppercase tracking-widest">
+            <span className="text-[10px] font-mono font-bold text-[var(--accent-primary)] opacity-80 uppercase tracking-widest">
               Pane 0{pane.id}
             </span>
-            <span className="text-[11px] font-bold text-white/80">
+            <span className="text-[11px] font-bold text-[var(--text-primary)]">
               {mode === 'agents' ? 'Agent Identity' : 'Execution Hook'}
             </span>
           </div>
@@ -55,20 +55,20 @@ export function PaneConfigCard({ pane, index, mode, onUpdate }: PaneConfigCardPr
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-ansi-green/10 border border-ansi-green/20"
           >
-            <CheckCircle2 size={10} className="text-emerald-500" />
-            <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-tighter">Ready</span>
+            <CheckCircle2 size={10} className="text-ansi-green" />
+            <span className="text-[8px] font-bold text-ansi-green uppercase tracking-tighter">Ready</span>
           </motion.div>
         )}
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-60">
+          <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em]">
             {mode === 'agents' ? 'Selection Matrix' : 'Input Command'}
           </label>
-          {mode === 'normal' && <Code size={10} className="text-[var(--text-secondary)] opacity-30" />}
+          {mode === 'normal' && <Code size={10} className="text-[var(--text-secondary)] opacity-60" />}
         </div>
 
         {mode === 'agents' ? (
@@ -85,11 +85,11 @@ export function PaneConfigCard({ pane, index, mode, onUpdate }: PaneConfigCardPr
             <div className="relative">
               <ComboboxInput
                 placeholder="Select AI agent..."
-                className="font-mono h-9 bg-black/20 border-white/5 text-[11px] focus:border-[var(--accent-primary)] transition-all rounded-md pl-3"
+                className="font-mono h-9 bg-[var(--bg-color)]/20 border-[var(--border-color)] text-[11px] focus:border-[var(--accent-primary)] transition-all rounded-md pl-3 placeholder:text-[var(--text-secondary)]/50"
               />
             </div>
             <ComboboxContent
-              className="bg-[var(--surface-color)] border-white/10 rounded-md"
+              className="bg-[var(--surface-color)] border-[var(--border-color)] rounded-md"
               style={{ boxShadow: '0 15px 40px rgba(0,0,0,0.7)' }}
             >
               <ComboboxEmpty className="text-[10px] font-mono p-3">No matching protocol.</ComboboxEmpty>
@@ -98,10 +98,10 @@ export function PaneConfigCard({ pane, index, mode, onUpdate }: PaneConfigCardPr
                   <ComboboxItem
                     key={preset.label}
                     value={preset.command}
-                    className="flex items-center justify-between gap-4 font-mono text-[11px] py-2 px-3 cursor-pointer hover:bg-white/5 transition-colors"
+                    className="flex items-center justify-between gap-4 font-mono text-[11px] py-2 px-3 cursor-pointer hover:bg-[var(--text-primary)]/5 transition-colors"
                   >
-                    <span className="font-bold text-white/70">{preset.label}</span>
-                    <span className="text-[9px] opacity-20 truncate">{preset.command}</span>
+                    <span className="font-bold text-[var(--text-primary)]">{preset.label}</span>
+                    <span className="text-[9px] text-[var(--text-secondary)] font-bold truncate opacity-80">{preset.command}</span>
                   </ComboboxItem>
                 )}
               </ComboboxList>
@@ -121,7 +121,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate }: PaneConfigCardPr
                 pane.id === 3 ? "git status" :
                 "Enter command..."
               }
-              className="w-full font-mono h-9 bg-black/20 border-white/5 text-[11px] placeholder:opacity-20 focus:border-[var(--accent-primary)] transition-all rounded-md pl-3"
+              className="w-full font-mono h-9 bg-[var(--bg-color)]/20 border-[var(--border-color)] text-[11px] placeholder:text-[var(--text-secondary)]/60 focus:border-[var(--accent-primary)] transition-all rounded-md pl-3"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none">
               <div className="w-1 h-3 bg-[var(--accent-primary)] animate-pulse rounded-full" />
@@ -132,7 +132,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate }: PaneConfigCardPr
 
       {/* Decorative corner accent */}
       <div className={`
-        absolute -right-4 -bottom-4 w-12 h-12 bg-gradient-to-br from-transparent to-white/5 rounded-full transition-opacity
+        absolute -right-4 -bottom-4 w-12 h-12 bg-gradient-to-br from-transparent to-[var(--text-primary)]/5 rounded-full transition-opacity
         ${isPopulated ? "opacity-100" : "opacity-0"}
       `} />
     </motion.div>

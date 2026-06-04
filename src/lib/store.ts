@@ -86,6 +86,7 @@ export interface DemoSettings {
   showModeShortcutHints: boolean;
   showTerminalShortcutHints: boolean;
   showFloatingTerminalHeader: boolean;
+  terminalHeaderVisibility: 'hover' | 'always';
   enableBrowserRefresh: boolean;
 }
 
@@ -128,6 +129,7 @@ export const DEMO_DEFAULTS: DemoSettings = {
   showModeShortcutHints: true,
   showTerminalShortcutHints: true,
   showFloatingTerminalHeader: true,
+  terminalHeaderVisibility: 'hover',
   enableBrowserRefresh: true,
 };
 

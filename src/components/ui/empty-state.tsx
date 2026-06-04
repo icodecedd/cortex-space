@@ -22,7 +22,7 @@ export function EmptyState({
   description,
   action,
   className,
-  iconColor = "text-white/20",
+  iconColor = "text-[var(--text-primary)]/20",
   compact = false
 }: EmptyStateProps) {
   return (
@@ -32,7 +32,7 @@ export function EmptyState({
       className
     )}>
       <div className={cn(
-        "rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center shadow-inner",
+        "rounded-full bg-[var(--text-primary)]/[0.02] border border-[var(--border-color)] flex items-center justify-center shadow-inner",
         compact ? "w-12 h-12 mb-4" : "w-16 h-16 mb-6",
         iconColor.replace('text-', 'bg-').replace('/40', '/5').replace('/20', '/5')
       )}>
@@ -40,14 +40,14 @@ export function EmptyState({
       </div>
       
       <h4 className={cn(
-        "font-bold text-white/90 mb-2 tracking-tight",
+        "font-bold text-[var(--text-primary)] mb-2 tracking-tight",
         compact ? "text-sm" : "text-base"
       )}>
         {title}
       </h4>
       
       <p className={cn(
-        "text-white/30 mb-8 leading-relaxed font-medium mx-auto",
+        "text-[var(--text-secondary)] mb-8 leading-relaxed font-medium mx-auto",
         compact ? "text-[11px] max-w-[280px]" : "text-[12px] max-w-[340px]"
       )}>
         {description}
@@ -59,7 +59,7 @@ export function EmptyState({
           size={compact ? "xs" : "sm"}
           onClick={action.onClick}
           className={cn(
-            "gap-2.5 font-mono font-bold tracking-wider border-white/10 bg-white/5 hover:bg-white/10 hover:text-[var(--accent-primary)] transition-all duration-300",
+            "gap-2.5 font-mono font-bold tracking-wider border-[var(--border-color)] bg-[var(--text-primary)]/5 hover:bg-[var(--text-primary)]/10 hover:text-[var(--accent-primary)] transition-all duration-300",
             compact ? "h-7 text-[9px] px-3" : "h-9 text-[11px]"
           )}
         >

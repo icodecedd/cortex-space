@@ -136,7 +136,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                 color: "var(--text-primary)",
               }}
             >
-              CORTEX SPACE
+              CORTEX<span style={{ color: "var(--accent-primary)" }}> SPACE</span>
             </h1>
             <p
               style={{
@@ -196,7 +196,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
               cursor: "pointer",
             }}
           >
-            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-white/5 border-white/10 text-white/50 font-normal text-[10px]">Ctrl + N</Kbd>}
+            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">Ctrl + N</Kbd>}
             <Terminal size={32} color="var(--text-secondary)" />
             <div style={{ textAlign: "left", flex: 1 }}>
               <h3
@@ -238,7 +238,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
               cursor: "pointer",
             }}
           >
-            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-white/5 border-white/10 text-white/50 font-normal text-[10px]">Ctrl + A</Kbd>}
+            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">Ctrl + A</Kbd>}
             <div style={{ position: "relative" }}>
               <Users size={32} color="var(--text-secondary)" />
               <Cpu
@@ -302,7 +302,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                   fontSize: "0.75rem",
                 }}
               >
-                <Kbd className="bg-white/5 border-white/10 text-white/70">
+                <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
                   Ctrl + Shift + T
                 </Kbd>
                 <span>Templates</span>
@@ -317,7 +317,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                 fontSize: "0.75rem",
               }}
             >
-              <Kbd className="bg-white/5 border-white/10 text-white/70">
+              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
                 Ctrl + T
               </Kbd>
               <span>New Space</span>
@@ -331,7 +331,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                 fontSize: "0.75rem",
               }}
             >
-              <Kbd className="bg-white/5 border-white/10 text-white/70">
+              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
                 Ctrl + ,
               </Kbd>
               <span>Settings</span>

@@ -1,20 +1,14 @@
-"use client"
-
-import { useTheme } from "next-themes"
+import { useColorScheme } from "@/hooks/useColorScheme"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { resolvedScheme } = useColorScheme()
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={resolvedScheme as ToasterProps["theme"]}
       className="toaster group"
-      containerStyle={{
-        zIndex: 10000,
-        pointerEvents: "auto",
-      }}
       icons={{
         success: (
           <CircleCheckIcon className="size-4" />
@@ -34,10 +28,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
+          zIndex: 10000,
+          pointerEvents: "auto",
+          "--normal-bg": "var(--surface-color)",
+          "--normal-text": "var(--text-primary)",
+          "--normal-border": "var(--border-color)",
+          "--border-radius": "var(--radius-md)",
         } as React.CSSProperties
       }
       toastOptions={{

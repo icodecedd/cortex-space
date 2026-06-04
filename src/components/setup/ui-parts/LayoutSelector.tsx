@@ -51,8 +51,8 @@ export function LayoutSelector({
             className={cn(
               "layout-card group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-md border duration-200 overflow-hidden",
               currentLayout === opt.id 
-                ? "border-[var(--accent-primary)] bg-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)]" 
-                : "border-[var(--border-color)] bg-transparent hover:border-[var(--accent-primary)] hover:bg-white/5"
+                ? "border-[var(--accent-primary)] bg-white/10 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.1)]" 
+                : "border-[var(--border-color)] bg-transparent hover:border-[var(--accent-primary)]/40 hover:bg-white/5"
             )}
             whileTap={{ scale: 0.97 }}
           >
@@ -76,7 +76,7 @@ export function LayoutSelector({
                 {opt.name.toUpperCase()}
               </span>
               {!opt.isSystem && (
-                <span className="font-mono text-[7px] text-[var(--text-secondary)] opacity-50">
+                <span className="font-mono text-[7px] text-[var(--text-secondary)] font-bold">
                   {savedLayouts.find(l => l.id === opt.id)?.rows}X{savedLayouts.find(l => l.id === opt.id)?.cols}
                 </span>
               )}
@@ -141,30 +141,30 @@ function CustomLayoutForm({
   return (
     <div className="flex items-center gap-8 rounded-md border border-[var(--border-color)] bg-white/[0.02] p-5">
       <div className="flex items-center gap-4">
-        <div className="font-mono text-[10px] font-medium tracking-tight text-[var(--text-secondary)] uppercase">Rows</div>
+        <div className="font-mono text-[10px] font-bold tracking-tight text-[var(--text-secondary)] uppercase">Rows</div>
         <Input 
           type="number" 
           min="1" 
           max="4" 
           value={customLayout.rows === 0 ? "" : customLayout.rows}
           onChange={(e) => handleNumericInput(e.target.value, 'rows')}
-          className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)]"
+          className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)] font-bold"
         />
       </div>
-      <div className="text-[var(--text-secondary)] font-mono text-xs opacity-50">×</div>
+      <div className="text-[var(--text-secondary)] font-mono text-xs font-bold">×</div>
       <div className="flex items-center gap-4">
-        <div className="font-mono text-[10px] font-medium tracking-tight text-[var(--text-secondary)] uppercase">Cols</div>
+        <div className="font-mono text-[10px] font-bold tracking-tight text-[var(--text-secondary)] uppercase">Cols</div>
         <Input 
           type="number" 
           min="1" 
           max="4" 
           value={customLayout.cols === 0 ? "" : customLayout.cols}
           onChange={(e) => handleNumericInput(e.target.value, 'cols')}
-          className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)]"
+          className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)] font-bold"
         />
       </div>
       <div className="ml-auto flex items-center gap-6">
-        <div className="font-mono text-[10px] text-[var(--text-secondary)]">
+        <div className="font-mono text-[10px] text-[var(--text-secondary)] font-bold">
           PREVIEW: <span className="font-bold text-[var(--accent-primary)]">{(customLayout.rows || 1) * (customLayout.cols || 1)} PANES</span>
         </div>
         <div className="h-10 w-10">
@@ -204,7 +204,7 @@ function LayoutMiniPreview({ type, customConfig, savedLayouts }: { type: LayoutT
       }}
     >
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-[var(--bg-color)] ring-1 ring-[var(--border-color)]/30" />
+        <div key={i} className="bg-[var(--bg-color)] ring-1 ring-[var(--border-color)]" />
       ))}
     </div>
   );

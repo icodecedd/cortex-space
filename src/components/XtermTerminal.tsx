@@ -3,20 +3,15 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { useTheme, THEMES, ThemeName } from '../hooks/useTheme';
+import { invoke } from '@tauri-apps/api/core';
+import { useTheme } from '../hooks/useTheme';
+import { useColorScheme } from '../hooks/useColorScheme';
 import { usePty } from '../hooks/usePty';
 import { Button } from "@/components/ui/button";
 import { getSetting, getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings, SHORTCUT_DEFAULTS, ShortcutSettings, DemoSettings } from '@/lib/store';
-import { MoreVertical, SquareSplitVertical, SquareSplitHorizontal, Trash2, BookmarkPlus, RefreshCw } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-} from "@/components/ui/dropdown-menu";
+import { isGlobalShortcut } from '@/lib/shortcut-utils';
 import { toast } from "sonner";
+import { PaneElevator } from './space/PaneElevator';
 import '@xterm/xterm/css/xterm.css';
 
 interface XtermTerminalProps {
@@ -27,6 +22,8 @@ interface XtermTerminalProps {
   command?: string;
   cwd?: string;
   isZenMode?: boolean;
+  isMaximized?: boolean;
+  onMaximize?: () => void;
   name?: string;
   onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
   onKill?: (id: string) => void;
@@ -42,6 +39,8 @@ export function XtermTerminal({
   command, 
   cwd, 
   isZenMode = false,
+  isMaximized = false,
+  onMaximize,
   name,
   onSplit,
   onKill,
@@ -52,20 +51,17 @@ export function XtermTerminal({
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const { theme } = useTheme();
+  const decoderRef = useRef(new TextDecoder());
+  const { theme, allThemes } = useTheme();
+  const { resolvedScheme } = useColorScheme();
   
   const [dimensions, setDimensions] = useState({ rows: 24, cols: 80 });
   const [defaultShell, setDefaultShell] = useState<string>('');
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
   const [showFloatingHeader, setShowFloatingHeader] = useState(true);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [tempName, setTempName] = useState(name || `PANE ${index + 1}`);
-
-  useEffect(() => {
-    if (isRenaming) {
-      setTempName(name || `PANE ${index + 1}`);
-    }
-  }, [isRenaming, name, index]);
+  const [headerVisibility, setHeaderVisibility] = useState<'hover' | 'always'>('hover');
+  const [detectedUrl, setDetectedUrl] = useState<string | null>(null);
+  const outputBufferRef = useRef<string>("");
 
   useEffect(() => {
     getSettingsGroup<TerminalSettings>('startup', { defaultShell: '' } as any).then((saved: any) => {
@@ -73,13 +69,43 @@ export function XtermTerminal({
     });
     getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
     getSetting('demo.showFloatingTerminalHeader', true).then(setShowFloatingHeader);
+    getSetting<'hover' | 'always'>('demo.terminalHeaderVisibility', 'hover').then(setHeaderVisibility);
   }, []);
 
-  function applyAnsiColors(themeName: string) {
-    const themeDef = THEMES[themeName as ThemeName];
-    if (!themeDef || !themeDef.ansi) return {};
-    return themeDef.ansi;
-  }
+  const getThemePalette = useCallback((themeName: string, scheme: 'light' | 'dark') => {
+    const themeDef = allThemes.find(t => t.id === themeName) || allThemes.find(t => t.id === 'soft-monochrome');
+    if (!themeDef) {
+      return {
+        bg: scheme === 'dark' ? '#050505' : '#ffffff',
+        textPrimary: scheme === 'dark' ? '#ffffff' : '#000000',
+        accent: '#ffffff',
+        ansi: {}
+      };
+    }
+    if (scheme === 'light') {
+      return themeDef.light || {
+        bg: "#FAFAFA",
+        headerBg: "#FFFFFF",
+        footerBg: "#F0F0F0",
+        surface: "#FFFFFF",
+        border: "#E5E7EB",
+        textPrimary: "#111827",
+        textSecondary: "#4B5563",
+        accent: themeDef.dark.accent,
+        ansi: {
+          ...themeDef.dark.ansi,
+          black: '#111827',
+          white: '#FFFFFF'
+        }
+      };
+    }
+    return themeDef.dark;
+  }, [allThemes]);
+
+  const getActiveAnsiColors = useCallback((themeName: string, scheme: 'light' | 'dark') => {
+    const palette = getThemePalette(themeName, scheme);
+    return palette.ansi || {};
+  }, [getThemePalette]);
 
   // CHECKLIST ITEM 3: Single-Source Rendering
   // Confirm that data only appears in the terminal UI *after* it has made a full round trip from the backend process.
@@ -87,6 +113,47 @@ export function XtermTerminal({
   const handlePtyData = useCallback((data: Uint8Array) => {
     if (xtermRef.current) {
       xtermRef.current.write(data);
+
+      // Simple heuristic for local port detection
+      const text = decoderRef.current.decode(data, { stream: true });
+      
+      // Append to buffer and keep it small (last 600 chars to be safe for long lines and ANSI codes)
+      outputBufferRef.current = (outputBufferRef.current + text).slice(-600);
+
+      // Strip ANSI escape codes to improve regex matching accuracy
+      const cleanText = outputBufferRef.current.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+
+      // Improved regex: 
+      // 1. Optional protocol (http/https)
+      // 2. Localhost, loopback IP, or [::]
+      // 3. Required port (1-5 digits)
+      // 4. Optional trailing path or query
+      const localUrlRegex = /((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{1,5})(?:\/\S*)?)/i;
+      const match = cleanText.match(localUrlRegex);
+      
+      if (match) {
+        let url = match[1].trim();
+        
+        // Basic normalization
+        if (!url.startsWith('http')) {
+          url = `http://${url}`;
+        }
+        
+        // Normalize loopback IPs and [::] to localhost for better compatibility
+        url = url.replace(/(?:127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\])/g, 'localhost');
+        
+        setDetectedUrl(prev => {
+          if (prev !== url) {
+            console.log(`[PTY ${id}] Port detected: ${url}`);
+            toast.info("Application Ready", { 
+              description: `Cortex detected a service on ${url}. Click 'Open Browser' in the header.`,
+              duration: 4000
+            });
+            return url;
+          }
+          return prev;
+        });
+      }
     }
   }, [id]);
 
@@ -98,7 +165,61 @@ export function XtermTerminal({
     shell: defaultShell
   }), [command, cwd, dimensions.rows, dimensions.cols, defaultShell]);
 
-  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch } = usePty(id, handlePtyData, ptyConfig);
+  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch: relaunchPty, status } = usePty(id, handlePtyData, ptyConfig);
+  const hasNotifiedRef = useRef(false);
+
+  // Agent Pulse Notification
+  useEffect(() => {
+    if (status === 'thinking') {
+      hasNotifiedRef.current = false;
+    } else if (status === 'finished') {
+      if (!hasNotifiedRef.current) {
+        if (!isFocused) {
+          toast.success(`${name || `Pane ${index + 1}`} Finished`, { 
+            description: "The AI agent has completed the task.",
+            duration: 3000 
+          });
+        }
+        hasNotifiedRef.current = true;
+      }
+    }
+  }, [status, isFocused, name, index]);
+
+  const relaunch = useCallback(() => {
+    setDetectedUrl(null);
+    outputBufferRef.current = "";
+    relaunchPty();
+  }, [relaunchPty]);
+
+  // Port Validation Loop: Periodically check if the detected port is still alive
+  useEffect(() => {
+    if (!detectedUrl) return;
+
+    const portMatch = detectedUrl.match(/:(\d+)/);
+    if (!portMatch) return;
+    
+    const port = parseInt(portMatch[1], 10);
+    let isChecking = false;
+
+    const checkInterval = setInterval(async () => {
+      if (isChecking) return;
+      isChecking = true;
+      
+      try {
+        const isOpen = await invoke<boolean>('check_port', { port });
+        if (!isOpen) {
+          console.log(`[PTY ${id}] Port ${port} closed. Clearing detected URL.`);
+          setDetectedUrl(null);
+        }
+      } catch (err) {
+        console.error('Failed to check port status:', err);
+      } finally {
+        isChecking = false;
+      }
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(checkInterval);
+  }, [detectedUrl, id]);
 
   // Bridge for xterm.js event handlers to always use latest PTY callbacks
   const writeRef = useRef(writeToPty);
@@ -132,10 +253,10 @@ export function XtermTerminal({
       letterSpacing: initialLetterSpacing,
       theme: {
         background: 'transparent',
-        foreground: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#ffffff',
-        cursor: getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim() || '#ffffff',
-        selectionBackground: 'rgba(255, 255, 255, 0.3)',
-        ...applyAnsiColors(theme)
+        foreground: getThemePalette(theme, resolvedScheme).textPrimary || '#ffffff',
+        cursor: getThemePalette(theme, resolvedScheme).accent || '#ffffff',
+        selectionBackground: resolvedScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+        ...getActiveAnsiColors(theme, resolvedScheme)
       },
       allowTransparency: true,
       scrollback: initialSettings.scrollbackLines,
@@ -154,21 +275,6 @@ export function XtermTerminal({
 
     // Centralized shortcut bubbling logic
     term.attachCustomKeyEventHandler((e) => {
-      // Check if this key combo matches ANY of our global app shortcuts
-      const isGlobalShortcut = Object.values(shortcuts).some(s => {
-        if (!s) return false;
-        const parts = s.split('+').map(p => p.trim().toLowerCase());
-        const key = parts[parts.length - 1];
-        const hasCtrl = parts.includes('ctrl') || parts.includes('cmd') || parts.includes('meta');
-        const hasAlt = parts.includes('alt') || parts.includes('opt');
-        const hasShift = parts.includes('shift');
-
-        return e.key.toLowerCase() === key && 
-               (e.ctrlKey || e.metaKey) === hasCtrl && 
-               e.altKey === hasAlt && 
-               e.shiftKey === hasShift;
-      });
-
       const isEscape = e.key === 'Escape';
       const isNumKey = e.key >= '1' && e.key <= '9';
       const isArrowKey = e.key.startsWith('Arrow');
@@ -177,13 +283,14 @@ export function XtermTerminal({
       const isMaximize = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'm';
       const isRelaunch = (e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r';
 
-      if (isGlobalShortcut || isEscape || isDirectionalNav || isPaneFocus || isMaximize || isRelaunch) {
+      if (isGlobalShortcut(e, shortcuts) || isEscape || isDirectionalNav || isPaneFocus || isMaximize || isRelaunch) {
         return false; // Bubble up
       }
       return true;
     });
     
     term.onResize(({ rows, cols }) => {
+      if (rows <= 0 || cols <= 0) return;
       setDimensions({ rows, cols });
       resizeRef.current(rows, cols);
     });
@@ -192,7 +299,7 @@ export function XtermTerminal({
     fitAddonRef.current = fitAddon;
 
     const performInitialFit = () => {
-      if (fitAddonRef.current && xtermRef.current) {
+      if (fitAddonRef.current && xtermRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
         try {
           fitAddonRef.current.fit();
           setDimensions({ rows: xtermRef.current.rows, cols: xtermRef.current.cols });
@@ -207,7 +314,7 @@ export function XtermTerminal({
     }
 
     const rafId = requestAnimationFrame(() => {
-      if (fitAddonRef.current && xtermRef.current) {
+      if (fitAddonRef.current && xtermRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
         try { fitAddonRef.current.fit(); } catch (e) {}
         xtermRef.current.focus();
       }
@@ -220,7 +327,7 @@ export function XtermTerminal({
     const handleResize = () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
-        if (fitAddonRef.current) {
+        if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
           try { fitAddonRef.current.fit(); } catch (e) {}
         }
       }, 50);
@@ -242,14 +349,16 @@ export function XtermTerminal({
   // Theme Sync
   useEffect(() => {
     if (xtermRef.current) {
+      const palette = getThemePalette(theme, resolvedScheme);
       xtermRef.current.options.theme = {
-        background: 'transparent',
-        foreground: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#ffffff',
-        cursor: getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim() || '#ffffff',
-        selectionBackground: 'rgba(255, 255, 255, 0.3)',
+        background: palette.bg || (resolvedScheme === 'dark' ? '#050505' : '#ffffff'),
+        foreground: palette.textPrimary || (resolvedScheme === 'dark' ? '#ffffff' : '#000000'),
+        cursor: palette.accent || '#ffffff',
+        selectionBackground: resolvedScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+        ...getActiveAnsiColors(theme, resolvedScheme)
       };
     }
-  }, [theme]);
+  }, [theme, resolvedScheme, getThemePalette, getActiveAnsiColors]);
 
   // Settings Dynamic Sync
   useEffect(() => {
@@ -280,7 +389,7 @@ export function XtermTerminal({
 
       if ('fonts' in document) {
         document.fonts.ready.then(() => {
-          if (fitAddonRef.current) {
+          if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
             try { fitAddonRef.current.fit(); } catch (e) {}
           }
         });
@@ -296,6 +405,9 @@ export function XtermTerminal({
       const evt = e as CustomEvent<Partial<DemoSettings>>;
       if (evt.detail?.showFloatingTerminalHeader !== undefined) {
         setShowFloatingHeader(evt.detail.showFloatingTerminalHeader);
+      }
+      if (evt.detail?.terminalHeaderVisibility !== undefined) {
+        setHeaderVisibility(evt.detail.terminalHeaderVisibility as 'hover' | 'always');
       }
     };
 
@@ -317,6 +429,15 @@ export function XtermTerminal({
       terminalRef.current.setAttribute('spellcheck', 'false');
     }
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
+        try { fitAddonRef.current.fit(); } catch (e) {}
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isMaximized, isZenMode, showFloatingHeader, headerVisibility]);
 
   useEffect(() => {
     const handleFocus = () => { if (xtermRef.current && isFocused && isReady) xtermRef.current.focus(); };
@@ -373,146 +494,70 @@ export function XtermTerminal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFocused, isReady, relaunch, index, onSplit, paneId]);
 
-  const handleRenameSubmit = () => {
-    const trimmed = tempName.trim();
-    if (onRename && trimmed) {
-      onRename(paneId, trimmed);
-      toast.success("Pane Renamed", { description: `Pane updated to "${trimmed}"` });
-    }
-    setIsRenaming(false);
-  };
-
   const handleContainerClick = () => { if (xtermRef.current && isReady) xtermRef.current.focus(); };
 
-  return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-      {(showFloatingHeader && !isZenMode) && (
-        <div 
-          className="pane-header-overlay group/pane-header"
-          style={{
-            position: 'absolute',
-            top: '12px',
-            left: '50%',
-            transform: `translateX(-50%) translateY(${isFocused ? '0' : '0px'}) scale(${isFocused ? 1 : 0.98})`,
-            height: '32px',
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            padding: '0 0.6rem 0 1.25rem',
-            background: isFocused ? 'rgba(15, 15, 15, 0.6)' : 'rgba(15, 15, 15, 0.3)',
-            backdropFilter: 'blur(20px) saturate(160%)',
-            border: isFocused ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.04)',
-            borderRadius: '10px',
-            opacity: isFocused ? 1 : 0.2,
-            boxShadow: isFocused ? '0 12px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'none',
-            transition: 'all 400ms cubic-bezier(0.23, 1, 0.32, 1)',
-            pointerEvents: 'auto',
-            minWidth: '160px',
-            justifyContent: 'space-between'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden', flex: 1 }}>
-            {isRenaming ? (
-              <input
-                autoFocus
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                onBlur={handleRenameSubmit}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleRenameSubmit();
-                  if (e.key === 'Escape') setIsRenaming(false);
-                  e.stopPropagation();
-                }}
-                className="bg-transparent border-none outline-none text-[11px] font-bold font-sans text-[var(--accent-primary)] w-full p-0"
-                style={{ height: '18px', minWidth: '80px' }}
-              />
-            ) : (
-              <span 
-                onDoubleClick={() => setIsRenaming(true)}
-                style={{ 
-                  fontSize: '11px', fontFamily: 'Inter, sans-serif', fontWeight: 700, 
-                  color: 'var(--text-primary)',
-                  cursor: 'text',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '240px',
-                  letterSpacing: '-0.01em'
-                }}
-              >
-                {name || `Pane ${index + 1}`}
-              </span>
-            )}
-          </div>
+  const getTerminalPaddingTop = () => {
+    if (isZenMode || !showFloatingHeader) return '0px';
+    return headerVisibility === 'always' ? '40px' : '8px';
+  };
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="text-[var(--text-secondary)] hover:text-white hover:bg-white/10 transition-colors"
-                  style={{
-                    width: '24px', height: '24px', borderRadius: '6px'
-                  }}
-                >
-                  <MoreVertical size={12} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" side="bottom" sideOffset={8} className="w-56 bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)] shadow-2xl backdrop-blur-xl">
-                <DropdownMenuItem onClick={() => {
-                  relaunch();
-                  toast.success(`Pane Reset`, { description: `Restarting session for ${name || `PANE ${index + 1}`}...` });
-                }}>
-                  <RefreshCw className="mr-2 h-3.5 w-3.5" />
-                  <span>Reset Process</span>
-                  <DropdownMenuShortcut className="text-[10px] opacity-50">Ctrl+Alt+R</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[var(--border-color)]/50" />
-                <DropdownMenuItem onClick={() => onSplit?.(paneId, 'horizontal')}>
-                  <SquareSplitHorizontal className="mr-2 h-3.5 w-3.5" />
-                  <span>Split Horizontally</span>
-                  <DropdownMenuShortcut className="text-[10px] opacity-50">Ctrl+Alt+H</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onSplit?.(paneId, 'vertical')}>
-                  <SquareSplitVertical className="mr-2 h-3.5 w-3.5" />
-                  <span>Split Vertically</span>
-                  <DropdownMenuShortcut className="text-[10px] opacity-50">Ctrl+Alt+V</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[var(--border-color)]/50" />
-                <DropdownMenuItem onClick={() => {
-                  if (onSaveSnippet && (command || '')) {
-                    onSaveSnippet(command || '');
-                  }
-                }}>
-                  <BookmarkPlus className="mr-2 h-3.5 w-3.5" />
-                  <span>Save as Snippet</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[var(--border-color)]/50" />
-                <DropdownMenuItem 
-                  className="text-red-400 focus:text-red-400 focus:bg-red-400/10"
-                  onClick={() => onKill?.(paneId)}
-                >
-                  <Trash2 className="mr-2 h-3.5 w-3.5" />
-                  <span>Kill Process</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+  return (
+    <div className="group" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {showFloatingHeader && (
+        <PaneElevator
+          name={name}
+          index={index}
+          isMaximized={isMaximized}
+          isZenMode={isZenMode}
+          onMaximize={onMaximize}
+          onSplit={(direction) => onSplit?.(paneId, direction)}
+          onKill={() => onKill?.(paneId)}
+          onRename={(newName) => onRename?.(paneId, newName)}
+          onRelaunch={relaunch}
+          onSaveSnippet={onSaveSnippet}
+          terminalInstance={xtermRef.current}
+          detectedUrl={detectedUrl}
+          status={status}
+          headerVisibility={headerVisibility}
+        />
       )}
+      
+      {/* Spacer for the floating header in 'always' mode */}
+      <div style={{ 
+        height: getTerminalPaddingTop(), 
+        width: '100%', 
+        flexShrink: 0,
+        transition: 'height 0.3s ease'
+      }} />
+
       <div 
-        ref={terminalRef} 
-        className="terminal-container"
-        onClick={handleContainerClick}
-        style={{ 
-          width: '100%', height: '100%', padding: (isZenMode || !showFloatingHeader) ? '0' : '52px 8px 8px 8px', 
-          margin: '0', background: '#000000', overflow: 'hidden'
-        }} 
-      />
+        className="terminal-viewport"
+        style={{
+          flex: 1,
+          width: '100%',
+          padding: '0 8px 8px 8px',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          background: 'var(--bg-color)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <div 
+          ref={terminalRef} 
+          className="terminal-container"
+          onClick={handleContainerClick}
+          style={{ 
+            flex: 1,
+            width: '100%', 
+            margin: '0', 
+            background: 'var(--bg-color)', 
+            overflow: 'hidden'
+          }} 
+        />
+      </div>
       <div style={{
-        position: 'absolute', inset: 0, background: 'rgba(5, 5, 5, 0.85)', backdropFilter: 'blur(8px)',
+        position: 'absolute', inset: 0, background: 'var(--bg-color)', opacity: 0.85, backdropFilter: 'blur(8px)',
         flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, gap: '0.75rem', fontFamily: 'JetBrains Mono, monospace',
         display: isTerminated ? 'flex' : 'none'

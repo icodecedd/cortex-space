@@ -114,7 +114,7 @@ function DialogContent({
                 // Standard centering for normal modals, custom might be used via className
                 className={cn(
                   !className?.includes("inset-0") && "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-                  "grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-md bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10",
+                  "grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-md bg-popover p-4 text-sm text-popover-foreground ring-1 ring-border shadow-2xl",
                   className
                 )}
               >
