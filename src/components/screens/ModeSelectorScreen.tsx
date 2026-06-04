@@ -1,4 +1,5 @@
 import { Terminal, Users, Cpu } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Mode } from "@/types";
 import { setSetting } from "@/lib/store";
 import { useEffect } from "react";
@@ -7,9 +8,12 @@ import { Kbd } from "@/components/ui/kbd";
 interface ModeSelectorScreenProps {
   onSelectMode: (mode: Mode) => void;
   showShortcutHints?: boolean;
+  showTemplatesHint?: boolean;
 }
 
-export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: ModeSelectorScreenProps) {
+export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, showTemplatesHint = true }: ModeSelectorScreenProps) {
+  const shouldReduceMotion = useReducedMotion();
+
   const handleSelectMode = async (mode: Mode) => {
     await setSetting("startup.lastMode", mode);
     onSelectMode(mode);
@@ -37,8 +41,39 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.05
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: shouldReduceMotion ? 0 : 8, 
+      scale: shouldReduceMotion ? 1 : 0.99 
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: {
+        duration: 0.4,
+        ease: [0.22, 1, 0.36, 1] as any // Quintic ease-out: professional & snappy
+      }
+    }
+  };
+
   return (
-    <div
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
       style={{
         display: "flex",
         width: "100%",
@@ -51,7 +86,6 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
       }}
     >
       <div
-        className="step-container"
         style={{
           margin: 0,
           display: "flex",
@@ -70,8 +104,8 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
             gap: "1.5rem",
           }}
         >
-          <div
-            className="animate-in"
+          <motion.div
+            variants={itemVariants}
             style={{
               background: "var(--accent-primary)",
               width: "64px",
@@ -81,7 +115,6 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
-              transitionDelay: "100ms",
             }}
           >
             <img
@@ -92,8 +125,9 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
                 e.currentTarget.src = "/tauri.svg";
               }}
             />
-          </div>
-          <div className="animate-in" style={{ transitionDelay: "200ms" }}>
+          </motion.div>
+          
+          <motion.div variants={itemVariants}>
             <h1
               style={{
                 fontSize: "2.5rem",
@@ -102,7 +136,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
                 color: "var(--text-primary)",
               }}
             >
-              CORTEX SPACE
+              CORTEX<span style={{ color: "var(--accent-primary)" }}> SPACE</span>
             </h1>
             <p
               style={{
@@ -116,28 +150,28 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
             >
               THE COMMAND CENTER FOR YOUR AGENTS AND TERMINAL WORKFLOWS
             </p>
-          </div>
-          <div
-            className="animate-in"
+          </motion.div>
+
+          <motion.div
+            variants={itemVariants}
             style={{
               width: "30px",
               height: "1px",
               background: "var(--border-color)",
-              transitionDelay: "300ms",
             }}
           />
-          <p
-            className="animate-in"
+          
+          <motion.p
+            variants={itemVariants}
             style={{
               color: "var(--text-primary)",
               fontSize: "1rem",
               fontWeight: 500,
               letterSpacing: "0.02em",
-              transitionDelay: "400ms",
             }}
           >
             Select your operational workflow.
-          </p>
+          </motion.p>
         </div>
 
         <div
@@ -148,9 +182,10 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
             width: "100%",
           }}
         >
-          <div
-            className="mode-card animate-in"
+          <motion.div
+            variants={itemVariants}
             onClick={() => handleSelectMode("normal")}
+            className="mode-card"
             style={{
               position: "relative",
               flexDirection: "row",
@@ -158,11 +193,10 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
               justifyContent: "flex-start",
               gap: "1.5rem",
               borderRadius: "var(--radius-md)",
-              transitionDelay: "500ms",
               cursor: "pointer",
             }}
           >
-            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-white/5 border-white/10 text-white/50 font-normal text-[10px]">Ctrl + N</Kbd>}
+            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">Ctrl + N</Kbd>}
             <Terminal size={32} color="var(--text-secondary)" />
             <div style={{ textAlign: "left", flex: 1 }}>
               <h3
@@ -188,11 +222,12 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
                 MANUAL CONTROL OVER MULTIPLE TERMINAL PANES
               </p>
             </div>
-          </div>
+          </motion.div>
 
-          <div
-            className="mode-card animate-in"
+          <motion.div
+            variants={itemVariants}
             onClick={() => handleSelectMode("agents")}
+            className="mode-card"
             style={{
               position: "relative",
               flexDirection: "row",
@@ -200,11 +235,10 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
               justifyContent: "flex-start",
               gap: "1.5rem",
               borderRadius: "var(--radius-md)",
-              transitionDelay: "600ms",
               cursor: "pointer",
             }}
           >
-            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-white/5 border-white/10 text-white/50 font-normal text-[10px]">Ctrl + A</Kbd>}
+            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">Ctrl + A</Kbd>}
             <div style={{ position: "relative" }}>
               <Users size={32} color="var(--text-secondary)" />
               <Cpu
@@ -244,22 +278,36 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
                 AI AGENTS ASSISTING AND COORDINATING YOUR WORKSPACE
               </p>
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {showShortcutHints && (
-          <div
-            className="animate-in"
+          <motion.div
+            variants={itemVariants}
             style={{
               display: "flex",
               justifyContent: "center",
               gap: "2rem",
               marginTop: "2rem",
-              transitionDelay: "700ms",
               flexWrap: "wrap",
             }}
           >
-
+            {showTemplatesHint && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  color: "var(--text-secondary)",
+                  fontSize: "0.75rem",
+                }}
+              >
+                <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
+                  Ctrl + Shift + T
+                </Kbd>
+                <span>Templates</span>
+              </div>
+            )}
             <div
               style={{
                 display: "flex",
@@ -269,22 +317,8 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
                 fontSize: "0.75rem",
               }}
             >
-              <Kbd className="bg-white/5 border-white/10 text-white/70">
+              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
                 Ctrl + T
-              </Kbd>
-              <span>Templates</span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                color: "var(--text-secondary)",
-                fontSize: "0.75rem",
-              }}
-            >
-              <Kbd className="bg-white/5 border-white/10 text-white/70">
-                Ctrl + Alt + N
               </Kbd>
               <span>New Space</span>
             </div>
@@ -297,14 +331,14 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true }: M
                 fontSize: "0.75rem",
               }}
             >
-              <Kbd className="bg-white/5 border-white/10 text-white/70">
+              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
                 Ctrl + ,
               </Kbd>
               <span>Settings</span>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

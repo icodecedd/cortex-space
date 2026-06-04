@@ -1,9 +1,11 @@
 import { Clock, ExternalLink, Folder, Trash2, Rocket, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card, CardHeader, CardTitle, CardFooter, CardContent } from "@/components/ui/card";
 import { LayoutPreviewIcon } from "@/components/ui/layout-preview-icon";
 import { SpaceTemplate } from "@/types";
 import { EmptyState } from "@/components/ui/empty-state";
+import { truncatePath } from "@/lib/utils";
 
 function formatTimeAgo(date: string) {
   const now = new Date();
@@ -51,7 +53,7 @@ export function WorkspacesTab({ templates, searchQuery, onLaunch, onDelete, onCa
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 px-2">
       {filtered.map((template) => (
         <TemplateCard 
           key={template.id} 
@@ -67,32 +69,58 @@ export function WorkspacesTab({ templates, searchQuery, onLaunch, onDelete, onCa
 function TemplateCard({ template, onLaunch, onDelete }: { template: SpaceTemplate; onLaunch: () => void; onDelete: () => void }) {
   return (
     <Card 
-      className="group relative flex flex-col p-0 bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-300 cursor-pointer overflow-hidden border border-white/5"
+      className="group relative flex flex-col p-0 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.04] transition-all duration-300 cursor-pointer overflow-hidden border border-[var(--border-color)]"
       onClick={onLaunch}
     >
       <CardHeader className="p-4 pb-2 border-none">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <LayoutPreviewIcon layout={template.layout} className="w-10 h-8 border bg-black shrink-0 rounded-sm border-white/10" />
-            <div className="min-w-0">
-              <CardTitle className="text-[13px] font-bold truncate text-white/90 group-hover:text-[var(--accent-primary)] transition-colors">{template.name}</CardTitle>
-              <div className="flex items-center gap-1 text-[10px] text-white/30 truncate font-mono">
-                <Folder size={10} /> {template.rootPath}
-              </div>
+        <div className="flex items-start gap-3 min-w-0">
+          <LayoutPreviewIcon layout={template.layout} className="w-10 h-8 border bg-[var(--bg-color)] shrink-0 rounded-sm border-[var(--border-color)] mt-0.5" />
+          
+          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+            <CardTitle className="text-[13px] font-bold truncate text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors leading-tight">
+              {template.name}
+            </CardTitle>
+            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
+              <Folder size={10} className="shrink-0 opacity-80" /> 
+              <span className="block flex-1 truncate whitespace-nowrap">{truncatePath(template.rootPath, 35)}</span>
             </div>
           </div>
-          <Button 
-            variant="ghost" size="icon" 
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          >
-            <Trash2 size={12} />
-          </Button>
         </div>
       </CardHeader>
-      <CardFooter className="px-4 py-2 border-t border-white/5 bg-black/20 flex items-center justify-between">
-         <span className="text-[9px] text-white/20 font-medium flex items-center gap-1"><Clock size={10} /> {formatTimeAgo(template.createdAt)}</span>
-         <ExternalLink size={10} className="text-white/10 group-hover:text-[var(--accent-primary)] transition-colors" />
+
+      <CardContent className="px-4 py-0 pb-3 flex-1 min-w-0">
+        {template.description ? (
+          <p className="text-[11px] leading-relaxed line-clamp-2 text-[var(--text-secondary)]/70 font-medium">
+            {template.description}
+          </p>
+        ) : (
+          <p className="text-[10px] uppercase tracking-wider font-bold opacity-20 text-[var(--text-secondary)]">
+            No description
+          </p>
+        )}
+      </CardContent>
+
+      <CardFooter className="px-4 py-2 border-t border-[var(--border-color)] bg-[var(--bg-color)]/20 flex items-center justify-between">
+         <span className="text-[9px] text-[var(--text-secondary)] font-medium flex items-center gap-1 leading-none"><Clock size={10} /> {formatTimeAgo(template.createdAt)}</span>
+         
+         <div className="flex items-center gap-2.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 text-[var(--text-secondary)]/60 hover:bg-red-500/10 hover:text-red-400 group-hover:text-[var(--text-secondary)] transition-all active:scale-95"
+                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                >
+                  <Trash2 size={13} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+                Delete Template
+              </TooltipContent>
+            </Tooltip>
+            <ExternalLink size={11} className="text-[var(--text-secondary)]/60 group-hover:text-[var(--accent-primary)] transition-colors" />
+         </div>
       </CardFooter>
     </Card>
   );

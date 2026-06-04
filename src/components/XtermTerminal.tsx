@@ -3,52 +3,109 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { useTheme, THEMES, ThemeName } from '../hooks/useTheme';
+import { invoke } from '@tauri-apps/api/core';
+import { useTheme } from '../hooks/useTheme';
+import { useColorScheme } from '../hooks/useColorScheme';
 import { usePty } from '../hooks/usePty';
 import { Button } from "@/components/ui/button";
 import { getSetting, getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings, SHORTCUT_DEFAULTS, ShortcutSettings, DemoSettings } from '@/lib/store';
-import { RotateCw } from "lucide-react";
-import { Kbd } from "@/components/ui/kbd";
+import { isGlobalShortcut } from '@/lib/shortcut-utils';
 import { toast } from "sonner";
+import { PaneElevator } from './space/PaneElevator';
 import '@xterm/xterm/css/xterm.css';
 
 interface XtermTerminalProps {
   id: string;
+  paneId: string;
   isFocused: boolean;
+  index: number;
   command?: string;
   cwd?: string;
   isZenMode?: boolean;
+  isMaximized?: boolean;
+  onMaximize?: () => void;
+  name?: string;
+  onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
+  onKill?: (id: string) => void;
+  onRename?: (id: string, newName: string) => void;
+  onSaveSnippet?: (command: string) => void;
 }
 
-export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }: XtermTerminalProps) {
-  const idParts = id.split('-');
-  const paneId = idParts.pop() || '1';
-  const workspaceId = idParts.join('-');
-  const isMac = typeof window !== 'undefined' && navigator.userAgent.includes('Mac');
-  const focusShortcut = isMac ? `⌘${paneId}` : `Ctrl+${paneId}`;
+export function XtermTerminal({ 
+  id, 
+  paneId,
+  isFocused, 
+  index,
+  command, 
+  cwd, 
+  isZenMode = false,
+  isMaximized = false,
+  onMaximize,
+  name,
+  onSplit,
+  onKill,
+  onRename,
+  onSaveSnippet
+}: XtermTerminalProps) {
+  const workspaceId = id.substring(0, id.lastIndexOf(`-${paneId}`));
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const { theme } = useTheme();
+  const decoderRef = useRef(new TextDecoder());
+  const { theme, allThemes } = useTheme();
+  const { resolvedScheme } = useColorScheme();
   
   const [dimensions, setDimensions] = useState({ rows: 24, cols: 80 });
   const [defaultShell, setDefaultShell] = useState<string>('');
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
-  const [showShortcuts, setShowShortcuts] = useState(true);
+  const [showFloatingHeader, setShowFloatingHeader] = useState(true);
+  const [headerVisibility, setHeaderVisibility] = useState<'hover' | 'always'>('hover');
+  const [detectedUrl, setDetectedUrl] = useState<string | null>(null);
+  const outputBufferRef = useRef<string>("");
 
   useEffect(() => {
     getSettingsGroup<TerminalSettings>('startup', { defaultShell: '' } as any).then((saved: any) => {
       setDefaultShell(saved.defaultShell || '');
     });
     getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
-    getSetting('demo.showTerminalShortcutHints', true).then(setShowShortcuts);
+    getSetting('demo.showFloatingTerminalHeader', true).then(setShowFloatingHeader);
+    getSetting<'hover' | 'always'>('demo.terminalHeaderVisibility', 'hover').then(setHeaderVisibility);
   }, []);
 
-  function applyAnsiColors(themeName: string) {
-    const themeDef = THEMES[themeName as ThemeName];
-    if (!themeDef || !themeDef.ansi) return {};
-    return themeDef.ansi;
-  }
+  const getThemePalette = useCallback((themeName: string, scheme: 'light' | 'dark') => {
+    const themeDef = allThemes.find(t => t.id === themeName) || allThemes.find(t => t.id === 'soft-monochrome');
+    if (!themeDef) {
+      return {
+        bg: scheme === 'dark' ? '#050505' : '#ffffff',
+        textPrimary: scheme === 'dark' ? '#ffffff' : '#000000',
+        accent: '#ffffff',
+        ansi: {}
+      };
+    }
+    if (scheme === 'light') {
+      return themeDef.light || {
+        bg: "#FAFAFA",
+        headerBg: "#FFFFFF",
+        footerBg: "#F0F0F0",
+        surface: "#FFFFFF",
+        border: "#E5E7EB",
+        textPrimary: "#111827",
+        textSecondary: "#4B5563",
+        accent: themeDef.dark.accent,
+        ansi: {
+          ...themeDef.dark.ansi,
+          black: '#111827',
+          white: '#FFFFFF'
+        }
+      };
+    }
+    return themeDef.dark;
+  }, [allThemes]);
+
+  const getActiveAnsiColors = useCallback((themeName: string, scheme: 'light' | 'dark') => {
+    const palette = getThemePalette(themeName, scheme);
+    return palette.ansi || {};
+  }, [getThemePalette]);
 
   // CHECKLIST ITEM 3: Single-Source Rendering
   // Confirm that data only appears in the terminal UI *after* it has made a full round trip from the backend process.
@@ -56,6 +113,47 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
   const handlePtyData = useCallback((data: Uint8Array) => {
     if (xtermRef.current) {
       xtermRef.current.write(data);
+
+      // Simple heuristic for local port detection
+      const text = decoderRef.current.decode(data, { stream: true });
+      
+      // Append to buffer and keep it small (last 600 chars to be safe for long lines and ANSI codes)
+      outputBufferRef.current = (outputBufferRef.current + text).slice(-600);
+
+      // Strip ANSI escape codes to improve regex matching accuracy
+      const cleanText = outputBufferRef.current.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+
+      // Improved regex: 
+      // 1. Optional protocol (http/https)
+      // 2. Localhost, loopback IP, or [::]
+      // 3. Required port (1-5 digits)
+      // 4. Optional trailing path or query
+      const localUrlRegex = /((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{1,5})(?:\/\S*)?)/i;
+      const match = cleanText.match(localUrlRegex);
+      
+      if (match) {
+        let url = match[1].trim();
+        
+        // Basic normalization
+        if (!url.startsWith('http')) {
+          url = `http://${url}`;
+        }
+        
+        // Normalize loopback IPs and [::] to localhost for better compatibility
+        url = url.replace(/(?:127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\])/g, 'localhost');
+        
+        setDetectedUrl(prev => {
+          if (prev !== url) {
+            console.log(`[PTY ${id}] Port detected: ${url}`);
+            toast.info("Application Ready", { 
+              description: `Cortex detected a service on ${url}. Click 'Open Browser' in the header.`,
+              duration: 4000
+            });
+            return url;
+          }
+          return prev;
+        });
+      }
     }
   }, [id]);
 
@@ -67,7 +165,61 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
     shell: defaultShell
   }), [command, cwd, dimensions.rows, dimensions.cols, defaultShell]);
 
-  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch } = usePty(id, handlePtyData, ptyConfig);
+  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch: relaunchPty, status } = usePty(id, handlePtyData, ptyConfig);
+  const hasNotifiedRef = useRef(false);
+
+  // Agent Pulse Notification
+  useEffect(() => {
+    if (status === 'thinking') {
+      hasNotifiedRef.current = false;
+    } else if (status === 'finished') {
+      if (!hasNotifiedRef.current) {
+        if (!isFocused) {
+          toast.success(`${name || `Pane ${index + 1}`} Finished`, { 
+            description: "The AI agent has completed the task.",
+            duration: 3000 
+          });
+        }
+        hasNotifiedRef.current = true;
+      }
+    }
+  }, [status, isFocused, name, index]);
+
+  const relaunch = useCallback(() => {
+    setDetectedUrl(null);
+    outputBufferRef.current = "";
+    relaunchPty();
+  }, [relaunchPty]);
+
+  // Port Validation Loop: Periodically check if the detected port is still alive
+  useEffect(() => {
+    if (!detectedUrl) return;
+
+    const portMatch = detectedUrl.match(/:(\d+)/);
+    if (!portMatch) return;
+    
+    const port = parseInt(portMatch[1], 10);
+    let isChecking = false;
+
+    const checkInterval = setInterval(async () => {
+      if (isChecking) return;
+      isChecking = true;
+      
+      try {
+        const isOpen = await invoke<boolean>('check_port', { port });
+        if (!isOpen) {
+          console.log(`[PTY ${id}] Port ${port} closed. Clearing detected URL.`);
+          setDetectedUrl(null);
+        }
+      } catch (err) {
+        console.error('Failed to check port status:', err);
+      } finally {
+        isChecking = false;
+      }
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(checkInterval);
+  }, [detectedUrl, id]);
 
   // Bridge for xterm.js event handlers to always use latest PTY callbacks
   const writeRef = useRef(writeToPty);
@@ -101,10 +253,10 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
       letterSpacing: initialLetterSpacing,
       theme: {
         background: 'transparent',
-        foreground: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#ffffff',
-        cursor: getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim() || '#ffffff',
-        selectionBackground: 'rgba(255, 255, 255, 0.3)',
-        ...applyAnsiColors(theme)
+        foreground: getThemePalette(theme, resolvedScheme).textPrimary || '#ffffff',
+        cursor: getThemePalette(theme, resolvedScheme).accent || '#ffffff',
+        selectionBackground: resolvedScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+        ...getActiveAnsiColors(theme, resolvedScheme)
       },
       allowTransparency: true,
       scrollback: initialSettings.scrollbackLines,
@@ -123,35 +275,22 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
 
     // Centralized shortcut bubbling logic
     term.attachCustomKeyEventHandler((e) => {
-      // Check if this key combo matches ANY of our global app shortcuts
-      const isGlobalShortcut = Object.values(shortcuts).some(s => {
-        if (!s) return false;
-        const parts = s.split('+').map(p => p.trim().toLowerCase());
-        const key = parts[parts.length - 1];
-        const hasCtrl = parts.includes('ctrl') || parts.includes('cmd') || parts.includes('meta');
-        const hasAlt = parts.includes('alt') || parts.includes('opt');
-        const hasShift = parts.includes('shift');
-
-        return e.key.toLowerCase() === key && 
-               (e.ctrlKey || e.metaKey) === hasCtrl && 
-               e.altKey === hasAlt && 
-               e.shiftKey === hasShift;
-      });
-
       const isEscape = e.key === 'Escape';
       const isNumKey = e.key >= '1' && e.key <= '9';
       const isArrowKey = e.key.startsWith('Arrow');
-      const isDirectionalNav = (e.ctrlKey || e.metaKey) && e.altKey && isArrowKey;
+      const isDirectionalNav = e.altKey && isArrowKey;
       const isPaneFocus = (e.ctrlKey || e.metaKey) && isNumKey;
       const isMaximize = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'm';
+      const isRelaunch = (e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r';
 
-      if (isGlobalShortcut || isEscape || isDirectionalNav || isPaneFocus || isMaximize) {
+      if (isGlobalShortcut(e, shortcuts) || isEscape || isDirectionalNav || isPaneFocus || isMaximize || isRelaunch) {
         return false; // Bubble up
       }
       return true;
     });
     
     term.onResize(({ rows, cols }) => {
+      if (rows <= 0 || cols <= 0) return;
       setDimensions({ rows, cols });
       resizeRef.current(rows, cols);
     });
@@ -160,7 +299,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
     fitAddonRef.current = fitAddon;
 
     const performInitialFit = () => {
-      if (fitAddonRef.current && xtermRef.current) {
+      if (fitAddonRef.current && xtermRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
         try {
           fitAddonRef.current.fit();
           setDimensions({ rows: xtermRef.current.rows, cols: xtermRef.current.cols });
@@ -175,7 +314,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
     }
 
     const rafId = requestAnimationFrame(() => {
-      if (fitAddonRef.current && xtermRef.current) {
+      if (fitAddonRef.current && xtermRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
         try { fitAddonRef.current.fit(); } catch (e) {}
         xtermRef.current.focus();
       }
@@ -188,7 +327,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
     const handleResize = () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
-        if (fitAddonRef.current) {
+        if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
           try { fitAddonRef.current.fit(); } catch (e) {}
         }
       }, 50);
@@ -205,29 +344,36 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
       term.dispose();
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [shortcuts]);
 
   // Theme Sync
   useEffect(() => {
     if (xtermRef.current) {
+      const palette = getThemePalette(theme, resolvedScheme);
       xtermRef.current.options.theme = {
-        background: 'transparent',
-        foreground: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#ffffff',
-        cursor: getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim() || '#ffffff',
-        selectionBackground: 'rgba(255, 255, 255, 0.3)',
+        background: palette.bg || (resolvedScheme === 'dark' ? '#050505' : '#ffffff'),
+        foreground: palette.textPrimary || (resolvedScheme === 'dark' ? '#ffffff' : '#000000'),
+        cursor: palette.accent || '#ffffff',
+        selectionBackground: resolvedScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+        ...getActiveAnsiColors(theme, resolvedScheme)
       };
     }
-  }, [theme]);
+  }, [theme, resolvedScheme, getThemePalette, getActiveAnsiColors]);
 
   // Settings Dynamic Sync
   useEffect(() => {
     const handleSettingsChange = (e: Event) => {
-      const evt = e as CustomEvent<{ terminal?: TerminalSettings; startup?: any }>;
+      const evt = e as CustomEvent<{ terminal?: TerminalSettings; startup?: any; shortcuts?: ShortcutSettings }>;
       const ts = evt.detail?.terminal;
       const ss = evt.detail?.startup;
+      const sh = evt.detail?.shortcuts;
 
       if (ss?.defaultShell !== undefined) {
         setDefaultShell(ss.defaultShell);
+      }
+
+      if (sh) {
+        setShortcuts(sh);
       }
 
       if (!xtermRef.current) return;
@@ -243,7 +389,7 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
 
       if ('fonts' in document) {
         document.fonts.ready.then(() => {
-          if (fitAddonRef.current) {
+          if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
             try { fitAddonRef.current.fit(); } catch (e) {}
           }
         });
@@ -257,8 +403,11 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
   useEffect(() => {
     const handleDemoSettingsChange = (e: Event) => {
       const evt = e as CustomEvent<Partial<DemoSettings>>;
-      if (evt.detail?.showTerminalShortcutHints !== undefined) {
-        setShowShortcuts(evt.detail.showTerminalShortcutHints);
+      if (evt.detail?.showFloatingTerminalHeader !== undefined) {
+        setShowFloatingHeader(evt.detail.showFloatingTerminalHeader);
+      }
+      if (evt.detail?.terminalHeaderVisibility !== undefined) {
+        setHeaderVisibility(evt.detail.terminalHeaderVisibility as 'hover' | 'always');
       }
     };
 
@@ -280,6 +429,15 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
       terminalRef.current.setAttribute('spellcheck', 'false');
     }
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
+        try { fitAddonRef.current.fit(); } catch (e) {}
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isMaximized, isZenMode, showFloatingHeader, headerVisibility]);
 
   useEffect(() => {
     const handleFocus = () => { if (xtermRef.current && isFocused && isReady) xtermRef.current.focus(); };
@@ -313,127 +471,108 @@ export function XtermTerminal({ id, isFocused, command, cwd, isZenMode = false }
     if (!isFocused || !isReady) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const isR = e.key.toLowerCase() === 'r';
-      if ((e.ctrlKey || e.metaKey) && e.altKey && isR) {
-        e.preventDefault();
-        relaunch();
-        toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${paneId}...` });
+      const isH = e.key.toLowerCase() === 'h';
+      const isV = e.key.toLowerCase() === 'v';
+
+      if ((e.ctrlKey || e.metaKey) && e.altKey) {
+        if (isR) {
+          e.preventDefault();
+          relaunch();
+          toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${index + 1}...` });
+        } else if (isH) {
+          e.preventDefault();
+          onSplit?.(paneId, 'horizontal');
+          toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} horizontally...` });
+        } else if (isV) {
+          e.preventDefault();
+          onSplit?.(paneId, 'vertical');
+          toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} vertically...` });
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFocused, isReady, relaunch, paneId]);
+  }, [isFocused, isReady, relaunch, index, onSplit, paneId]);
 
   const handleContainerClick = () => { if (xtermRef.current && isReady) xtermRef.current.focus(); };
 
+  const getTerminalPaddingTop = () => {
+    if (isZenMode || !showFloatingHeader) return '0px';
+    return headerVisibility === 'always' ? '40px' : '8px';
+  };
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-      {!isZenMode && (
-        <div 
-          className="pane-header-overlay group/pane-header"
-          style={{
-            position: 'absolute',
-            top: '8px',
-            left: '8px',
-            right: '8px',
-            height: '36px',
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 0.85rem',
-            background: isFocused ? 'rgba(15, 15, 15, 0.85)' : 'rgba(15, 15, 15, 0.65)',
-            backdropFilter: 'blur(16px)',
-            border: isFocused ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255, 255, 255, 0.05)',
-            borderRadius: '9999px',
-            opacity: isFocused ? 1 : 0.75,
-            boxShadow: isFocused ? '0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)' : '0 4px 15px rgba(0, 0, 0, 0.3)',
-            transition: 'all var(--duration-normal) var(--ease-out)',
-            pointerEvents: 'auto'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
-            <span style={{ 
-              fontSize: '9px', fontFamily: 'JetBrains Mono', fontWeight: 700, 
-              color: isFocused ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              background: 'rgba(255, 255, 255, 0.05)', padding: '2px 6px', borderRadius: '9999px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-            }}>
-              PANE {paneId}
-            </span>
-            {!isFocused && (
-              <span style={{ 
-                fontSize: '8px', fontFamily: 'JetBrains Mono', color: 'var(--text-secondary)',
-                background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
-                padding: '1px 5px', borderRadius: '9999px', opacity: 0.8
-              }}>
-                {focusShortcut}
-              </span>
-            )}
-            <span style={{ 
-              fontSize: '9px', fontFamily: 'JetBrains Mono', color: isFocused ? 'var(--text-primary)' : 'var(--text-secondary)',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px'
-            }}>
-              {command || 'bash'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {isReady && !isTerminated && (
-              <Button
-                onClick={() => {
-                  relaunch();
-                  toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${paneId}...` });
-                }}
-                variant="ghost"
-                size="icon-xs"
-                className="btn-tactile text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-white/5 active:scale-97"
-                style={{
-                  width: '20px', height: '20px', padding: 0, borderRadius: '9999px',
-                  background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}
-              >
-                <RotateCw size={10} className="transition-transform duration-300 hover:rotate-45" />
-              </Button>
-            )}
-            {showShortcuts && (
-              <Kbd style={{ 
-                fontSize: '8px', height: '14px', padding: '0 5px', background: 'rgba(255, 255, 255, 0.03)', 
-                borderColor: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)',
-                fontFamily: 'JetBrains Mono', borderRadius: '9999px'
-              }}>
-                Ctrl+Alt+R
-              </Kbd>
-            )}
-          </div>
-        </div>
+    <div className="group" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {showFloatingHeader && (
+        <PaneElevator
+          name={name}
+          index={index}
+          isMaximized={isMaximized}
+          isZenMode={isZenMode}
+          onMaximize={onMaximize}
+          onSplit={(direction) => onSplit?.(paneId, direction)}
+          onKill={() => onKill?.(paneId)}
+          onRename={(newName) => onRename?.(paneId, newName)}
+          onRelaunch={relaunch}
+          onSaveSnippet={onSaveSnippet}
+          terminalInstance={xtermRef.current}
+          detectedUrl={detectedUrl}
+          status={status}
+          headerVisibility={headerVisibility}
+        />
       )}
+      
+      {/* Spacer for the floating header in 'always' mode */}
+      <div style={{ 
+        height: getTerminalPaddingTop(), 
+        width: '100%', 
+        flexShrink: 0,
+        transition: 'height 0.3s ease'
+      }} />
+
       <div 
-        ref={terminalRef} 
-        className="terminal-container"
-        onClick={handleContainerClick}
-        style={{ 
-          width: '100%', height: '100%', padding: isZenMode ? '0' : '52px 8px 8px 8px', 
-          margin: '0', background: '#000000', overflow: 'hidden'
-        }} 
-      />
-      {isTerminated && (
-        <div style={{
-          position: 'absolute', inset: 0, background: 'rgba(5, 5, 5, 0.85)', backdropFilter: 'blur(8px)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          zIndex: 100, gap: '0.75rem', fontFamily: 'JetBrains Mono, monospace'
-        }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em' }}>
-            SESSION TERMINATED
-          </span>
-          <Button 
-            onClick={() => relaunch()}
-            className="primary btn-tactile"
-            style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', letterSpacing: '0.05em', borderRadius: 'var(--radius-sm)' }}
-          >
-            RELAUNCH SESSION
-          </Button>
-        </div>
-      )}
+        className="terminal-viewport"
+        style={{
+          flex: 1,
+          width: '100%',
+          padding: '0 8px 8px 8px',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          background: 'var(--bg-color)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <div 
+          ref={terminalRef} 
+          className="terminal-container"
+          onClick={handleContainerClick}
+          style={{ 
+            flex: 1,
+            width: '100%', 
+            margin: '0', 
+            background: 'var(--bg-color)', 
+            overflow: 'hidden'
+          }} 
+        />
+      </div>
+      <div style={{
+        position: 'absolute', inset: 0, background: 'var(--bg-color)', opacity: 0.85, backdropFilter: 'blur(8px)',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, gap: '0.75rem', fontFamily: 'JetBrains Mono, monospace',
+        display: isTerminated ? 'flex' : 'none'
+      }}>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em' }}>
+          SESSION TERMINATED
+        </span>
+        <Button 
+          onClick={() => relaunch()}
+          className="primary btn-tactile"
+          style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', letterSpacing: '0.05em', borderRadius: 'var(--radius-sm)' }}
+        >
+          RELAUNCH SESSION
+        </Button>
+      </div>
     </div>
   );
 }

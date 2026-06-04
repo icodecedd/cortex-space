@@ -47,6 +47,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
       title: "Active Terminal Sessions",
       items: [
         { label: "Focus Pane 1 - 4", value: "Ctrl + 1..4" },
+        { label: "Snap Focus (Directional)", value: "Alt + Arrows" },
         { label: "Maximize Focused Pane", value: "Ctrl + Shift + M" },
         { label: "Execute / Relaunch Session", value: "Ctrl + Alt + R" },
       ]
@@ -69,10 +70,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
           <DialogTitle className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
             Keyboard Shortcuts
           </DialogTitle>
-          <DialogDescription
-            className="text-xs leading-relaxed"
-            style={{ color: 'rgba(255, 255, 255, 0.6)' }}
-          >
+          <DialogDescription className="text-xs leading-relaxed">
             System-wide keyboard layout controls.
           </DialogDescription>
         </DialogHeader>
@@ -80,7 +78,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
         <div className="flex flex-col gap-5 mt-4 mb-2">
           {groups.map((group, idx) => (
             <div key={idx}>
-              <h4 className="text-[10px] tracking-wider text-[var(--accent-primary)] font-bold mb-2.5 font-mono uppercase opacity-80">
+              <h4 className="text-[10px] tracking-wider text-[var(--accent-primary)] font-bold mb-2.5 font-mono uppercase">
                 {group.title}
               </h4>
               <div className="flex flex-col gap-3 font-mono text-[12px]">

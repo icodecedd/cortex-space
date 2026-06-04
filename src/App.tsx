@@ -21,6 +21,8 @@ import { CortexLibraryDialog } from "./components/dialogs/CortexLibraryDialog";
 import { WorkspaceSwitcherDialog } from "./components/dialogs/WorkspaceSwitcherDialog";
 import { useSpaceTemplates } from "./hooks/useSpaceTemplates";
 import { useSnippets } from "./hooks/useSnippets";
+import { splitNode, removeNode, updatePaneNode } from "./lib/setup-utils";
+import { formatWorkspaceName } from "./lib/utils";
 
 declare global {
   interface Window {
@@ -42,7 +44,10 @@ function App() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [isBackgroundRecessed, setIsBackgroundRecessed] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { settings: colorSchemeSettings, resolvedScheme, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
+  const { theme, setTheme, allThemes, addCustomTheme, removeCustomTheme, previewTheme, cancelPreview } = useTheme();
+  const { settings: focusSettings, setFocusSetting, toggleZenMode, resetToDefaults: resetFocus } = useFocusSettings();
+  const { settings: demoSettings, setDemoSetting, resetToDefaults: resetDemo } = useDemoSettings();
 
   // Handle tiered motion effects via events
   useEffect(() => {
@@ -50,16 +55,86 @@ function App() {
       const evt = e as CustomEvent<{ isDeep: boolean }>;
       setIsBackgroundRecessed(evt.detail.isDeep);
     };
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Prevent Ctrl+R from refreshing the app if the setting is disabled
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
+        // If it's NOT Ctrl+Alt+R (which is our relaunch shortcut) AND refresh is disabled, prevent default
+        if (!e.altKey && !demoSettings.enableBrowserRefresh) {
+          e.preventDefault();
+        }
+      }
+    };
+
     window.addEventListener('cortex:modal-depth-changed', handleDepthChange);
-    return () => window.removeEventListener('cortex:modal-depth-changed', handleDepthChange);
-  }, []);
-  const { settings: colorSchemeSettings, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
-  const { settings: focusSettings, setFocusSetting, toggleZenMode, resetToDefaults: resetFocus } = useFocusSettings();
-  const { settings: demoSettings, setDemoSetting, resetToDefaults: resetDemo } = useDemoSettings();
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('cortex:modal-depth-changed', handleDepthChange);
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [demoSettings.enableBrowserRefresh]);
 
   const { isWindowMaximized, handleMinimize, handleMaximize, handleClose } = useWindowControls();
   const { templates, captureCurrent, deleteTemplate } = useSpaceTemplates();
   const { snippets, addSnippet, deleteSnippet, deleteSnippets } = useSnippets();
+
+  const handleSplitPane = (paneId: string, direction: 'horizontal' | 'vertical') => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces(prev => prev.map(w => {
+      if (w.id === activeWorkspaceId && w.config) {
+        return {
+          ...w,
+          config: {
+            ...w.config,
+            layout: splitNode(w.config.layout, paneId, direction)
+          }
+        };
+      }
+      return w;
+    }));
+  };
+
+  const handleKillPane = (paneId: string) => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces(prev => prev.map(w => {
+      if (w.id === activeWorkspaceId && w.config) {
+        const newLayout = removeNode(w.config.layout, paneId);
+        if (!newLayout) {
+          // If no layout left, close workspace or reset
+          toast.info("Workspace Reset", { description: "Last pane closed. Reverting to empty state." });
+          return {
+            ...w,
+            status: 'mode-select',
+            config: null
+          };
+        }
+        return {
+          ...w,
+          config: {
+            ...w.config,
+            layout: newLayout
+          }
+        };
+      }
+      return w;
+    }));
+  };
+
+  const handleRenamePane = (paneId: string, newName: string) => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces(prev => prev.map(w => {
+      if (w.id === activeWorkspaceId && w.config) {
+        return {
+          ...w,
+          config: {
+            ...w.config,
+            layout: updatePaneNode(w.config.layout, paneId, { name: newName })
+          }
+        };
+      }
+      return w;
+    }));
+  };
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
@@ -142,7 +217,8 @@ function App() {
       }
     }
 
-    const rootName = finalPath.split(/[/\\]/).filter(Boolean).pop() || finalPath || "Workspace";
+    const rawName = finalPath.split(/[/\\]/).filter(Boolean).pop() || finalPath || "Workspace";
+    const rootName = formatWorkspaceName(rawName);
     const updatedConfig = {
       ...newConfig,
       rootPath: finalPath
@@ -178,6 +254,21 @@ function App() {
   const handleCloseWorkspace = (id: string) => {
     const index = workspaces.findIndex(w => w.id === id);
     if (index === -1) return;
+
+    // If it's the last one, reset to mode-select instead of removing
+    if (workspaces.length <= 1) {
+      const newId = Date.now().toString();
+      setWorkspaces([{
+        id: newId,
+        name: '',
+        mode: 'normal',
+        config: null,
+        status: 'mode-select'
+      }]);
+      setActiveWorkspaceId(newId);
+      toast.info("Workspace Reset", { description: "Returning to mode selection." });
+      return;
+    }
 
     const updated = workspaces.filter(w => w.id !== id);
 
@@ -314,7 +405,7 @@ function App() {
       const newId = Date.now().toString();
       const newWorkspace: Workspace = {
         id: newId,
-        name: template.name.toUpperCase(),
+        name: formatWorkspaceName(template.name),
         mode: template.mode,
         config: config,
         status: 'active'
@@ -326,7 +417,7 @@ function App() {
         if (w.id === activeWorkspaceId) {
           return {
             ...w,
-            name: template.name.toUpperCase(),
+            name: formatWorkspaceName(template.name),
             mode: template.mode,
             config: config,
             status: 'active'
@@ -356,7 +447,7 @@ function App() {
     const name = activeWorkspace.name || "UNNAMED SPACE";
 
     captureCurrent(
-      name.toUpperCase(),
+      formatWorkspaceName(name),
       rootPath,
       layout,
       panes,
@@ -380,6 +471,10 @@ function App() {
       }
     });
     window.dispatchEvent(event);
+
+    // Close modals so the user can see the injection/execution
+    setTemplatesOpen(false);
+    setSwitcherOpen(false);
   };
 
   return (
@@ -442,6 +537,7 @@ function App() {
                       setWorkspaces(prev => prev.map(w => w.id === ws.id ? { ...w, mode, status: 'setup' } : w));
                     }}
                     showShortcutHints={demoSettings.showModeShortcutHints}
+                    showTemplatesHint={demoSettings.showTemplatesButton}
                   />                </div>
               );
             }
@@ -495,7 +591,11 @@ function App() {
                     isZenMode={focusSettings.isZenMode}
                     setIsZenMode={(v) => setFocusSetting('isZenMode', v)}
                     zenPadding={colorSchemeSettings.zenPadding}
-                    showPaneHeaders={focusSettings.showPaneHeaders}
+                    showPaneHeaders={focusSettings.showPaneHeaders as boolean}
+                    onSplitPane={handleSplitPane}
+                    onKillPane={handleKillPane}
+                    onRenamePane={handleRenamePane}
+                    onSaveSnippet={(command) => addSnippet("", command)}
                   />
                 </div>
               );
@@ -509,6 +609,7 @@ function App() {
           <AppFooter
             theme={theme}
             setTheme={(newTheme) => setTheme(newTheme as ThemeName)}
+            allThemes={allThemes}
           />
         )}
       </motion.div>
@@ -519,6 +620,11 @@ function App() {
         onOpenChange={setSettingsOpen}
         theme={theme}
         setTheme={setTheme}
+        allThemes={allThemes}
+        addCustomTheme={addCustomTheme}
+        removeCustomTheme={removeCustomTheme}
+        previewTheme={previewTheme}
+        cancelPreview={cancelPreview}
         colorScheme={colorSchemeSettings.colorScheme}
         setColorScheme={setColorScheme}
         uiFontScale={colorSchemeSettings.uiFontScale}
@@ -564,9 +670,10 @@ function App() {
         onOpenShortcuts={() => setShortcutsOpen(true)}
         onOpenTemplates={() => setTemplatesOpen(true)}
         onSetTheme={setTheme}
+        allThemes={allThemes}
       />
 
-      <Toaster position="bottom-right" theme="dark" closeButton richColors />
+      <Toaster position="bottom-right" closeButton richColors theme={resolvedScheme as any} />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import * as React from "react"
 import { X, Terminal, Ban } from "lucide-react"
 import { Popover, PopoverAnchor, PopoverContent, PopoverTitle } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 export type TabColor = 'slate' | 'emerald' | 'cobalt' | 'crimson' | 'amber'
@@ -15,12 +16,14 @@ export interface InteractiveTabProps {
   isDraft: boolean
   color?: TabColor
   icon?: React.ReactNode
+  terminalCount?: number
   onSelect: () => void
   onClose: () => void
   onRename: (newName: string) => void
   onColorChange: (newColor: TabColor) => void
   onCloseOthers?: () => void
   onCloseToRight?: () => void
+  canClose?: boolean
 }
 
 export const COLOR_MAP: Record<
@@ -32,46 +35,58 @@ export const COLOR_MAP: Record<
     text: string
     ring: string
     label: string
+    activeBg: string
+    hoverBg: string
   }
 > = {
   slate: {
-    hex: "#64748b",
-    border: "border-slate-500/60",
-    bg: "from-slate-500/10",
-    text: "text-slate-400",
-    ring: "ring-slate-500",
+    hex: "var(--ansi-bright-black)",
+    border: "border-ansi-bright-black/60",
+    bg: "bg-ansi-bright-black/10",
+    activeBg: "bg-ansi-bright-black/20",
+    hoverBg: "hover:bg-ansi-bright-black/15",
+    text: "text-ansi-bright-black",
+    ring: "ring-ansi-bright-black",
     label: "Slate",
   },
   emerald: {
-    hex: "#10b981",
-    border: "border-emerald-500/60",
-    bg: "from-emerald-500/10",
-    text: "text-emerald-400",
-    ring: "ring-emerald-500",
+    hex: "var(--ansi-green)",
+    border: "border-ansi-green/60",
+    bg: "bg-ansi-green/10",
+    activeBg: "bg-ansi-green/20",
+    hoverBg: "hover:bg-ansi-green/15",
+    text: "text-ansi-green",
+    ring: "ring-ansi-green",
     label: "Emerald",
   },
   cobalt: {
-    hex: "#3b82f6",
-    border: "border-blue-500/60",
-    bg: "from-blue-500/10",
-    text: "text-blue-400",
-    ring: "ring-blue-500",
+    hex: "var(--ansi-blue)",
+    border: "border-ansi-blue/60",
+    bg: "bg-ansi-blue/10",
+    activeBg: "bg-ansi-blue/20",
+    hoverBg: "hover:bg-ansi-blue/15",
+    text: "text-ansi-blue",
+    ring: "ring-ansi-blue",
     label: "Cobalt",
   },
   crimson: {
-    hex: "#ef4444",
-    border: "border-red-500/60",
-    bg: "from-red-500/10",
-    text: "text-red-400",
-    ring: "ring-red-500",
+    hex: "var(--ansi-red)",
+    border: "border-ansi-red/60",
+    bg: "bg-ansi-red/10",
+    activeBg: "bg-ansi-red/20",
+    hoverBg: "hover:bg-ansi-red/15",
+    text: "text-ansi-red",
+    ring: "ring-ansi-red",
     label: "Crimson",
   },
   amber: {
-    hex: "#f59e0b",
-    border: "border-amber-500/60",
-    bg: "from-amber-500/10",
-    text: "text-amber-400",
-    ring: "ring-amber-500",
+    hex: "var(--ansi-yellow)",
+    border: "border-ansi-yellow/60",
+    bg: "bg-ansi-yellow/10",
+    activeBg: "bg-ansi-yellow/20",
+    hoverBg: "hover:bg-ansi-yellow/15",
+    text: "text-ansi-yellow",
+    ring: "ring-ansi-yellow",
     label: "Amber",
   },
 }
@@ -84,12 +99,14 @@ export function InteractiveTab({
   isDraft,
   color,
   icon,
+  terminalCount,
   onSelect,
   onClose,
   onRename,
   onColorChange,
   onCloseOthers,
   onCloseToRight,
+  canClose = true,
 }: InteractiveTabProps) {
   const [popoverOpen, setPopoverOpen] = React.useState(false)
   const [isRenaming, setIsRenaming] = React.useState(false)
@@ -136,88 +153,91 @@ export function InteractiveTab({
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverAnchor asChild>
-        <div
-          onClick={onSelect}
-          onContextMenu={handleContextMenu}
-          title={`${displayName}${customName && name ? ` (${name})` : ""}\nRight-click to rename or change color`}
-          className={cn(
-            "btn-tactile group h-7 px-2.5 rounded-md flex items-center gap-2 text-[10px] font-mono tracking-wide cursor-pointer transition-all duration-150 border select-none shrink-0 max-w-[180px] overflow-hidden active:scale-[0.97] will-change-transform [-webkit-app-region:no-drag]",
-            // Background, borders and shadow exactly matches keyboard shortcuts dialog trigger
-            isActive && !isDraft
-              ? "bg-[var(--bg-color)] border-[var(--accent-primary)] text-[var(--text-primary)] font-bold shadow-[0_0_8px_rgba(63,185,80,0.1)]"
-              : isActive && isDraft
-                ? "bg-[var(--bg-color)] border-dashed border-[var(--accent-primary)] text-[var(--accent-primary)] font-bold shadow-[0_0_8px_rgba(63,185,80,0.1)]"
-                : "bg-transparent border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border-color)]/20 hover:border-[var(--border-color)]/30",
-            // Apply color border adjustments
-            color && "border-l-3",
-            color && activeColorConfig?.border
-          )}
-        >
-          {/* Color Accent Background Glow */}
-          {color && (
-            <div
-              className={cn(
-                "absolute inset-0 bg-gradient-to-r to-transparent pointer-events-none transition-opacity duration-150 opacity-40 group-hover:opacity-60",
-                activeColorConfig?.bg
-              )}
-            />
-          )}
-
-          {/* Left Slot: Mode Indicator / Icon */}
-          <div className="flex items-center justify-center shrink-0 z-10">
-            {icon ? (
-              icon
-            ) : (
-              <Terminal
-                size={11}
+        <div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                onClick={onSelect}
+                onContextMenu={handleContextMenu}
                 className={cn(
-                  "transition-all duration-150",
+                  "group relative h-[28px] px-2.5 rounded-md flex items-center gap-2 text-[11px] font-sans font-bold cursor-pointer transition-all duration-200 select-none shrink-0 min-w-[110px] max-w-[180px] overflow-hidden [-webkit-app-region:no-drag]",
                   isActive
-                    ? "text-[var(--accent-primary)]"
-                    : "text-[var(--text-secondary)] opacity-70 group-hover:opacity-100",
-                  color && activeColorConfig?.text
+                    ? (!color ? "bg-[var(--text-primary)]/10 text-[var(--text-primary)]" : cn(activeColorConfig?.activeBg, "text-[var(--text-primary)]"))
+                    : (!color ? "bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5" : cn(activeColorConfig?.bg, activeColorConfig?.hoverBg, activeColorConfig?.text)),
+                  isDraft && !isActive && "opacity-80"
                 )}
-              />
-            )}
-          </div>
+              >
+                {/* Active Tab Accent Indicator (Left Line) */}
+                {isActive && (
+                  <div className={cn(
+                    "absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full opacity-100",
+                    color ? cn("bg-current opacity-70") : "bg-[var(--accent-primary)]"
+                  )} />
+                )}
 
-          {/* Selected Indicator Dot */}
-          {isActive && !color && (
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_4px_var(--accent-primary)] shrink-0 z-10 animate-in fade-in zoom-in-75 duration-200" />
-          )}
+                {/* Left Slot: Mode Indicator / Icon */}
+                <div className="flex items-center justify-center shrink-0 z-10 ml-0.5">
+                  {icon ? (
+                    <div className={cn(
+                      "transition-all duration-200",
+                      isActive ? "opacity-100 scale-105" : "opacity-60 group-hover:opacity-100"
+                    )}>
+                      {icon}
+                    </div>
+                  ) : (
+                    <Terminal
+                      size={12}
+                      className={cn(
+                        "transition-all duration-200",
+                        isActive
+                          ? "text-[var(--accent-primary)] scale-105"
+                          : "text-[var(--text-secondary)] opacity-60 group-hover:opacity-100",
+                        color && activeColorConfig?.text
+                      )}
+                    />
+                  )}
+                </div>
 
-          {/* Color accent pip */}
-          {color && (
-            <div
-              className="w-1.5 h-1.5 rounded-full shrink-0 z-10 transition-transform duration-150 group-hover:scale-110"
-              style={{
-                backgroundColor: activeColorConfig?.hex,
-                boxShadow: `0 0 6px ${activeColorConfig?.hex}60`,
-              }}
-            />
-          )}
+                {/* Workspace Title (Truncated) */}
+                <div
+                  className={cn(
+                    "truncate text-left flex-1 flex items-center gap-1.5 z-10 transition-colors duration-200",
+                    isActive ? "font-bold" : "font-bold"
+                  )}
+                >
+                  <span className="truncate">{displayName}</span>
+                  {terminalCount !== undefined && terminalCount > 0 && (
+                    <span className={cn(
+                      "text-[9px] px-1 rounded-sm font-mono opacity-50 bg-black/20",
+                      isActive && "opacity-80"
+                    )}>
+                      {terminalCount}
+                    </span>
+                  )}
+                </div>
 
-          {/* Workspace Title (Truncated) */}
-          <span
-            className={cn(
-              "truncate text-left flex-1 block max-w-[110px] z-10 transition-colors duration-150",
-              color && isActive && activeColorConfig?.text
-            )}
-          >
-            {displayName}
-          </span>
-
-          {/* Far Right Close ('X') Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onClose()
-            }}
-            className="opacity-0 group-hover:opacity-80 hover:opacity-100 hover:bg-[#F85149]/10 hover:text-[#F85149] rounded p-0.5 transition-all flex items-center justify-center w-4 h-4 text-zinc-400 cursor-pointer shrink-0 z-10 ml-auto active:scale-90"
-            title="Close Workspace"
-          >
-            <X size={10} strokeWidth={2.5} />
-          </button>
+                {/* Far Right Close ('X') Button */}
+                {canClose && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onClose()
+                    }}
+                    className={cn(
+                      "ml-auto p-0.5 rounded-sm transition-all flex items-center justify-center w-4 h-4 text-[var(--text-secondary)] cursor-pointer shrink-0 z-10 active:scale-90",
+                      isActive ? "opacity-60 hover:opacity-100 hover:bg-white/10" : "opacity-0 group-hover:opacity-80 hover:opacity-100 hover:bg-white/10"
+                    )}
+                  >
+                    <X size={10} strokeWidth={2.5} />
+                  </button>
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+              {`${displayName}${customName && name ? ` (${name})` : ""}`}
+              <div className="text-[10px] opacity-80 font-bold mt-0.5">Right-click to rename or change color</div>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </PopoverAnchor>
 
@@ -233,7 +253,7 @@ export function InteractiveTab({
           style={{
             fontSize: '0.65rem',
             color: 'var(--text-secondary)',
-            fontWeight: 600,
+            fontWeight: 700,
             padding: '0.5rem 0.85rem 0.35rem',
             letterSpacing: '0.05em'
           }}
@@ -258,7 +278,7 @@ export function InteractiveTab({
                 alignItems: 'center',
                 transition: 'all 150ms ease'
               }}
-              className="hover:bg-white/5 w-full text-left font-sans font-medium"
+              className="hover:bg-[var(--text-primary)]/5 w-full text-left font-sans font-bold"
             >
               Rename Tab
             </button>
@@ -269,7 +289,7 @@ export function InteractiveTab({
               style={{
                 fontSize: '0.65rem',
                 color: 'var(--text-secondary)',
-                fontWeight: 600,
+                fontWeight: 700,
                 padding: '0.3rem 0.75rem 0.15rem',
               }}
               className="block font-sans select-none uppercase tracking-wider"
@@ -282,7 +302,7 @@ export function InteractiveTab({
                 type="text"
                 value={tempName}
                 onChange={(e) => setTempName(e.target.value)}
-                className="w-full h-7 px-2.5 bg-black/25 border border-[var(--border-color)] rounded text-[11px] text-[var(--text-primary)] placeholder-zinc-600 focus:outline-none focus:border-[var(--accent-primary)] transition-colors font-sans"
+                className="w-full h-7 px-2.5 bg-[var(--bg-color)]/25 border border-[var(--border-color)] rounded text-[11px] text-[var(--text-primary)] placeholder:[var(--text-secondary)]/50 focus:outline-none focus:border-[var(--accent-primary)] transition-colors font-sans font-bold"
                 placeholder="Workspace Name"
               />
             </div>
@@ -296,7 +316,7 @@ export function InteractiveTab({
             style={{
               fontSize: '0.65rem',
               color: 'var(--text-secondary)',
-              fontWeight: 600,
+              fontWeight: 700,
               padding: '0.3rem 0.75rem 0.15rem',
             }}
             className="block font-sans select-none uppercase tracking-wider"
@@ -305,19 +325,25 @@ export function InteractiveTab({
           </span>
           <div className="flex items-center justify-center gap-3 px-[0.75rem] pb-1.5 pt-0.5">
             {/* Clear Color option */}
-            <button
-              onClick={() => {
-                onColorChange(undefined as any)
-                setPopoverOpen(false)
-              }}
-              className={cn(
-                "w-4 h-4 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 cursor-pointer transition-all duration-150 hover:bg-zinc-700 hover:text-white active:scale-90",
-                !color && "ring-2 ring-offset-2 ring-offset-zinc-950 ring-zinc-400"
-              )}
-              title="Default Slate"
-            >
-              <Ban size={10} strokeWidth={2.5} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => {
+                    onColorChange(undefined as any)
+                    setPopoverOpen(false)
+                  }}
+                  className={cn(
+                    "w-4 h-4 rounded-full bg-[var(--text-secondary)]/40 border border-[var(--border-color)] flex items-center justify-center text-[var(--text-secondary)] cursor-pointer transition-all duration-150 hover:bg-[var(--text-secondary)]/60 hover:text-[var(--text-primary)] active:scale-90",
+                    !color && "ring-2 ring-offset-2 ring-offset-[var(--bg-color)] ring-[var(--accent-primary)]"
+                  )}
+                >
+                  <Ban size={10} strokeWidth={2.5} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)] z-[2000]">
+                Default Slate
+              </TooltipContent>
+            </Tooltip>
 
             {/* Horizontal Color Swatches */}
             {(Object.keys(COLOR_MAP) as TabColor[]).map((c) => {
@@ -325,20 +351,25 @@ export function InteractiveTab({
               const isSelected = color === c
 
               return (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => {
-                    onColorChange(c)
-                    setPopoverOpen(false)
-                  }}
-                  style={{ backgroundColor: item.hex }}
-                  className={cn(
-                    "w-4 h-4 rounded-full cursor-pointer transition-all duration-150 hover:scale-110 active:scale-90 border border-black/20",
-                    isSelected && cn("ring-2 ring-offset-2 ring-offset-zinc-950", item.ring)
-                  )}
-                  title={item.label}
-                />
+                <Tooltip key={c}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onColorChange(c)
+                        setPopoverOpen(false)
+                      }}
+                      style={{ backgroundColor: item.hex }}
+                      className={cn(
+                        "w-4 h-4 rounded-full cursor-pointer transition-all duration-150 hover:scale-110 active:scale-90 border border-black/20",
+                        isSelected && cn("ring-2 ring-offset-2 ring-offset-[var(--bg-color)]", item.ring)
+                      )}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)] z-[2000]">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
               )
             })}
           </div>
@@ -352,9 +383,9 @@ export function InteractiveTab({
                 style={{
                   fontSize: '0.65rem',
                   color: 'var(--text-secondary)',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   padding: '0.3rem 0.75rem 0.15rem',
-                }}
+              }}
                 className="block font-sans select-none uppercase tracking-wider"
               >
                 Workspace Actions
@@ -378,7 +409,7 @@ export function InteractiveTab({
                       alignItems: 'center',
                       transition: 'all 150ms ease'
                     }}
-                    className="hover:bg-white/5 w-full text-left font-sans font-medium"
+                    className="hover:bg-[var(--text-primary)]/5 w-full text-left font-sans font-bold"
                   >
                     Close Other Tabs
                   </button>
@@ -401,7 +432,7 @@ export function InteractiveTab({
                       alignItems: 'center',
                       transition: 'all 150ms ease'
                     }}
-                    className="hover:bg-white/5 w-full text-left font-sans font-medium"
+                    className="hover:bg-[var(--text-primary)]/5 w-full text-left font-sans font-bold"
                   >
                     Close Tabs to the Right
                   </button>

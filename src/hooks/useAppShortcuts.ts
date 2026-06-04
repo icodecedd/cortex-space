@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Workspace } from "../types";
 import { getSettingsGroup, SHORTCUT_DEFAULTS, ShortcutSettings } from "@/lib/store";
+import { matchesShortcut } from "@/lib/shortcut-utils";
 
 interface UseAppShortcutsProps {
   workspaces: Workspace[];
@@ -15,26 +16,6 @@ interface UseAppShortcutsProps {
   onToggleSettings: () => void;
   onToggleZenMode: () => void;
   onToggleSwitcher: () => void;
-}
-
-/**
- * Helper to check if a KeyboardEvent matches a shortcut string like "Ctrl+Shift+Z"
- */
-function isShortcutMatch(e: KeyboardEvent, shortcutStr: string): boolean {
-  if (!shortcutStr) return false;
-  
-  const parts = shortcutStr.split('+').map(p => p.trim().toLowerCase());
-  const key = parts[parts.length - 1];
-  const hasCtrl = parts.includes('ctrl') || parts.includes('cmd') || parts.includes('meta');
-  const hasAlt = parts.includes('alt') || parts.includes('opt');
-  const hasShift = parts.includes('shift');
-
-  const eventKey = e.key.toLowerCase();
-  const eventCtrl = e.ctrlKey || e.metaKey;
-  const eventAlt = e.altKey;
-  const eventShift = e.shiftKey;
-
-  return eventKey === key && eventCtrl === hasCtrl && eventAlt === hasAlt && eventShift === hasShift;
 }
 
 export function useAppShortcuts({
@@ -69,7 +50,7 @@ export function useAppShortcuts({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // 0. Zen Mode Toggle
-      if (isShortcutMatch(e, shortcuts.toggleZenMode)) {
+      if (matchesShortcut(e, shortcuts.toggleZenMode)) {
         e.preventDefault();
         onToggleZenMode();
         return;
@@ -83,7 +64,7 @@ export function useAppShortcuts({
       }
 
       // 1. New workspace setup flow
-      if (isShortcutMatch(e, shortcuts.newWorkspace)) {
+      if (matchesShortcut(e, shortcuts.newWorkspace)) {
         e.preventDefault();
         onNewWorkspaceFlow();
         toast.info("New Workflow Initiated", { description: "Configure your new separate workspace." });
@@ -91,7 +72,7 @@ export function useAppShortcuts({
       }
 
       // 2. Terminate active workspace
-      if (isShortcutMatch(e, shortcuts.closeWorkspace)) {
+      if (matchesShortcut(e, shortcuts.closeWorkspace)) {
         e.preventDefault();
         if (activeWorkspaceId) {
           onCloseWorkspace(activeWorkspaceId);
@@ -100,7 +81,7 @@ export function useAppShortcuts({
       }
 
       // 3. Tab cycling (Next)
-      if (isShortcutMatch(e, shortcuts.cycleNextWorkspace)) {
+      if (matchesShortcut(e, shortcuts.cycleNextWorkspace)) {
         e.preventDefault();
         if (workspaces.length <= 1) return;
         const currentIndex = workspaces.findIndex(w => w.id === activeWorkspaceId);
@@ -110,7 +91,7 @@ export function useAppShortcuts({
       }
 
       // 3.1 Tab cycling (Prev)
-      if (isShortcutMatch(e, shortcuts.cyclePrevWorkspace)) {
+      if (matchesShortcut(e, shortcuts.cyclePrevWorkspace)) {
         e.preventDefault();
         if (workspaces.length <= 1) return;
         const currentIndex = workspaces.findIndex(w => w.id === activeWorkspaceId);
@@ -120,28 +101,28 @@ export function useAppShortcuts({
       }
 
       // 4. Keyboard Shortcuts Cheatsheet
-      if (isShortcutMatch(e, shortcuts.openShortcuts)) {
+      if (matchesShortcut(e, shortcuts.openShortcuts)) {
         e.preventDefault();
         onToggleShortcuts();
         return;
       }
 
       // 5. Space Templates
-      if (isShortcutMatch(e, shortcuts.openTemplates)) {
+      if (matchesShortcut(e, shortcuts.openTemplates)) {
         e.preventDefault();
         onToggleTemplates();
         return;
       }
 
       // 6. Settings
-      if (isShortcutMatch(e, shortcuts.openSettings)) {
+      if (matchesShortcut(e, shortcuts.openSettings)) {
         e.preventDefault();
         onToggleSettings();
         return;
       }
 
       // 7. Workspace Quick Switcher
-      if (isShortcutMatch(e, shortcuts.quickSwitcher)) {
+      if (matchesShortcut(e, shortcuts.quickSwitcher)) {
         e.preventDefault();
         onToggleSwitcher();
         return;

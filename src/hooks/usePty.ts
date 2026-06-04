@@ -7,6 +7,8 @@ interface PtyOutputPayload {
   data: number[];
 }
 
+export type PtyStatus = 'idle' | 'thinking' | 'finished';
+
 export function usePty(
   id: string, 
   onData: (data: Uint8Array) => void, 
@@ -14,15 +16,34 @@ export function usePty(
 ) {
   const [isReady, setIsReady] = useState(false);
   const [isTerminated, setIsTerminated] = useState(false);
+  const [status, setStatus] = useState<PtyStatus>('idle');
   const isMountedRef = useRef(true);
   const inputQueueRef = useRef<string[]>([]);
   const pendingResizeRef = useRef<{ rows: number; cols: number } | null>(null);
   const onDataRef = useRef(onData);
+  const statusTimersRef = useRef<{ finish: any; idle: any }>({ finish: null, idle: null });
 
   // Keep onData fresh without triggering effects
   useEffect(() => {
     onDataRef.current = onData;
   }, [onData]);
+
+  // Handle data stream for status monitoring
+  const updateStatusOnData = useCallback(() => {
+    setStatus('thinking');
+    
+    // Clear existing timers
+    if (statusTimersRef.current.finish) clearTimeout(statusTimersRef.current.finish);
+    if (statusTimersRef.current.idle) clearTimeout(statusTimersRef.current.idle);
+
+    // Set "finished" state after 1.5s of inactivity
+    statusTimersRef.current.finish = setTimeout(() => {
+      setStatus('finished');
+      
+      // Removed: Automatic revert to "idle". 
+      // Status remains "finished" until new data sets it to "thinking" again.
+    }, 1500);
+  }, []);
 
   const spawn = useCallback(async (spawnConfig: { command?: string; cwd?: string; rows?: number; cols?: number; shell?: string }) => {
     try {
@@ -108,8 +129,9 @@ export function usePty(
     const setup = async () => {
       const ul = await listen<PtyOutputPayload>('pty-output', (event) => {
         if (active && isMountedRef.current && event.payload.id === id) {
-          // Log only length for binary data to avoid console flooding
-          // console.log(`[usePty ${id}] Received pty-output length: ${event.payload.data.length}`);
+          // Update status based on data activity
+          updateStatusOnData();
+          
           const uint8Array = new Uint8Array(event.payload.data);
           onDataRef.current(uint8Array);
         }
@@ -150,6 +172,10 @@ export function usePty(
       active = false;
       isMountedRef.current = false;
       setIsReady(false);
+      
+      if (statusTimersRef.current.finish) clearTimeout(statusTimersRef.current.finish);
+      if (statusTimersRef.current.idle) clearTimeout(statusTimersRef.current.idle);
+      
       if (unlisten) {
         unlisten();
       }
@@ -160,7 +186,7 @@ export function usePty(
     };
     // ONLY restart if the core process definition changes.
     // Dimensions (rows/cols) changes must be handled by resize() to keep session alive.
-  }, [id, config?.command, config?.cwd, config?.shell, spawn]);
+  }, [id, config?.command, config?.cwd, config?.shell, spawn, updateStatusOnData]);
 
-  return { write, resize, isReady, isTerminated, relaunch };
+  return { write, resize, isReady, isTerminated, relaunch, status };
 }

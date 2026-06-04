@@ -291,6 +291,15 @@ fn get_home_dir() -> Option<String> {
 }
 
 #[tauri::command]
+fn check_port(port: u16) -> bool {
+    use std::net::{TcpStream, SocketAddr};
+    use std::time::Duration;
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    TcpStream::connect_timeout(&addr, Duration::from_millis(150)).is_ok()
+}
+
+#[tauri::command]
 fn debug_env() -> String {
     let env = get_shell_env();
     env.get("PATH")
@@ -317,6 +326,7 @@ pub fn run() {
             kill_pty,
             validate_directory,
             get_home_dir,
+            check_port,
             debug_env
         ])
         .run(tauri::generate_context!())

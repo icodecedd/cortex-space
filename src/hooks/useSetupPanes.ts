@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from "react";
-import { LayoutType, LayoutConfig, SavedLayout, INITIAL_LAYOUTS, AGENT_PRESETS, PaneConfig } from "@/lib/setup-constants";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { LayoutType, LayoutConfig, SavedLayout, INITIAL_LAYOUTS, PaneConfig } from "@/lib/setup-constants";
 import { getPaneCount } from "@/lib/setup-utils";
 import { getSetting, setSetting } from "@/lib/store";
+import { toast } from "sonner";
 
-export function useSetupPanes(mode: 'normal' | 'agents') {
+export function useSetupPanes() {
   const [layoutType, setLayoutType] = useState<LayoutType>("2x2");
   const [customLayout, setCustomLayout] = useState<LayoutConfig>({ rows: 2, cols: 2 });
-  const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
+  const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>(INITIAL_LAYOUTS);
   const [isInitialized, setIsInitialized] = useState(false);
   
   const currentLayout = useMemo(() => {
@@ -48,7 +49,7 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
     Array.from({ length: 16 }, (_, i) => ({
       id: i + 1,
       name: `Pane ${i + 1}`,
-      command: mode === 'agents' ? AGENT_PRESETS[i % AGENT_PRESETS.length].command : "",
+      command: "", // Default to empty so placeholders work correctly
       isCustom: false
     }))
   );
@@ -66,6 +67,15 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
   };
 
   const addSavedLayout = (name: string, config: LayoutConfig) => {
+    // Validation: Check for duplicate configuration
+    const isDuplicate = savedLayouts.some(l => l.rows === config.rows && l.cols === config.cols);
+    if (isDuplicate) {
+      toast.error("Layout already exists", {
+        description: `A ${config.rows}X${config.cols} configuration is already in your library.`
+      });
+      return;
+    }
+
     const newLayout: SavedLayout = {
       id: `layout-${Date.now()}`,
       name,
@@ -74,6 +84,7 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
     };
     setSavedLayouts(prev => [...prev, newLayout]);
     setLayoutType(newLayout.id);
+    toast.success("Layout Registered", { description: `${name} has been added to your presets.` });
   };
 
   const removeSavedLayout = (id: string) => {
@@ -100,6 +111,14 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
     ));
   };
 
+  const updateAllPaneCommands = useCallback((command: string, isCustom?: boolean) => {
+    setPanes(prev => prev.map(p => ({
+      ...p,
+      command,
+      isCustom: isCustom !== undefined ? isCustom : p.isCustom
+    })));
+  }, []);
+
   return {
     layoutType,
     setLayoutType,
@@ -114,6 +133,8 @@ export function useSetupPanes(mode: 'normal' | 'agents') {
     activePanes,
     handleLayoutChange,
     updatePaneCommand,
-    restoreDefaults
+    updateAllPaneCommands,
+    restoreDefaults,
+    isInitialized
   };
 }

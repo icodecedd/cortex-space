@@ -1,10 +1,6 @@
 import * as React from "react";
 import { useState, useMemo, useEffect } from "react";
-import {
-  Minimize2
-} from "lucide-react";
 import { TerminalPane } from "./TerminalPane";
-import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { gridToLayoutNode, findNeighborPane } from "@/lib/setup-utils";
 import { LayoutConfig } from "@/lib/setup-constants";
@@ -31,6 +27,10 @@ interface SpaceViewProps {
   setIsZenMode: (val: boolean) => void;
   zenPadding?: number;
   showPaneHeaders?: boolean;
+  onSplitPane?: (paneId: string, direction: 'horizontal' | 'vertical') => void;
+  onKillPane?: (paneId: string) => void;
+  onRenamePane?: (paneId: string, newName: string) => void;
+  onSaveSnippet?: (command: string) => void;
 }
 
 export function SpaceView({ 
@@ -38,7 +38,10 @@ export function SpaceView({
   config, 
   isZenMode, 
   zenPadding = 32,
-  showPaneHeaders = true
+  onSplitPane,
+  onKillPane,
+  onRenamePane,
+  onSaveSnippet
 }: SpaceViewProps) {
   // Normalize layout to LayoutNode tree
   const layoutTree = useMemo(() => {
@@ -75,10 +78,6 @@ export function SpaceView({
     }
   }, [allPanes, focusedPaneId]);
 
-  const focusedPane = useMemo(() => {
-    return allPanes.find(p => p.id === focusedPaneId) || allPanes[0];
-  }, [allPanes, focusedPaneId]);
-
   // Global active session workspace keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -100,10 +99,10 @@ export function SpaceView({
         setIsMaximized(prev => !prev);
       }
 
-      // 3. Directional Navigation (Cmd/Ctrl + Opt + Arrows)
+      // 3. Directional Navigation (Alt + Arrows)
       const isArrow = e.key.startsWith('Arrow');
-      const isMod = (e.ctrlKey || e.metaKey) && e.altKey;
-      if (isMod && isArrow && focusedPaneId) {
+      const isAlt = e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+      if (isAlt && isArrow && focusedPaneId) {
         e.preventDefault();
         const dir = e.key.slice(5).toLowerCase() as 'up' | 'down' | 'left' | 'right';
         const neighborId = findNeighborPane(layoutTree, focusedPaneId, dir);
@@ -117,26 +116,42 @@ export function SpaceView({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [allPanes, focusedPaneId, layoutTree]);
 
+  const renderTerminalPane = (pane: PaneNode, isForcedFocus = false) => {
+    const pIndex = allPanes.findIndex(p => p.id === pane.id);
+    return (
+      <TerminalPane
+        key={pane.id}
+        workspaceId={workspaceId}
+        pane={{
+          id: pane.id,
+          name: pane.name,
+          command: pane.command,
+          isCustom: true
+        }}
+        isFocused={isForcedFocus || focusedPaneId === pane.id}
+        index={pIndex}
+        isMultiPane={allPanes.length > 1}
+        onFocus={() => setFocusedPaneId(pane.id)}
+        rootPath={config.rootPath}
+        isZenMode={isZenMode}
+        zenPadding={zenPadding}
+        isMaximized={isMaximized}
+        onMaximize={() => {
+          setFocusedPaneId(pane.id);
+          setIsMaximized(!isMaximized);
+        }}
+        onSplit={onSplitPane}
+        onKill={onKillPane}
+        onRename={onRenamePane}
+        onSaveSnippet={onSaveSnippet}
+      />
+    );
+  };
+
   // Recursive Layout Renderer
   const renderLayout = (node: LayoutNode): React.ReactNode => {
     if (node.type === 'pane') {
-      return (
-        <TerminalPane
-          workspaceId={workspaceId}
-          pane={{
-            id: parseInt(node.id),
-            name: node.name,
-            command: node.command,
-            isCustom: true
-          }}
-          isFocused={focusedPaneId === node.id}
-          isMultiPane={allPanes.length > 1}
-          onFocus={() => setFocusedPaneId(node.id)}
-          rootPath={config.rootPath}
-          isZenMode={isZenMode}
-          showPaneHeader={showPaneHeaders}
-        />
-      );
+      return renderTerminalPane(node);
     }
 
     const orientation = node.direction === 'horizontal' ? 'horizontal' : 'vertical';
@@ -155,90 +170,18 @@ export function SpaceView({
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-[var(--bg-color)] overflow-hidden text-[#C9C9D4] font-sans">
+    <div className="space-view-container w-full h-full flex flex-col bg-[var(--bg-color)] overflow-hidden text-[var(--text-secondary)] font-sans">
       <div className="flex-1 bg-[var(--bg-color)] overflow-hidden flex flex-col relative">
-        {isZenMode ? (
-          <div 
-            className="w-full h-full flex flex-col relative animate-in fade-in duration-300"
-            style={{ padding: `${zenPadding}px` }}
-          >
-            {focusedPane && (
-              <TerminalPane
-                workspaceId={workspaceId}
-                pane={{
-                  id: parseInt(focusedPane.id),
-                  name: focusedPane.name,
-                  command: focusedPane.command,
-                  isCustom: true
-                }}
-                isFocused={true}
-                isMultiPane={false}
-                onFocus={() => {}}
-                rootPath={config.rootPath}
-                isZenMode={true}
-                showPaneHeader={showPaneHeaders}
-              />
-            )}
-          </div>
-        ) : isMaximized ? (
-          <div className="w-full h-full flex flex-col relative">
-            <div className="absolute top-2 right-4 z-20 flex items-center gap-1.5">
-              <span className="text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--header-bg)]/80 px-2 py-0.5 rounded border border-[var(--border-color)]">
-                MAXIMIZED VIEW
-              </span>
-              <Button
-                variant="outline"
-                size="icon-xs"
-                onClick={() => setIsMaximized(false)}
-                className="p-1 bg-[var(--header-bg)] border-[var(--border-color)] hover:bg-[var(--border-color)] transition-colors rounded text-[var(--text-primary)]"
-              >
-                <Minimize2 size={11} />
-              </Button>
-            </div>
-            {focusedPane && (
-              <TerminalPane
-                workspaceId={workspaceId}
-                pane={{
-                  id: parseInt(focusedPane.id),
-                  name: focusedPane.name,
-                  command: focusedPane.command,
-                  isCustom: true
-                }}
-                isFocused={true}
-                isMultiPane={false}
-                onFocus={() => {}}
-                rootPath={config.rootPath}
-                showPaneHeader={showPaneHeaders}
-              />
-            )}
-          </div>
+        {isMobile ? (
+           <div className="h-full overflow-y-auto bg-[var(--border-color)] flex flex-col gap-[1px]">
+              {allPanes.map((pane) => (
+                <div key={pane.id} className="h-[300px] shrink-0">
+                  {renderTerminalPane(pane)}
+                </div>
+              ))}
+           </div>
         ) : (
-          <div className="flex-1 overflow-hidden">
-            {isMobile ? (
-               <div className="h-full overflow-y-auto bg-[var(--border-color)] flex flex-col gap-[1px]">
-                  {allPanes.map(pane => (
-                    <div key={pane.id} className="h-[300px] shrink-0">
-                      <TerminalPane
-                        workspaceId={workspaceId}
-                        pane={{
-                          id: parseInt(pane.id),
-                          name: pane.name,
-                          command: pane.command,
-                          isCustom: true
-                        }}
-                        isFocused={focusedPaneId === pane.id}
-                        isMultiPane={allPanes.length > 1}
-                        onFocus={() => setFocusedPaneId(pane.id)}
-                        rootPath={config.rootPath}
-                        showPaneHeader={showPaneHeaders}
-                      />
-                    </div>
-                  ))}
-               </div>
-            ) : (
-              renderLayout(layoutTree)
-            )}
-          </div>
+          renderLayout(layoutTree)
         )}
       </div>
     </div>

@@ -1,10 +1,11 @@
-import { CheckCircle2, Settings2, Trash2, Layers, Zap, Plus, X } from "lucide-react";
+import { CheckCircle2, Settings2, Trash2 } from "lucide-react";
+import { useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { LayoutType, LayoutConfig, SavedLayout } from "@/lib/setup-constants";
 import { getGridCols, getGridRows, getPaneCount } from "@/lib/setup-utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { EmptyState } from "@/components/ui/empty-state";
 
 interface LayoutSelectorProps {
   currentLayout: LayoutType;
@@ -13,7 +14,6 @@ interface LayoutSelectorProps {
   onCustomLayoutChange: (config: Partial<LayoutConfig>) => void;
   savedLayouts: SavedLayout[];
   onRemoveSavedLayout?: (id: string) => void;
-  onRestoreDefaults?: () => void;
 }
 
 export function LayoutSelector({ 
@@ -22,69 +22,39 @@ export function LayoutSelector({
   customLayout, 
   onCustomLayoutChange,
   savedLayouts,
-  onRemoveSavedLayout,
-  onRestoreDefaults
+  onRemoveSavedLayout
 }: LayoutSelectorProps) {
   // All layouts are now dynamic and come from savedLayouts
-  const options = [
+  const options = useMemo(() => [
     ...savedLayouts.map(l => ({ id: l.id, name: l.name, isSystem: false })),
     { id: 'custom', name: 'CUSTOM', isSystem: true }
-  ];
+  ], [savedLayouts]);
 
-  if (savedLayouts.length === 0) {
-    return (
-      <div className="flex flex-col gap-6">
-        <EmptyState 
-          icon={Layers}
-          compact
-          title="Library is Empty"
-          description="You haven't saved any terminal grid arrangements yet. Restore defaults or define a custom one below."
-          iconColor="text-blue-500/40"
-          action={onRestoreDefaults ? {
-            label: "Install Starter Pack",
-            onClick: onRestoreDefaults,
-            icon: Zap
-          } : undefined}
-          className="border border-dashed border-[var(--border-color)] rounded-lg bg-white/[0.01]"
-        />
-        
-        <div 
-          onClick={() => onLayoutChange(currentLayout === 'custom' ? '2x2' : 'custom')} // Toggle custom
-          className={cn(
-            "layout-card relative flex items-center justify-center h-12 rounded-md border border-dashed border-[var(--border-color)] cursor-pointer transition-all hover:border-[var(--accent-primary)] hover:bg-white/5",
-            currentLayout === 'custom' && "border-[var(--accent-primary)] bg-white/5 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.1)]"
-          )}
-        >
-          {currentLayout === 'custom' ? <X size={14} className="mr-2 text-[var(--accent-primary)]" /> : <Plus size={14} className="mr-2" />}
-          <span className={cn("font-mono text-[10px] font-bold", currentLayout === 'custom' ? "text-[var(--accent-primary)]" : "text-[var(--text-secondary)]")}>
-            {currentLayout === 'custom' ? "CLOSE CUSTOM CONFIG" : "START WITH CUSTOM GRID"}
-          </span>
-        </div>
-
-        {currentLayout === 'custom' && (
-          <CustomLayoutForm 
-            customLayout={customLayout} 
-            onCustomLayoutChange={onCustomLayoutChange} 
-          />
-        )}
-      </div>
-    );
-  }
+  const handleNumericInput = (val: string, key: 'rows' | 'cols') => {
+    if (val === "") {
+      onCustomLayoutChange({ [key]: 0 });
+      return;
+    }
+    const parsed = parseInt(val);
+    if (!isNaN(parsed)) {
+      onCustomLayoutChange({ [key]: Math.min(4, Math.max(0, parsed)) });
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {options.map((opt, index) => (
-          <div
+        {options.map((opt) => (
+          <motion.div
             key={opt.id}
             onClick={() => onLayoutChange(opt.id)}
             className={cn(
-              "layout-card animate-in group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-md border transition-all duration-200 overflow-hidden",
+              "layout-card group relative flex aspect-square cursor-pointer flex-col items-center justify-center rounded-md border duration-200 overflow-hidden",
               currentLayout === opt.id 
-                ? "border-[var(--accent-primary)] bg-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)]" 
-                : "border-[var(--border-color)] bg-transparent hover:border-[var(--accent-primary)] hover:bg-white/5"
+                ? "border-[var(--accent-primary)] bg-white/10 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.1)]" 
+                : "border-[var(--border-color)] bg-transparent hover:border-[var(--accent-primary)]/40 hover:bg-white/5"
             )}
-            style={{ transitionDelay: `${index * 30}ms` }}
+            whileTap={{ scale: 0.97 }}
           >
             {opt.id === 'custom' ? (
               <Settings2 
@@ -106,18 +76,24 @@ export function LayoutSelector({
                 {opt.name.toUpperCase()}
               </span>
               {!opt.isSystem && (
-                <span className="font-mono text-[7px] text-[var(--text-secondary)] opacity-50">
+                <span className="font-mono text-[7px] text-[var(--text-secondary)] font-bold">
                   {savedLayouts.find(l => l.id === opt.id)?.rows}X{savedLayouts.find(l => l.id === opt.id)?.cols}
                 </span>
               )}
             </div>
 
-            {currentLayout === opt.id && (
-              <CheckCircle2 
-                size={12} 
-                className="absolute top-2 right-2 text-[var(--accent-primary)]" 
-              />
-            )}
+            <AnimatePresence>
+              {currentLayout === opt.id && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  className="absolute top-2 right-2"
+                >
+                  <CheckCircle2 size={12} className="text-[var(--accent-primary)]" />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {!opt.isSystem && (
               <Button
@@ -132,49 +108,64 @@ export function LayoutSelector({
                 <Trash2 size={10} />
               </Button>
             )}
-          </div>
+          </motion.div>
         ))}
       </div>
 
-      {currentLayout === 'custom' && (
-        <CustomLayoutForm 
-          customLayout={customLayout} 
-          onCustomLayoutChange={onCustomLayoutChange} 
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {currentLayout === 'custom' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            className="overflow-hidden"
+          >
+            <CustomLayoutForm 
+              customLayout={customLayout} 
+              handleNumericInput={handleNumericInput} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function CustomLayoutForm({ customLayout, onCustomLayoutChange }: { customLayout: LayoutConfig, onCustomLayoutChange: (config: Partial<LayoutConfig>) => void }) {
+function CustomLayoutForm({ 
+  customLayout, 
+  handleNumericInput 
+}: { 
+  customLayout: LayoutConfig, 
+  handleNumericInput: (val: string, key: 'rows' | 'cols') => void 
+}) {
   return (
-    <div className="animate-in fade-in slide-in-from-top-2 flex items-center gap-8 rounded-md border border-[var(--border-color)] bg-white/[0.02] p-5">
+    <div className="flex items-center gap-8 rounded-md border border-[var(--border-color)] bg-white/[0.02] p-5">
       <div className="flex items-center gap-4">
-        <div className="font-mono text-[10px] font-medium tracking-tight text-[var(--text-secondary)] uppercase">Rows</div>
+        <div className="font-mono text-[10px] font-bold tracking-tight text-[var(--text-secondary)] uppercase">Rows</div>
         <Input 
           type="number" 
           min="1" 
           max="4" 
-          value={customLayout.rows}
-          onChange={(e) => onCustomLayoutChange({ rows: Math.min(4, Math.max(1, parseInt(e.target.value) || 1)) })}
-          className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)]"
+          value={customLayout.rows === 0 ? "" : customLayout.rows}
+          onChange={(e) => handleNumericInput(e.target.value, 'rows')}
+          className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)] font-bold"
         />
       </div>
-      <div className="text-[var(--text-secondary)] font-mono text-xs opacity-50">×</div>
+      <div className="text-[var(--text-secondary)] font-mono text-xs font-bold">×</div>
       <div className="flex items-center gap-4">
-        <div className="font-mono text-[10px] font-medium tracking-tight text-[var(--text-secondary)] uppercase">Cols</div>
+        <div className="font-mono text-[10px] font-bold tracking-tight text-[var(--text-secondary)] uppercase">Cols</div>
         <Input 
           type="number" 
           min="1" 
           max="4" 
-          value={customLayout.cols}
-          onChange={(e) => onCustomLayoutChange({ cols: Math.min(4, Math.max(1, parseInt(e.target.value) || 1)) })}
-          className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)]"
+          value={customLayout.cols === 0 ? "" : customLayout.cols}
+          onChange={(e) => handleNumericInput(e.target.value, 'cols')}
+          className="h-8 w-14 bg-[var(--bg-color)] px-2 font-mono text-xs text-center border-[var(--border-color)] font-bold"
         />
       </div>
       <div className="ml-auto flex items-center gap-6">
-        <div className="font-mono text-[10px] text-[var(--text-secondary)]">
-          PREVIEW: <span className="font-bold text-[var(--accent-primary)]">{customLayout.rows * customLayout.cols} PANES</span>
+        <div className="font-mono text-[10px] text-[var(--text-secondary)] font-bold">
+          PREVIEW: <span className="font-bold text-[var(--accent-primary)]">{(customLayout.rows || 1) * (customLayout.cols || 1)} PANES</span>
         </div>
         <div className="h-10 w-10">
           <LayoutMiniPreview type="custom" customConfig={customLayout} />
@@ -188,7 +179,11 @@ function LayoutMiniPreview({ type, customConfig, savedLayouts }: { type: LayoutT
   let config: LayoutConfig | undefined;
   
   if (type === 'custom' && customConfig) {
-    config = customConfig;
+    // For preview purposes, ensure we show at least 1 row/col even during editing
+    config = {
+      rows: customConfig.rows || 1,
+      cols: customConfig.cols || 1
+    };
   } else {
     config = savedLayouts?.find(l => l.id === type);
   }
@@ -209,7 +204,7 @@ function LayoutMiniPreview({ type, customConfig, savedLayouts }: { type: LayoutT
       }}
     >
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-[var(--bg-color)] ring-1 ring-[var(--border-color)]/30" />
+        <div key={i} className="bg-[var(--bg-color)] ring-1 ring-[var(--border-color)]" />
       ))}
     </div>
   );

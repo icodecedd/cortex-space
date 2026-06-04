@@ -44,6 +44,7 @@ export interface StartupSettings {
   rememberLastMode: boolean;
   openOnLaunch: OpenOnLaunch;
   checkForUpdatesOnStartup: boolean;
+  confirmModeChange: boolean;
   defaultShell: string;
 }
 
@@ -66,6 +67,8 @@ export interface ShortcutSettings {
   openTemplates: string;
   openSettings: string;
   quickSwitcher: string;
+  splitHorizontal: string;
+  splitVertical: string;
 }
 
 export interface FocusSettings {
@@ -73,7 +76,6 @@ export interface FocusSettings {
   isZenMode: boolean;
   showTabs: boolean;
   showStatusBar: boolean;
-  showPaneHeaders: boolean;
 }
 
 export interface DemoSettings {
@@ -83,6 +85,9 @@ export interface DemoSettings {
   showShortcutsButton: boolean;
   showModeShortcutHints: boolean;
   showTerminalShortcutHints: boolean;
+  showFloatingTerminalHeader: boolean;
+  terminalHeaderVisibility: 'hover' | 'always';
+  enableBrowserRefresh: boolean;
 }
 
 export const TERMINAL_DEFAULTS: TerminalSettings = {
@@ -100,6 +105,7 @@ export const STARTUP_DEFAULTS: StartupSettings = {
   rememberLastMode: false,
   openOnLaunch: 'modeSelector',
   checkForUpdatesOnStartup: true,
+  confirmModeChange: true,
   defaultShell: '',
 };
 
@@ -114,7 +120,6 @@ export const FOCUS_DEFAULTS: FocusSettings = {
   isZenMode: false,
   showTabs: false,
   showStatusBar: false,
-  showPaneHeaders: true,
 };
 
 export const DEMO_DEFAULTS: DemoSettings = {
@@ -123,18 +128,23 @@ export const DEMO_DEFAULTS: DemoSettings = {
   showShortcutsButton: true,
   showModeShortcutHints: true,
   showTerminalShortcutHints: true,
+  showFloatingTerminalHeader: true,
+  terminalHeaderVisibility: 'hover',
+  enableBrowserRefresh: true,
 };
 
 export const SHORTCUT_DEFAULTS: ShortcutSettings = {
   toggleZenMode: 'Ctrl+Shift+Z',
-  newWorkspace: 'Ctrl+Alt+N',
-  closeWorkspace: 'Ctrl+Shift+W',
+  newWorkspace: 'Ctrl+T',
+  closeWorkspace: 'Ctrl+W',
   cycleNextWorkspace: 'Ctrl+Tab',
   cyclePrevWorkspace: 'Ctrl+Shift+Tab',
   openShortcuts: 'Ctrl+/',
-  openTemplates: 'Ctrl+T',
+  openTemplates: 'Ctrl+Shift+T',
   openSettings: 'Ctrl+,',
   quickSwitcher: 'Ctrl+K',
+  splitHorizontal: 'Ctrl+Alt+H',
+  splitVertical: 'Ctrl+Alt+V',
 };
 
 // ---------------------------------------------------------------------------
