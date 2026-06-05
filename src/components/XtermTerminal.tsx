@@ -12,6 +12,7 @@ import { getSetting, getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings, SHOR
 import { isGlobalShortcut } from '@/lib/shortcut-utils';
 import { toast } from "sonner";
 import { PaneElevator } from './space/PaneElevator';
+import { terminalSessionManager } from '../lib/terminalSessionManager';
 import '@xterm/xterm/css/xterm.css';
 
 interface XtermTerminalProps {
@@ -63,6 +64,8 @@ export function XtermTerminal({
   const [detectedUrl, setDetectedUrl] = useState<string | null>(null);
   const outputBufferRef = useRef<string>("");
 
+  console.log("[XtermTerminal Debug]", { isZenMode, isFocused, id });
+
   useEffect(() => {
     getSettingsGroup<TerminalSettings>('startup', { defaultShell: '' } as any).then((saved: any) => {
       setDefaultShell(saved.defaultShell || '');
@@ -77,7 +80,12 @@ export function XtermTerminal({
     if (!themeDef) {
       return {
         bg: scheme === 'dark' ? '#050505' : '#ffffff',
+        headerBg: scheme === 'dark' ? '#0c0c0c' : '#f5f5f7',
+        footerBg: scheme === 'dark' ? '#050505' : '#ffffff',
+        surface: scheme === 'dark' ? '#0c0c0c' : '#ffffff',
+        border: scheme === 'dark' ? '#1a1a1a' : '#d1d1d1',
         textPrimary: scheme === 'dark' ? '#ffffff' : '#000000',
+        textSecondary: scheme === 'dark' ? '#737373' : '#525252',
         accent: '#ffffff',
         ansi: {}
       };
@@ -101,6 +109,8 @@ export function XtermTerminal({
     }
     return themeDef.dark;
   }, [allThemes]);
+
+
 
   const getActiveAnsiColors = useCallback((themeName: string, scheme: 'light' | 'dark') => {
     const palette = getThemePalette(themeName, scheme);
@@ -165,25 +175,8 @@ export function XtermTerminal({
     shell: defaultShell
   }), [command, cwd, dimensions.rows, dimensions.cols, defaultShell]);
 
-  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch: relaunchPty, status } = usePty(id, handlePtyData, ptyConfig);
-  const hasNotifiedRef = useRef(false);
+  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch: relaunchPty } = usePty(id, handlePtyData, ptyConfig);
 
-  // Agent Pulse Notification
-  useEffect(() => {
-    if (status === 'thinking') {
-      hasNotifiedRef.current = false;
-    } else if (status === 'finished') {
-      if (!hasNotifiedRef.current) {
-        if (!isFocused) {
-          toast.success(`${name || `Pane ${index + 1}`} Finished`, { 
-            description: "The AI agent has completed the task.",
-            duration: 3000 
-          });
-        }
-        hasNotifiedRef.current = true;
-      }
-    }
-  }, [status, isFocused, name, index]);
 
   const relaunch = useCallback(() => {
     setDetectedUrl(null);
@@ -252,7 +245,7 @@ export function XtermTerminal({
       lineHeight: initialLineHeight,
       letterSpacing: initialLetterSpacing,
       theme: {
-        background: 'transparent',
+        background: getThemePalette(theme, resolvedScheme).bg || '#000000',
         foreground: getThemePalette(theme, resolvedScheme).textPrimary || '#ffffff',
         cursor: getThemePalette(theme, resolvedScheme).accent || '#ffffff',
         selectionBackground: resolvedScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
@@ -272,6 +265,12 @@ export function XtermTerminal({
       });
     }));
     term.open(terminalRef.current);
+
+    // Replay terminal history if this is a layout restore/remount
+    const history = terminalSessionManager.getHistory(id);
+    if (history.length > 0) {
+      term.write(history);
+    }
 
     // Centralized shortcut bubbling logic
     term.attachCustomKeyEventHandler((e) => {
@@ -351,7 +350,7 @@ export function XtermTerminal({
     if (xtermRef.current) {
       const palette = getThemePalette(theme, resolvedScheme);
       xtermRef.current.options.theme = {
-        background: palette.bg || (resolvedScheme === 'dark' ? '#050505' : '#ffffff'),
+        background: palette.bg || '#000000',
         foreground: palette.textPrimary || (resolvedScheme === 'dark' ? '#ffffff' : '#000000'),
         cursor: palette.accent || '#ffffff',
         selectionBackground: resolvedScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
@@ -431,12 +430,22 @@ export function XtermTerminal({
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const fit = () => {
       if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
         try { fitAddonRef.current.fit(); } catch (e) {}
       }
-    }, 100);
-    return () => clearTimeout(timer);
+    };
+
+    fit();
+    const t1 = setTimeout(fit, 50);
+    const t2 = setTimeout(fit, 150);
+    const t3 = setTimeout(fit, 350);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [isMaximized, isZenMode, showFloatingHeader, headerVisibility]);
 
   useEffect(() => {
@@ -498,11 +507,22 @@ export function XtermTerminal({
 
   const getTerminalPaddingTop = () => {
     if (isZenMode || !showFloatingHeader) return '0px';
-    return headerVisibility === 'always' ? '40px' : '8px';
+    return headerVisibility === 'always' ? '40px' : '0px';
   };
 
   return (
-    <div className="group" style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div 
+      className="group" 
+      style={{ 
+        position: 'relative', 
+        width: '100%', 
+        height: '100%', 
+        overflow: 'hidden', 
+        display: 'flex', 
+        flexDirection: 'column',
+        background: 'transparent'
+      }}
+    >
       {showFloatingHeader && (
         <PaneElevator
           name={name}
@@ -517,28 +537,29 @@ export function XtermTerminal({
           onSaveSnippet={onSaveSnippet}
           terminalInstance={xtermRef.current}
           detectedUrl={detectedUrl}
-          status={status}
           headerVisibility={headerVisibility}
         />
       )}
       
       {/* Spacer for the floating header in 'always' mode */}
-      <div style={{ 
-        height: getTerminalPaddingTop(), 
-        width: '100%', 
-        flexShrink: 0,
-        transition: 'height 0.3s ease'
-      }} />
+      {getTerminalPaddingTop() !== '0px' && (
+        <div style={{ 
+          height: getTerminalPaddingTop(), 
+          width: '100%', 
+          flexShrink: 0,
+          transition: 'height 0.3s ease'
+        }} />
+      )}
 
       <div 
         className="terminal-viewport"
         style={{
           flex: 1,
           width: '100%',
-          padding: '0 8px 8px 8px',
+          padding: '0px',
           boxSizing: 'border-box',
           overflow: 'hidden',
-          background: 'var(--bg-color)',
+          background: 'transparent',
           display: 'flex',
           flexDirection: 'column'
         }}
@@ -550,8 +571,9 @@ export function XtermTerminal({
           style={{ 
             flex: 1,
             width: '100%', 
+            height: '100%',
             margin: '0', 
-            background: 'var(--bg-color)', 
+            background: 'transparent',
             overflow: 'hidden'
           }} 
         />

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { XtermTerminal } from "./XtermTerminal";
 
 interface TerminalPaneProps {
@@ -70,7 +71,9 @@ export function TerminalPane({
   // Determine if this pane should be hidden (when another pane is maximized or zen-mode is active)
   const isHidden = (isMaximized || isZenMode) && !isFocused;
 
-  return (
+  console.log("[TerminalPane Debug]", { isZenMode, isFocused, fixedCoords, isHidden });
+
+  const paneContent = (
     <div 
       className="pane" 
       onClick={() => {
@@ -89,20 +92,20 @@ export function TerminalPane({
         borderRadius: 0,
         transition: 'all var(--duration-normal) var(--ease-out)',
         boxShadow: isFocused 
-          ? 'inset 0 0 60px rgba(var(--accent-primary-rgb), 0.05), 0 0 20px rgba(0, 0, 0, 0.3)' 
+          ? 'inset 0 0 60px rgba(var(--accent-primary-rgb), 0.05)' 
           : 'none',
         outline: 'none',
         display: 'flex',
         flexDirection: 'column',
         
         // CSS Positioning overrides for maximize/zen mode
-        position: fixedCoords ? 'fixed' : 'relative',
-        top: fixedCoords ? `${fixedCoords.top}px` : 'auto',
-        left: fixedCoords ? `${fixedCoords.left}px` : 'auto',
-        width: fixedCoords ? `${fixedCoords.width}px` : '100%',
-        height: fixedCoords ? `${fixedCoords.height}px` : '100%',
-        zIndex: fixedCoords ? 1000 : (isFocused ? 10 : 1),
-        padding: (fixedCoords && isZenMode) ? `${zenPadding}px` : '0px',
+        position: isZenMode ? 'fixed' : (fixedCoords ? 'fixed' : 'relative'),
+        top: isZenMode ? '0px' : (fixedCoords ? `${fixedCoords.top}px` : 'auto'),
+        left: isZenMode ? '0px' : (fixedCoords ? `${fixedCoords.left}px` : 'auto'),
+        width: isZenMode ? '100vw' : (fixedCoords ? `${fixedCoords.width}px` : '100%'),
+        height: isZenMode ? '100vh' : (fixedCoords ? `${fixedCoords.height}px` : '100%'),
+        zIndex: isZenMode ? 99999 : (fixedCoords ? 1000 : (isFocused ? 10 : 1)),
+        padding: isZenMode ? `${zenPadding}px` : '0px',
         visibility: isHidden ? 'hidden' : 'visible',
         overflow: 'hidden'
       }}
@@ -152,4 +155,10 @@ export function TerminalPane({
       </div>
     </div>
   );
+
+  if (isZenMode && !isHidden) {
+    return createPortal(paneContent, document.body);
+  }
+
+  return paneContent;
 }

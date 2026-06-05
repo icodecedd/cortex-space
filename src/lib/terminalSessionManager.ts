@@ -1,0 +1,155 @@
+import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
+
+interface PtyOutputPayload {
+  id: string;
+  data: number[];
+}
+
+interface Session {
+  id: string;
+  buffer: number[]; // Store output bytes
+  onDataCallbacks: Set<(data: Uint8Array) => void>;
+  onExitCallbacks: Set<() => void>;
+  cleanupTimeout: any | null;
+  isTerminated: boolean;
+}
+
+class SessionManager {
+  private sessions = new Map<string, Session>();
+  private initialized = false;
+
+  async init() {
+    if (this.initialized) return;
+    this.initialized = true;
+
+    console.log('[SessionManager] Initializing global PTY event listeners');
+
+    // Listen to pty-output globally
+    await listen<PtyOutputPayload>('pty-output', (event) => {
+      const { id, data } = event.payload;
+      let session = this.sessions.get(id);
+      if (!session) {
+        session = this.createSessionRecord(id);
+      }
+      
+      // Append to buffer, keeping a limit (e.g. 200,000 bytes)
+      session.buffer.push(...data);
+      if (session.buffer.length > 250000) {
+        session.buffer = session.buffer.slice(-200000);
+      }
+
+      // Route data to active callbacks
+      const uint8Array = new Uint8Array(data);
+      session.onDataCallbacks.forEach(cb => cb(uint8Array));
+    });
+
+    // Listen to pty-exit globally
+    await listen<string>('pty-exit', (event) => {
+      const id = event.payload;
+      console.log(`[SessionManager] PTY exited event received for ${id}`);
+      const session = this.sessions.get(id);
+      if (session) {
+        session.isTerminated = true;
+        session.onExitCallbacks.forEach(cb => cb());
+      }
+    });
+  }
+
+  private createSessionRecord(id: string): Session {
+    const session: Session = {
+      id,
+      buffer: [],
+      onDataCallbacks: new Set(),
+      onExitCallbacks: new Set(),
+      cleanupTimeout: null,
+      isTerminated: false
+    };
+    this.sessions.set(id, session);
+    return session;
+  }
+
+  // Get session history buffer
+  getHistory(id: string): Uint8Array {
+    const session = this.sessions.get(id);
+    return session ? new Uint8Array(session.buffer) : new Uint8Array();
+  }
+
+  // Register active component callbacks
+  register(
+    id: string, 
+    onData: (data: Uint8Array) => void, 
+    onExit: () => void
+  ) {
+    this.init(); // Ensure initialized
+    let session = this.sessions.get(id);
+    if (!session) {
+      session = this.createSessionRecord(id);
+    }
+
+    if (session.cleanupTimeout) {
+      console.log(`[SessionManager] Cancelling deferred cleanup for session ${id}`);
+      clearTimeout(session.cleanupTimeout);
+      session.cleanupTimeout = null;
+    }
+
+    session.onDataCallbacks.add(onData);
+    session.onExitCallbacks.add(onExit);
+
+    return {
+      isTerminated: session.isTerminated,
+      history: new Uint8Array(session.buffer)
+    };
+  }
+
+  // Unregister active component callbacks (mark inactive)
+  unregister(id: string, onData: (data: Uint8Array) => void, onExit: () => void) {
+    const session = this.sessions.get(id);
+    if (!session) return;
+
+    session.onDataCallbacks.delete(onData);
+    session.onExitCallbacks.delete(onExit);
+
+    // If no more components are listening to this PTY, set cleanup timeout
+    if (session.onDataCallbacks.size === 0) {
+      if (session.cleanupTimeout) {
+        clearTimeout(session.cleanupTimeout);
+      }
+      session.cleanupTimeout = setTimeout(async () => {
+        console.log(`[SessionManager] Cleaning up PTY session ${id} (no reconnects received within timeout)`);
+        this.sessions.delete(id);
+        try {
+          await invoke('kill_pty', { id });
+        } catch (e) {
+          console.warn(`Failed to kill PTY ${id}:`, e);
+        }
+      }, 1500); // Wait 1.5 seconds for potential layout remounts
+    }
+  }
+
+  // Force kill (when user explicitly kills process)
+  async forceKill(id: string) {
+    console.log(`[SessionManager] Force killing PTY session ${id}`);
+    const session = this.sessions.get(id);
+    if (session) {
+      if (session.cleanupTimeout) {
+        clearTimeout(session.cleanupTimeout);
+      }
+      session.onDataCallbacks.clear();
+      session.onExitCallbacks.clear();
+    }
+    this.sessions.delete(id);
+    try {
+      await invoke('kill_pty', { id });
+    } catch (e) {
+      console.warn(`Failed to force kill PTY ${id}:`, e);
+    }
+  }
+
+  // Check if PTY session is already running
+  hasSession(id: string): boolean {
+    return this.sessions.has(id) && !this.sessions.get(id)?.isTerminated;
+  }
+}
+
+export const terminalSessionManager = new SessionManager();

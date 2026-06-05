@@ -662,11 +662,18 @@ main {
 }
 
 /* Custom xterm.js aesthetic overrides for full space maximization */
-.xterm .xterm-screen {
+.xterm {
+  width: 100% !important;
+  height: 100% !important;
   padding: 0 !important;
+  margin: 0 !important;
+  background-color: transparent !important;
 }
 
-.terminal-container .xterm-viewport {
+.xterm .xterm-screen,
+.xterm .xterm-viewport {
+  padding: 0 !important;
+  margin: 0 !important;
   background-color: transparent !important;
 }
 

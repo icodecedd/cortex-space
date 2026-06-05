@@ -1,11 +1,6 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { listen, UnlistenFn } from '@tauri-apps/api/event';
-
-interface PtyOutputPayload {
-  id: string;
-  data: number[];
-}
+import { terminalSessionManager } from '../lib/terminalSessionManager';
 
 export type PtyStatus = 'idle' | 'thinking' | 'finished';
 
@@ -111,6 +106,7 @@ export function usePty(
 
   const relaunch = useCallback(async () => {
     setIsTerminated(false);
+    await terminalSessionManager.forceKill(id);
     await spawn({
       command: config?.command,
       cwd: config?.cwd,
@@ -118,53 +114,48 @@ export function usePty(
       cols: config?.cols,
       shell: config?.shell
     });
-  }, [spawn, config]);
+  }, [spawn, config, id]);
 
   useEffect(() => {
     isMountedRef.current = true;
     let active = true;
-    let unlisten: UnlistenFn | null = null;
-    let unlistenExit: UnlistenFn | null = null;
 
-    const setup = async () => {
-      const ul = await listen<PtyOutputPayload>('pty-output', (event) => {
-        if (active && isMountedRef.current && event.payload.id === id) {
-          // Update status based on data activity
-          updateStatusOnData();
-          
-          const uint8Array = new Uint8Array(event.payload.data);
-          onDataRef.current(uint8Array);
-        }
-      });
-
-      if (!active) {
-        ul();
-        return;
+    const handleNewData = (uint8Array: Uint8Array) => {
+      if (active && isMountedRef.current) {
+        updateStatusOnData();
+        onDataRef.current(uint8Array);
       }
-      unlisten = ul;
-
-      const ulExit = await listen<string>('pty-exit', (event) => {
-        if (active && event.payload === id) {
-          setIsTerminated(true);
-          setIsReady(false);
-        }
-      });
-
-      if (!active) {
-        ulExit();
-        return;
-      }
-      unlistenExit = ulExit;
-
-      await spawn({
-        command: config?.command,
-        cwd: config?.cwd,
-        rows: config?.rows,
-        cols: config?.cols,
-        shell: config?.shell
-      });
     };
 
+    const handleExit = () => {
+      if (active && isMountedRef.current) {
+        setIsTerminated(true);
+        setIsReady(false);
+      }
+    };
+
+    const setup = async () => {
+      const isAlreadyRunning = terminalSessionManager.hasSession(id);
+      const { isTerminated: termVal } = terminalSessionManager.register(id, handleNewData, handleExit);
+      
+      if (active && isMountedRef.current) {
+        setIsTerminated(termVal);
+      }
+
+      if (isAlreadyRunning) {
+        if (active && isMountedRef.current) {
+          setIsReady(true);
+        }
+      } else {
+        await spawn({
+          command: config?.command,
+          cwd: config?.cwd,
+          rows: config?.rows,
+          cols: config?.cols,
+          shell: config?.shell
+        });
+      }
+    };
 
     setup();
 
@@ -176,13 +167,7 @@ export function usePty(
       if (statusTimersRef.current.finish) clearTimeout(statusTimersRef.current.finish);
       if (statusTimersRef.current.idle) clearTimeout(statusTimersRef.current.idle);
       
-      if (unlisten) {
-        unlisten();
-      }
-      if (unlistenExit) {
-        unlistenExit();
-      }
-      invoke('kill_pty', { id }).catch(() => {}); // Silent fail on cleanup
+      terminalSessionManager.unregister(id, handleNewData, handleExit);
     };
     // ONLY restart if the core process definition changes.
     // Dimensions (rows/cols) changes must be handled by resize() to keep session alive.

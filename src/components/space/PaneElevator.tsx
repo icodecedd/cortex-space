@@ -8,8 +8,6 @@ import {
   RefreshCw, 
   Maximize2, 
   Minimize2,
-  ChevronLeft,
-  ChevronRight,
   ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,7 +41,6 @@ interface PaneElevatorProps {
   onSaveSnippet?: (command: string) => void;
   terminalInstance: Terminal | null;
   detectedUrl?: string | null;
-  status?: 'idle' | 'thinking' | 'finished';
   headerVisibility?: 'hover' | 'always';
 }
 
@@ -60,7 +57,6 @@ export function PaneElevator({
   onSaveSnippet,
   terminalInstance,
   detectedUrl,
-  status = 'idle',
   headerVisibility = 'hover'
 }: PaneElevatorProps) {
   const [isRenaming, setIsRenaming] = useState(false);
@@ -127,24 +123,7 @@ export function PaneElevator({
         pointerEvents: isAlwaysVisible ? 'auto' : 'auto', // Ensure both can catch events/hover
       }}
     >
-      {/* Glanceable Status Dot (Always visible when active and toolbar is hidden) */}
-      {status !== 'idle' && !isVisible && (
-        <div 
-          style={{
-            position: 'absolute',
-            top: '12px',
-            right: '12px',
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            background: status === 'thinking' ? 'var(--accent-primary)' : '#10b981',
-            boxShadow: status === 'thinking' ? '0 0 8px var(--accent-primary)' : 'none',
-            transition: 'all 0.3s ease',
-            zIndex: 60
-          }}
-          className={status === 'thinking' ? 'animate-pulse' : ''}
-        />
-      )}
+
 
       <div 
         className={`pane-elevator-toolbar transition-all duration-300 ease-out flex items-center justify-between px-3 py-1 ${
@@ -193,31 +172,7 @@ export function PaneElevator({
                   {name || `Pane ${index + 1}`}
                 </span>
                 
-                {/* Pulse + Status Indicator */}
-                {status !== 'idle' && (
-                  <div 
-                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full shrink-0 border transition-all duration-300 ${
-                      status === 'thinking' 
-                        ? 'bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20' 
-                        : 'bg-[#10b981]/5 border-[#10b981]/20'
-                    }`}
-                  >
-                    <div 
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        status === 'thinking' 
-                          ? 'bg-[var(--accent-primary)] animate-pulse shadow-[0_0_8px_var(--accent-primary)]' 
-                          : 'bg-[#10b981]'
-                      }`}
-                    />
-                    <span 
-                      className={`text-[8px] font-mono font-bold uppercase tracking-widest ${
-                        status === 'thinking' ? 'text-[var(--accent-primary)]' : 'text-[#10b981]'
-                      }`}
-                    >
-                      {status === 'thinking' ? 'RUNNING' : 'FINISHED'}
-                    </span>
-                  </div>
-                )}
+
               </div>
             )}
           </div>
