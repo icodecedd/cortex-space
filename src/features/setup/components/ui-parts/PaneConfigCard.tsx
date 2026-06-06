@@ -1,18 +1,27 @@
-import { CheckCircle2, Terminal, Code, Cpu, Library } from "lucide-react";
-import { AGENT_PRESETS, PaneConfig } from "@/lib/setup-constants";
-import { Snippet } from "@/types";
+import { CheckCircle2, Terminal, Code, Cpu, Library, X, CornerDownLeft } from "lucide-react";
+import { PaneConfig } from "@/lib/setup-constants";
+import { Snippet, Agent } from "@/types";
 import {
   Combobox,
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { Kbd } from "@/components/ui/kbd";
+import { extractVariables, resolveVariables } from "@/lib/snippet-utils";
+
+interface PendingSnippet {
+  originalCommand: string;
+  variables: string[];
+  resolvedValues: Record<string, string>;
+  currentIndex: number;
+}
 
 interface PaneConfigCardProps {
   pane: PaneConfig;
@@ -21,11 +30,59 @@ interface PaneConfigCardProps {
   onUpdate: (id: number, command: string, isCustom?: boolean) => void;
   onNameUpdate?: (id: number, name: string) => void;
   snippets: Snippet[];
+  agents?: Agent[];
 }
 
-export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snippets }: PaneConfigCardProps) {
+export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snippets, agents = [] }: PaneConfigCardProps) {
   const [isEditingName, setIsEditingName] = useState(false);
+  const [pendingSnippet, setPendingSnippet] = useState<PendingSnippet | null>(null);
+  const [currentVarValue, setCurrentVarValue] = useState("");
+  const promptInputRef = useRef<HTMLInputElement>(null);
+  
   const isPopulated = (pane.command || "").trim() !== "";
+
+  const handleSnippetSelect = (snippet: Snippet) => {
+    const variables = extractVariables(snippet.command);
+    if (variables.length > 0) {
+      setPendingSnippet({
+        originalCommand: snippet.command,
+        variables,
+        resolvedValues: {},
+        currentIndex: 0
+      });
+      setCurrentVarValue("");
+    } else {
+      onUpdate(pane.id, snippet.command, false);
+    }
+  };
+
+  const handleVariableSubmit = () => {
+    if (!pendingSnippet) return;
+
+    const currentVar = pendingSnippet.variables[pendingSnippet.currentIndex];
+    const newResolved = { ...pendingSnippet.resolvedValues, [currentVar]: currentVarValue };
+    const nextIndex = pendingSnippet.currentIndex + 1;
+
+    if (nextIndex < pendingSnippet.variables.length) {
+      setPendingSnippet({
+        ...pendingSnippet,
+        resolvedValues: newResolved,
+        currentIndex: nextIndex
+      });
+      setCurrentVarValue("");
+      setTimeout(() => promptInputRef.current?.focus(), 10);
+    } else {
+      const finalCommand = resolveVariables(pendingSnippet.originalCommand, newResolved);
+      onUpdate(pane.id, finalCommand, false);
+      setPendingSnippet(null);
+      setCurrentVarValue("");
+    }
+  };
+
+  const handleVariableCancel = () => {
+    setPendingSnippet(null);
+    setCurrentVarValue("");
+  };
 
   return (
     <motion.div
@@ -130,7 +187,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                     {snippets.map((snippet) => (
                       <button
                         key={snippet.id}
-                        onClick={() => onUpdate(pane.id, snippet.command, false)}
+                        onClick={() => handleSnippetSelect(snippet)}
                         className="flex flex-col gap-0.5 text-left px-2 py-1.5 rounded hover:bg-[var(--text-primary)]/5 transition-colors group/snippet"
                       >
                         <span className="text-[10px] font-bold text-[var(--text-primary)] group-hover/snippet:text-[var(--accent-primary)]">{snippet.label}</span>
@@ -146,10 +203,10 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
 
         {mode === 'agents' && !pane.isCustom ? (
           <Combobox
-            items={AGENT_PRESETS.map(p => ({ label: p.label, value: p.command }))}
+            items={agents.map(p => ({ label: p.label, value: p.command }))}
             value={pane.command || ""}
             onValueChange={(val) => {
-              const isPreset = AGENT_PRESETS.some(p => p.command === val);
+              const isPreset = agents.some(p => p.command === val);
               onUpdate(pane.id, val, !isPreset);
             }}
             placeholder="Select AI agent..."
@@ -179,6 +236,71 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {pendingSnippet && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center p-3 bg-black/40 backdrop-blur-md"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full bg-[var(--surface-color)]/90 backdrop-blur-xl border border-[var(--border-color)] rounded-lg shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-bold text-[var(--accent-primary)] uppercase tracking-widest">Variable Required</span>
+                  <button onClick={handleVariableCancel} className="p-1 hover:bg-[var(--text-primary)]/5 rounded text-[var(--text-secondary)]">
+                    <X size={12} />
+                  </button>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-[var(--text-primary)]">
+                    Value for <span className="text-[var(--accent-primary)] font-mono">{pendingSnippet.variables[pendingSnippet.currentIndex]}</span>
+                  </label>
+                  <div className="relative">
+                    <Input 
+                      ref={promptInputRef}
+                      autoFocus
+                      value={currentVarValue}
+                      onChange={(e) => setCurrentVarValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleVariableSubmit();
+                        if (e.key === 'Escape') handleVariableCancel();
+                      }}
+                      placeholder={`Enter ${pendingSnippet.variables[pendingSnippet.currentIndex].toLowerCase()}...`}
+                      className="h-8 text-[11px] bg-[var(--text-primary)]/5 border-[var(--border-color)] pr-8"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-30">
+                      <CornerDownLeft size={12} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[9px] text-[var(--text-secondary)] font-bold">
+                  <div className="flex gap-2">
+                    <div className="flex items-center gap-1"><Kbd className="text-[8px]">ENTER</Kbd> OK</div>
+                    <div className="flex items-center gap-1"><Kbd className="text-[8px]">ESC</Kbd> CANCEL</div>
+                  </div>
+                  <div>{pendingSnippet.currentIndex + 1}/{pendingSnippet.variables.length}</div>
+                </div>
+              </div>
+              <div className="h-0.5 w-full bg-[var(--text-primary)]/5">
+                <motion.div 
+                  className="h-full bg-[var(--accent-primary)]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${((pendingSnippet.currentIndex) / pendingSnippet.variables.length) * 100}%` }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Decorative corner accent */}
       <div className={`

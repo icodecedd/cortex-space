@@ -4,7 +4,7 @@ import {
   SettingsRow, 
   Divider, 
   SegmentedControl 
-} from "../ui/SettingsUI";
+} from "../shared/SettingsUI";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";

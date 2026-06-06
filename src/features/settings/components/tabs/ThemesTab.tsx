@@ -1,5 +1,5 @@
 import * as React from "react";
-import { SectionHeader } from "../ui/SettingsUI";
+import { SectionHeader } from "../shared/SettingsUI";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

@@ -14,7 +14,8 @@ import {
   Terminal,
   Palette,
   FlaskConical,
-  Info
+  Info,
+  Cpu
 } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 
@@ -34,6 +35,7 @@ import {
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
 import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useAgents } from "@/hooks/useAgents";
 
 // Tab Components
 import { GeneralTab } from "./components/tabs/GeneralTab";
@@ -41,6 +43,7 @@ import { FocusTab } from "./components/tabs/FocusTab";
 import { ShortcutsTab } from "./components/tabs/ShortcutsTab";
 import { TerminalTab } from "./components/tabs/TerminalTab";
 import { ThemesTab } from "./components/tabs/ThemesTab";
+import { AgentsTab } from "./components/tabs/AgentsTab";
 import { DemoTab } from "./components/tabs/DemoTab";
 import { AboutTab } from "./components/tabs/AboutTab";
 
@@ -230,7 +233,7 @@ export function SettingsDialog({
           defaultValue="general"
           className="w-full flex-1 flex flex-col overflow-hidden mt-4"
         >
-          <TabsList className="w-full grid grid-cols-7 shrink-0">
+          <TabsList className="w-full grid grid-cols-8 shrink-0">
             <TabsTrigger value="general" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Settings2 size={13} /> General
             </TabsTrigger>
@@ -245,6 +248,9 @@ export function SettingsDialog({
             </TabsTrigger>
             <TabsTrigger value="themes" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Palette size={13} /> Themes
+            </TabsTrigger>
+            <TabsTrigger value="agents" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
+              <Cpu size={13} /> Agents
             </TabsTrigger>
             <TabsTrigger value="demo" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <FlaskConical size={13} /> Demo
@@ -332,6 +338,10 @@ export function SettingsDialog({
               previewTheme={previewTheme}
               cancelPreview={cancelPreview}
             />
+          </TabsContent>
+
+          <TabsContent value="agents" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>
+            <AgentsTab />
           </TabsContent>
 
           <TabsContent value="demo" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>

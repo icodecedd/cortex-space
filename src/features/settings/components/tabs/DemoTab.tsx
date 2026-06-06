@@ -1,4 +1,4 @@
-import { SectionHeader, SettingsRow } from "../ui/SettingsUI";
+import { SectionHeader, SettingsRow } from "../shared/SettingsUI";
 import { Switch } from "@/components/ui/switch";
 import { DemoSettings } from "@/lib/store";
 

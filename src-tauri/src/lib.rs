@@ -6,7 +6,7 @@ use std::{
 };
 use portable_pty::{native_pty_system, CommandBuilder, PtySize, MasterPty, Child};
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use once_cell::sync::Lazy;
 
 #[derive(Serialize, Clone)]
@@ -427,6 +427,37 @@ fn debug_env() -> String {
         })
 }
 
+#[tauri::command]
+fn check_command(command: String) -> bool {
+    let mut cmd = if cfg!(target_os = "windows") {
+        let mut c = std::process::Command::new("where");
+        c.arg(&command);
+        c
+    } else {
+        let mut c = std::process::Command::new("which");
+        c.arg(&command);
+        c
+    };
+    
+    match cmd.output() {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    }
+}
+
+#[tauri::command]
+fn get_agents_dir<R: Runtime>(app: AppHandle<R>) -> Result<String, String> {
+    let path = app.path().app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("agents");
+    
+    if !path.exists() {
+        std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    }
+    
+    Ok(path.to_string_lossy().to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -445,7 +476,9 @@ pub fn run() {
             is_port_blocked,
             check_port_lsof,
             kill_port_process,
-            debug_env
+            debug_env,
+            check_command,
+            get_agents_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

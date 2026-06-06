@@ -1,5 +1,5 @@
 import { LayoutConfig, PaneConfig } from "./setup-constants";
-import { LayoutNode, SplitNode, PaneNode } from "@/types";
+import { LayoutNode, SplitNode, PaneNode, Agent } from "@/types";
 
 export function getPaneCount(layout: LayoutConfig) {
   return layout.rows * layout.cols;
@@ -215,7 +215,7 @@ function findDeepestPane(node: LayoutNode, fromDirection: 'up' | 'down' | 'left'
 /**
  * Derives a semantic name for a terminal pane based on its command.
  */
-export function derivePaneName(command: string, defaultName: string): string {
+export function derivePaneName(command: string, defaultName: string, agents: Agent[] = []): string {
   if (!command || command.trim() === "") return defaultName;
 
   const cmd = command.trim().toLowerCase();
@@ -259,11 +259,18 @@ export function derivePaneName(command: string, defaultName: string): string {
     return 'Node';
   }
 
+  // 2. Dynamic Agent Mapping
+  const matchedAgent = agents.find(a => a.command.toLowerCase() === base);
+  if (matchedAgent) {
+    return `${matchedAgent.label.charAt(0).toUpperCase() + matchedAgent.label.slice(1).toLowerCase()} Agent`;
+  }
+
+  // 3. Fallback for hardcoded common agents
   if (base === 'gemini' || base === 'claude' || base === 'gpt' || base === 'codex') {
     return `${base.charAt(0).toUpperCase() + base.slice(1)} Agent`;
   }
 
-  // 2. Generic Fallback: Use the command itself if short, or the base command
+  // 4. Generic Fallback: Use the command itself if short, or the base command
   if (cmd.length < 12) return cmd.toUpperCase();
   return base.toUpperCase();
 }

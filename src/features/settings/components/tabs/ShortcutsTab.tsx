@@ -1,4 +1,4 @@
-import { SectionHeader, SettingsRow } from "../ui/SettingsUI";
+import { SectionHeader, SettingsRow } from "../shared/SettingsUI";
 import { Input } from "@/components/ui/input";
 import { ShortcutSettings } from "@/lib/store";
 

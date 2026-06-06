@@ -6,9 +6,11 @@ import { useWorkspaceDirectory } from "@/hooks/useWorkspaceDirectory";
 import { usePresets } from "@/hooks/usePresets";
 import { useSetupPanes } from "@/hooks/useSetupPanes";
 import { useSnippets } from "@/hooks/useSnippets";
+import { useAgents } from "@/hooks/useAgents";
 import { SetupHeader } from "./components/SetupHeader";
 import { SetupControls } from "./components/SetupControls";
 import { StepWorkspace } from "./components/steps/StepWorkspace";
+import { StepAgents } from "./components/steps/StepAgents";
 import { StepConfigure } from "./components/steps/StepConfigure";
 import { StepPreview } from "./components/steps/StepPreview";
 import { gridToLayoutNode } from "@/lib/setup-utils";
@@ -40,6 +42,9 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
     removePreset
   } = usePresets(rootPath || defaultDir, isValidDir);
 
+  const { snippets } = useSnippets();
+  const { agents, installAgent, addAgent } = useAgents();
+
   const {
     layoutType,
     customLayout,
@@ -55,13 +60,12 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
     updateAllPaneCommands,
     restoreDefaults,
     isInitialized
-  } = useSetupPanes();
-
-  const { snippets } = useSnippets();
+  } = useSetupPanes(agents);
 
   const isStepValid = useMemo(() => {
     if (step === 1) return (rootPath || defaultDir).trim() !== "";
-    if (step === 2) return true; // Allow proceeding even if command inputs are empty
+    if (step === 2) return true; // StepAgents is always valid (can skip install)
+    if (step === 3) return true; // Allow proceeding even if command inputs are empty
     return true;
   }, [step, rootPath, defaultDir, activePanes]);
 
@@ -151,6 +155,14 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
             )}
 
             {step === 2 && (
+              <StepAgents 
+                agents={agents}
+                installAgent={installAgent}
+                addAgent={addAgent}
+              />
+            )}
+
+            {step === 3 && (
               <StepConfigure
                 mode={mode}
                 activePanes={activePanes}
@@ -158,10 +170,11 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
                 updatePaneName={updatePaneName}
                 updateAllPaneCommands={updateAllPaneCommands}
                 snippets={snippets}
+                agents={agents}
               />
             )}
 
-            {step === 3 && (
+            {step === 4 && (
               <StepPreview
                 rootPath={rootPath}
                 defaultDir={defaultDir}

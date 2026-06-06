@@ -77,7 +77,7 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
         gap: step > 1 ? '1.5rem' : '2rem',
         transition: 'all 0.4s ease'
       }}>
-        {[1, 2, 3].map(i => (
+        {[1, 2, 3, 4].map(i => (
           <div key={i} className={`step-indicator ${step === i ? 'active' : ''}`} style={{ transition: 'all 0.3s ease' }}>
             <span style={{
               width: step > 1 ? '18px' : '20px',
@@ -94,8 +94,9 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
               transition: 'all 0.4s ease'
             }}>
               {i === 1 && "WORKSPACE"}
-              {i === 2 && (mode === 'agents' ? "AGENTS" : "COMMANDS")}
-              {i === 3 && "PREVIEW"}
+              {i === 2 && "AGENTS"}
+              {i === 3 && (mode === 'agents' ? "ASSIGN" : "COMMANDS")}
+              {i === 4 && "PREVIEW"}
             </span>
           </div>
         ))}

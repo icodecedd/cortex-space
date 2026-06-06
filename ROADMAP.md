@@ -26,6 +26,8 @@ _Core engine and architectural foundations._
 - [x] **Tiered Modal Transitions:** Consistent, depth-aware entrance/exit animations for all dialogs.
 - [x] **Bulk Library Management:** Bulk selection and deletion capabilities for managing large collections of snippets.
 - [x] **Contextual Notifications:** Rich toast notification system (Title + Description) for clear user feedback.
+- [x] **Snippet Variable Placeholders:** Support for dynamic `{{VAR}}` placeholders in commands with a glassmorphic interactive prompt system for pre-execution resolution.
+- [x] **Automatic Port Detection:** Real-time terminal output parsing for local ports (e.g., localhost:3000) with verified TCP-liveness checks and pane-header link injection.
 
 ---
 
@@ -50,6 +52,10 @@ _High-value improvements and advanced tooling._
   - Hover/Shortcut menus for renaming, splitting, or restarting individual terminal instances.
 - [ ] **Resource Sparklines:**
   - Lightweight CPU/Memory monitors integrated into pane headers for real-time process tracking.
+- [ ] **Managed AI Agent Installation Logic:**
+  - Revalidate and implement the full lifecycle (download, extract, verify) for default AI agent CLIs (Gemini, Claude, Antigravity) to replace current simulated setup.
+- [ ] **Built-in Kanban Task Management:**
+  - Integrated task tracking system to manage workflow directly within the app, with the ability to assign tasks to specific terminal panes.
 - [ ] **Embedded Documentation Pane:**
   - A specialized web-view pane for rendering local documentation or reference sites alongside terminal workflows.
 

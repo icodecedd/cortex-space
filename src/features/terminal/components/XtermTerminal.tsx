@@ -4,23 +4,38 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CornerDownLeft, X } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { usePty } from '@/hooks/usePty';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Kbd } from "@/components/ui/kbd";
 import { getSetting, getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings, SHORTCUT_DEFAULTS, ShortcutSettings, DemoSettings } from '@/lib/store';
 import { isGlobalShortcut, matchesShortcut } from '@/lib/shortcut-utils';
 import { toast } from "sonner";
 import { PaneElevator } from '@/features/space/components/PaneElevator';
 import { terminalSessionManager } from '@/lib/terminalSessionManager';
+import { extractVariables, resolveVariables } from '@/lib/snippet-utils';
 import '@xterm/xterm/css/xterm.css';
 
 // Port state machine types
+// ... (rest of imports remains same, just adding snippet-utils)
 export type PortState = 'detected' | 'gone';
 export interface DetectedPort {
   port: number;
   url: string;
   state: PortState;
+}
+
+// Variable Snippet types
+interface PendingSnippet {
+  originalCommand: string;
+  variables: string[];
+  resolvedValues: Record<string, string>;
+  currentIndex: number;
+  execute: boolean;
 }
 
 // Well-known non-browser ports blocklist (mirrors Rust side)
@@ -74,6 +89,13 @@ export function XtermTerminal({
   const [showFloatingHeader, setShowFloatingHeader] = useState(true);
   const [headerVisibility, setHeaderVisibility] = useState<'hover' | 'always'>('hover');
   const [detectedPorts, setDetectedPorts] = useState<DetectedPort[]>([]);
+  
+  // Snippet Variable State
+  const [pendingSnippet, setPendingSnippet] = useState<PendingSnippet | null>(null);
+  const [currentVarValue, setCurrentVarValue] = useState("");
+  const [initialCommandProcessed, setInitialCommandProcessed] = useState(false);
+  const promptInputRef = useRef<HTMLInputElement>(null);
+
   const outputBufferRef = useRef<string>("");
   const checkPortRef = useRef<(() => void) | null>(null);
   const failuresMapRef = useRef<Map<number, number>>(new Map());
@@ -86,6 +108,7 @@ export function XtermTerminal({
   useEffect(() => {
     activePortsRef.current = detectedPorts;
   }, [detectedPorts]);
+
 
   // Show one-time toast per newly detected port
   const firePortToast = useCallback((dp: DetectedPort) => {
@@ -233,6 +256,36 @@ export function XtermTerminal({
   }), [command, cwd, dimensions.rows, dimensions.cols, defaultShell, isMeasured]);
 
   const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch: relaunchPty } = usePty(id, handlePtyData, ptyConfig);
+
+  // Handle initial command prop for variable detection
+  useEffect(() => {
+    if (command && !initialCommandProcessed && isReady) {
+      const varRegex = /\{\{([^}]+)\}\}/g;
+      const variables: string[] = [];
+      let match;
+      
+      const seenVars = new Set<string>();
+      while ((match = varRegex.exec(command)) !== null) {
+        const varName = match[1];
+        if (!seenVars.has(varName)) {
+          seenVars.add(varName);
+          variables.push(varName);
+        }
+      }
+
+      if (variables.length > 0) {
+        setPendingSnippet({
+          originalCommand: command,
+          variables,
+          resolvedValues: {},
+          currentIndex: 0,
+          execute: true
+        });
+        setCurrentVarValue("");
+      }
+      setInitialCommandProcessed(true);
+    }
+  }, [command, initialCommandProcessed, isReady]);
 
 
   const relaunch = useCallback(() => {
@@ -697,6 +750,48 @@ export function XtermTerminal({
     return () => window.removeEventListener('focus', handleFocus);
   }, [isFocused, isReady]);
 
+  // Handle Variable Prompt Logic
+  const handleVariableSubmit = useCallback(() => {
+    if (!pendingSnippet) return;
+
+    const currentVar = pendingSnippet.variables[pendingSnippet.currentIndex];
+    const newResolved = { ...pendingSnippet.resolvedValues, [currentVar]: currentVarValue };
+    const nextIndex = pendingSnippet.currentIndex + 1;
+
+    if (nextIndex < pendingSnippet.variables.length) {
+      // More variables to fill
+      setPendingSnippet({
+        ...pendingSnippet,
+        resolvedValues: newResolved,
+        currentIndex: nextIndex
+      });
+      setCurrentVarValue("");
+      // Refocus input
+      setTimeout(() => promptInputRef.current?.focus(), 10);
+    } else {
+      // All variables resolved, construct final command
+      const finalCommand = resolveVariables(pendingSnippet.originalCommand, newResolved);
+
+      // Write to PTY
+      writeToPty(finalCommand);
+      if (pendingSnippet.execute) {
+        writeToPty('\r');
+      }
+
+      // Cleanup
+      setPendingSnippet(null);
+      setCurrentVarValue("");
+      // Return focus to terminal
+      xtermRef.current?.focus();
+    }
+  }, [pendingSnippet, currentVarValue, writeToPty]);
+
+  const handleVariableCancel = useCallback(() => {
+    setPendingSnippet(null);
+    setCurrentVarValue("");
+    xtermRef.current?.focus();
+  }, []);
+
   // Listen for the custom "cortex:write-to-terminal" event (Command Snippet injection)
   useEffect(() => {
     const handleWriteRequest = (e: any) => {
@@ -704,12 +799,24 @@ export function XtermTerminal({
 
       // We only respond if we are in the target workspace AND we are the currently focused pane
       if (targetWsId === workspaceId && isFocused && isReady) {
-        // Write the command directly
-        writeToPty(command);
+        const variables = extractVariables(command);
 
-        // If execution is requested, send the Enter signal
-        if (execute) {
-          writeToPty('\r');
+        if (variables.length > 0) {
+          // Enter interactive prompting mode
+          setPendingSnippet({
+            originalCommand: command,
+            variables,
+            resolvedValues: {},
+            currentIndex: 0,
+            execute
+          });
+          setCurrentVarValue("");
+        } else {
+          // No variables, write directly
+          writeToPty(command);
+          if (execute) {
+            writeToPty('\r');
+          }
         }
       }
     };
@@ -721,6 +828,9 @@ export function XtermTerminal({
   useEffect(() => {
     if (!isFocused || !isReady) return;
     const handleKeyDown = (e: KeyboardEvent) => {
+      // If we are in variable prompting mode, ignore these shortcuts
+      if (pendingSnippet) return;
+
       if (matchesShortcut(e, shortcuts.resetPane)) {
         e.preventDefault();
         relaunch();
@@ -741,9 +851,15 @@ export function XtermTerminal({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFocused, isReady, relaunch, index, onSplit, onKill, paneId, shortcuts]);
+  }, [isFocused, isReady, relaunch, index, onSplit, onKill, paneId, shortcuts, pendingSnippet]);
 
-  const handleContainerClick = () => { if (xtermRef.current && isReady) xtermRef.current.focus(); };
+  const handleContainerClick = () => { 
+    if (pendingSnippet) {
+      promptInputRef.current?.focus();
+    } else if (xtermRef.current && isReady) {
+      xtermRef.current.focus(); 
+    }
+  };
 
   const getTerminalPaddingTop = () => {
     if (isZenMode || !showFloatingHeader) return '0px';
@@ -818,6 +934,93 @@ export function XtermTerminal({
           }}
         />
       </div>
+
+      <AnimatePresence>
+        {pendingSnippet && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 5, scale: 0.98 }}
+            className="absolute inset-0 z-[100] flex items-center justify-center p-6 bg-black/20 backdrop-blur-sm"
+          >
+            <div 
+              className="w-full max-w-md bg-[var(--surface-color)]/80 backdrop-blur-xl border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
+              style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
+            >
+              <div className="p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse" />
+                    <span className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-widest">Variable Prompt</span>
+                  </div>
+                  <button 
+                    onClick={handleVariableCancel}
+                    className="p-1 hover:bg-[var(--text-primary)]/5 rounded-md text-[var(--text-secondary)] transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                    Enter value for <span className="text-[var(--accent-primary)] font-mono">
+                      {pendingSnippet.variables[pendingSnippet.currentIndex]}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-secondary)] font-medium leading-relaxed opacity-80">
+                    Snippet: <span className="font-mono bg-[var(--text-primary)]/[0.03] px-1 rounded">{pendingSnippet.originalCommand}</span>
+                  </p>
+                </div>
+
+                <div className="relative pt-1">
+                  <Input
+                    ref={promptInputRef}
+                    autoFocus
+                    value={currentVarValue}
+                    onChange={(e) => setCurrentVarValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleVariableSubmit();
+                      if (e.key === 'Escape') handleVariableCancel();
+                    }}
+                    placeholder={`Type ${pendingSnippet.variables[pendingSnippet.currentIndex].toLowerCase()}...`}
+                    className="h-11 bg-[var(--text-primary)]/[0.03] border-[var(--border-color)] focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] text-sm font-mono transition-all pr-12"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 pointer-events-none opacity-40">
+                    <CornerDownLeft size={16} />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <Kbd className="text-[9px] px-1 py-0.5">ENTER</Kbd>
+                      <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Submit</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Kbd className="text-[9px] px-1 py-0.5">ESC</Kbd>
+                      <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Cancel</span>
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-mono text-[var(--text-secondary)] font-bold">
+                    {pendingSnippet.currentIndex + 1} / {pendingSnippet.variables.length}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="h-1 w-full bg-[var(--text-primary)]/5">
+                <motion.div 
+                  className="h-full bg-[var(--accent-primary)]"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${((pendingSnippet.currentIndex) / pendingSnippet.variables.length) * 100}%` }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div style={{
         position: 'absolute', inset: 0, background: 'var(--bg-color)', opacity: 0.85, backdropFilter: 'blur(8px)',
         flexDirection: 'column', alignItems: 'center', justifyContent: 'center',

@@ -1,9 +1,9 @@
 import { Zap, Command } from "lucide-react";
 import { motion } from "framer-motion";
-import { AGENT_PRESETS, PaneConfig } from "@/lib/setup-constants";
+import { PaneConfig } from "@/lib/setup-constants";
 import { PaneConfigCard } from "../ui-parts/PaneConfigCard";
 import { useState } from "react";
-import { Snippet } from "@/types";
+import { Snippet, Agent } from "@/types";
 import {
   Combobox,
 } from "@/components/ui/combobox";
@@ -15,9 +15,10 @@ interface StepConfigureProps {
   updatePaneName: (id: number, name: string) => void;
   updateAllPaneCommands: (command: string, isCustom?: boolean) => void;
   snippets: Snippet[];
+  agents?: Agent[];
 }
 
-export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePaneName, updateAllPaneCommands, snippets }: StepConfigureProps) {
+export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePaneName, updateAllPaneCommands, snippets, agents = [] }: StepConfigureProps) {
   const [globalValue, setGlobalValue] = useState("");
 
   const containerVariants = {
@@ -40,7 +41,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
   };
 
   const globalItems = mode === 'agents' 
-    ? AGENT_PRESETS.map(p => ({ label: p.label, value: p.command }))
+    ? agents.map(p => ({ label: p.label, value: p.command }))
     : snippets.map(s => ({ label: s.label, value: s.command }));
 
   return (
@@ -92,7 +93,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
                 onValueChange={(val) => {
                   setGlobalValue(val);
                   const isPreset = mode === 'agents' 
-                    ? AGENT_PRESETS.some(p => p.command === val)
+                    ? agents.some(p => p.command === val)
                     : snippets.some(s => s.command === val);
                   updateAllPaneCommands(val, !isPreset);
                 }}
@@ -121,6 +122,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
             onUpdate={updatePaneCommand}
             onNameUpdate={updatePaneName}
             snippets={snippets}
+            agents={agents}
           />
         ))}
       </motion.div>
