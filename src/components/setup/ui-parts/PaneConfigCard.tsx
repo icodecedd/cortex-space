@@ -75,7 +75,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate }: PaneConfigCardPr
               onUpdate(pane.id, val, !isPreset);
             }}
             placeholder="Select AI agent..."
-            triggerClassName="font-mono h-9 bg-[var(--bg-color)]/20 border-[var(--border-color)] text-[11px] focus:border-[var(--accent-primary)] transition-all rounded-md pl-3 placeholder:text-[var(--text-secondary)]/50"
+            triggerClassName="font-mono h-9 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/30 text-[11px] transition-all rounded-md placeholder:text-[var(--text-secondary)]/40 shadow-none"
             emptyText="No matching protocol."
           />
         ) : (
@@ -92,7 +92,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate }: PaneConfigCardPr
                 pane.id === 3 ? "git status" :
                 "Enter command..."
               }
-              className="w-full font-mono h-9 bg-[var(--bg-color)]/20 border-[var(--border-color)] text-[11px] placeholder:text-[var(--text-secondary)]/60 focus:border-[var(--accent-primary)] transition-all rounded-md pl-3"
+              className="w-full font-mono h-9 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-visible:bg-[var(--bg-color)] focus-visible:border-[var(--accent-primary)]/30 text-[11px] placeholder:text-[var(--text-secondary)]/40 transition-all rounded-md shadow-none focus-visible:ring-0"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none">
               <div className="w-1 h-3 bg-[var(--accent-primary)] animate-pulse rounded-full" />

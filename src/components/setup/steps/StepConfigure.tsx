@@ -1,6 +1,6 @@
 import { Zap, Command } from "lucide-react";
 import { motion } from "framer-motion";
-import { AGENT_PRESETS, PaneConfig } from "@/lib/setup-constants";
+import { AGENT_PRESETS, DEFAULT_SNIPPETS, PaneConfig } from "@/lib/setup-constants";
 import { PaneConfigCard } from "../ui-parts/PaneConfigCard";
 import { useState } from "react";
 import {
@@ -15,7 +15,7 @@ interface StepConfigureProps {
 }
 
 export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllPaneCommands }: StepConfigureProps) {
-  const [globalAgent, setGlobalAgent] = useState("");
+  const [globalValue, setGlobalValue] = useState("");
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -35,6 +35,16 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
       transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] as any }
     }
   };
+
+  const globalItems = mode === 'agents' 
+    ? AGENT_PRESETS.map(p => ({ label: p.label, value: p.command }))
+    : DEFAULT_SNIPPETS.map(s => ({ label: s.label, value: s.command }));
+
+  const globalTitle = mode === 'agents' ? 'Global Agent Protocol' : 'Global Command Protocol';
+  const globalDescription = mode === 'agents'
+    ? `Applying a global agent will initialize all ${activePanes.length} workspace panes with the same identity. This can be overridden per pane.`
+    : `Selecting a global command template will apply it to all ${activePanes.length} terminal instances simultaneously.`;
+  const globalPlaceholder = mode === 'agents' ? 'Select global identity...' : 'Select command template...';
 
   return (
     <motion.div 
@@ -57,47 +67,47 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
         </p>
       </motion.div>
 
-      {mode === 'agents' && (
-        <motion.div 
-          variants={itemVariants}
-          className="mb-10 relative overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--text-primary)]/[0.02] p-8 group"
-        >
-          {/* Subtle gradient accent */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent opacity-50" />
-          
-          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="flex flex-col gap-2 max-w-md">
-              <div className="flex items-center gap-2">
-                <Zap size={14} className="text-[var(--accent-primary)]" />
-                <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--accent-primary)]">
-                  Global Agent Protocol
-                </h4>
-              </div>
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold">
-                Applying a global agent will initialize all {activePanes.length} workspace panes with the same identity. This can be overridden per pane.
-              </p>
+      <motion.div 
+        variants={itemVariants}
+        className="mb-10 relative overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--text-primary)]/[0.02] p-8 group"
+      >
+        {/* Subtle gradient accent */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent opacity-50" />
+        
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="flex flex-col gap-2 max-w-md">
+            <div className="flex items-center gap-2">
+              <Zap size={14} className="text-[var(--accent-primary)]" />
+              <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--accent-primary)]">
+                {globalTitle}
+              </h4>
             </div>
-            
-            <div className="w-full md:w-72 flex flex-col gap-3">
-              <Combobox
-                items={AGENT_PRESETS.map(p => ({ label: p.label, value: p.command }))}
-                value={globalAgent}
-                onValueChange={(val) => {
-                  setGlobalAgent(val);
-                  const isPreset = AGENT_PRESETS.some(p => p.command === val);
-                  updateAllPaneCommands(val, !isPreset);
-                }}
-                placeholder="Select global identity..."
-                triggerClassName="font-mono h-10 bg-[var(--bg-color)]/40 border-[var(--border-color)] text-xs focus:border-[var(--accent-primary)] transition-all rounded-md placeholder:text-[var(--text-secondary)]/60"
-                emptyText="Identity matrix not found."
-              />
-              <div className="flex items-center gap-2 opacity-80">
-                <span className="text-[9px] font-mono text-[var(--text-secondary)] font-bold uppercase tracking-tighter">Overrides enabled per pane</span>
-              </div>
+            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold">
+              {globalDescription}
+            </p>
+          </div>
+          
+          <div className="w-full md:w-[420px] flex flex-col gap-3">
+            <Combobox
+              items={globalItems}
+              value={globalValue}
+              onValueChange={(val) => {
+                setGlobalValue(val);
+                const isPreset = mode === 'agents' 
+                  ? AGENT_PRESETS.some(p => p.command === val)
+                  : DEFAULT_SNIPPETS.some(s => s.command === val);
+                updateAllPaneCommands(val, !isPreset);
+              }}
+              placeholder={globalPlaceholder}
+              triggerClassName="font-mono h-10 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/30 text-xs transition-all rounded-md placeholder:text-[var(--text-secondary)]/40 shadow-none"
+              emptyText="Protocol matrix not found."
+            />
+            <div className="flex items-center gap-2 opacity-80">
+              <span className="text-[9px] font-mono text-[var(--text-secondary)] font-bold uppercase tracking-tighter">Overrides enabled per pane</span>
             </div>
           </div>
-        </motion.div>
-      )}
+        </div>
+      </motion.div>
 
       <motion.div 
         variants={itemVariants}

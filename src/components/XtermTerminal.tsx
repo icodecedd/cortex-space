@@ -9,7 +9,7 @@ import { useColorScheme } from '../hooks/useColorScheme';
 import { usePty } from '../hooks/usePty';
 import { Button } from "@/components/ui/button";
 import { getSetting, getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings, SHORTCUT_DEFAULTS, ShortcutSettings, DemoSettings } from '@/lib/store';
-import { isGlobalShortcut } from '@/lib/shortcut-utils';
+import { isGlobalShortcut, matchesShortcut } from '@/lib/shortcut-utils';
 import { toast } from "sonner";
 import { PaneElevator } from './space/PaneElevator';
 import { terminalSessionManager } from '../lib/terminalSessionManager';
@@ -62,19 +62,20 @@ export function XtermTerminal({
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
   const [showFloatingHeader, setShowFloatingHeader] = useState(true);
   const [headerVisibility, setHeaderVisibility] = useState<'hover' | 'always'>('hover');
-  const [detectedUrl, setDetectedUrl] = useState<string | null>(null);
+  const [detectedUrls, setDetectedUrls] = useState<string[]>([]);
   const outputBufferRef = useRef<string>("");
   const checkPortRef = useRef<(() => void) | null>(null);
+  const failuresMapRef = useRef<Map<string, number>>(new Map());
 
-  // Show toast when detectedUrl changes to a valid URL
+  // Show toast when new URLs are detected
   useEffect(() => {
-    if (detectedUrl) {
+    if (detectedUrls.length > 0) {
       toast.info("Application Ready", {
-        description: `Cortex detected a service on ${detectedUrl}. Click 'Open Browser' in the header.`,
+        description: `Cortex detected ${detectedUrls.length > 1 ? 'services' : 'a service'}. Click 'Open Browser' in the header.`,
         duration: 4000
       });
     }
-  }, [detectedUrl]);
+  }, [detectedUrls.length]);
 
   console.log("[XtermTerminal Debug]", { isZenMode, isFocused, id });
 
@@ -145,31 +146,38 @@ export function XtermTerminal({
       // Strip ANSI escape codes to improve regex matching accuracy
       const cleanText = outputBufferRef.current.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
 
-      // Improved regex:
+      // Improved regex with global flag:
       // 1. Optional protocol (http/https)
       // 2. Localhost, loopback IP, or [::]
       // 3. Required port (1-5 digits)
       // 4. Optional trailing path or query
-      const localUrlRegex = /((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{1,5})(?:\/\S*)?)/i;
-      const match = cleanText.match(localUrlRegex);
+      const localUrlRegex = /((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{1,5})(?:\/\S*)?)/gi;
+      const matches = Array.from(cleanText.matchAll(localUrlRegex));
 
-      if (match) {
-        let url = match[1].trim();
+      if (matches.length > 0) {
+        setDetectedUrls(prev => {
+          const newUrls = [...prev];
+          let changed = false;
 
-        // Basic normalization
-        if (!url.startsWith('http')) {
-          url = `http://${url}`;
-        }
+          matches.forEach(match => {
+            let url = match[1].trim();
 
-        // Normalize loopback IPs and [::] to localhost for better compatibility
-        url = url.replace(/(?:127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\])/g, 'localhost');
+            // Basic normalization
+            if (!url.startsWith('http')) {
+              url = `http://${url}`;
+            }
 
-        setDetectedUrl(prev => {
-          if (prev !== url) {
-            console.log(`[PTY ${id}] Port detected: ${url}`);
-            return url;
-          }
-          return prev;
+            // Normalize loopback IPs and [::] to localhost for better compatibility
+            url = url.replace(/(?:127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\])/g, 'localhost');
+
+            if (!newUrls.includes(url)) {
+              console.log(`[PTY ${id}] Port detected: ${url}`);
+              newUrls.push(url);
+              changed = true;
+            }
+          });
+
+          return changed ? newUrls : prev;
         });
       }
     }
@@ -188,60 +196,79 @@ export function XtermTerminal({
 
 
   const relaunch = useCallback(() => {
-    setDetectedUrl(null);
+    setDetectedUrls([]);
+    failuresMapRef.current.clear();
     outputBufferRef.current = "";
     relaunchPty();
   }, [relaunchPty]);
 
-  // Port Validation Loop: Periodically check if the detected port is still alive
+  // Port Validation Loop: Periodically check if detected ports are still alive
   useEffect(() => {
-    if (!detectedUrl) return;
+    if (detectedUrls.length === 0) {
+      failuresMapRef.current.clear();
+      return;
+    }
 
-    const portMatch = detectedUrl.match(/:(\d+)/);
-    if (!portMatch) return;
-
-    const port = parseInt(portMatch[1], 10);
+    const maxFailures = 5;
     let isChecking = false;
-    let consecutiveFailures = 0;
-    const maxFailures = 5; // Allow 5 consecutive failures for a 5-second timeout grace period (at 1s interval)
 
-    const check = async () => {
+    const checkAll = async () => {
       if (isChecking) return;
       isChecking = true;
 
-      try {
-        const status = await invoke<string>('check_port', { port });
-        if (status === 'open') {
-          consecutiveFailures = 0;
-        } else if (status === 'refused') {
-          console.log(`[PTY ${id}] Port ${port} connection refused. Clearing detected URL immediately.`);
-          setDetectedUrl(null);
+      const results = await Promise.all(detectedUrls.map(async (url) => {
+        const portMatch = url.match(/:(\d+)/);
+        if (!portMatch) return { url, status: 'invalid' };
+        
+        const port = parseInt(portMatch[1], 10);
+        try {
+          const status = await invoke<string>('check_port', { port });
+          return { url, status };
+        } catch (err) {
+          return { url, status: 'error' };
+        }
+      }));
+
+      let changed = false;
+      const nextUrls = detectedUrls.filter(url => {
+        const res = results.find(r => r.url === url);
+        if (!res) return true;
+
+        if (res.status === 'open') {
+          failuresMapRef.current.set(url, 0);
+          return true;
+        } else if (res.status === 'refused') {
+          console.log(`[PTY ${id}] Port for ${url} refused. Removing.`);
+          failuresMapRef.current.delete(url);
+          changed = true;
+          return false;
         } else {
-          consecutiveFailures++;
-          if (consecutiveFailures >= maxFailures) {
-            console.log(`[PTY ${id}] Port ${port} timed out for ${maxFailures} consecutive checks. Clearing detected URL.`);
-            setDetectedUrl(null);
+          const currentFailures = (failuresMapRef.current.get(url) || 0) + 1;
+          failuresMapRef.current.set(url, currentFailures);
+          if (currentFailures >= maxFailures) {
+            console.log(`[PTY ${id}] Port for ${url} timed out. Removing.`);
+            failuresMapRef.current.delete(url);
+            changed = true;
+            return false;
           }
+          return true;
         }
-      } catch (err) {
-        console.error('Failed to check port status:', err);
-        consecutiveFailures++;
-        if (consecutiveFailures >= maxFailures) {
-          setDetectedUrl(null);
-        }
-      } finally {
-        isChecking = false;
+      });
+
+      if (changed) {
+        setDetectedUrls(nextUrls);
       }
+      isChecking = false;
     };
 
-    checkPortRef.current = check;
-    const checkInterval = setInterval(check, 1000); // Check every 1 second
+    checkPortRef.current = checkAll;
+    const checkInterval = setInterval(checkAll, 1000);
 
     return () => {
       clearInterval(checkInterval);
       checkPortRef.current = null;
     };
-  }, [detectedUrl, id]);
+  }, [detectedUrls.length, id]);
 
   // Synchronize dynamic callbacks (write, resize, shortcuts) with session manager
   useEffect(() => {
@@ -574,29 +601,27 @@ export function XtermTerminal({
   useEffect(() => {
     if (!isFocused || !isReady) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      const isR = e.key.toLowerCase() === 'r';
-      const isH = e.key.toLowerCase() === 'h';
-      const isV = e.key.toLowerCase() === 'v';
-
-      if ((e.ctrlKey || e.metaKey) && e.altKey) {
-        if (isR) {
-          e.preventDefault();
-          relaunch();
-          toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${index + 1}...` });
-        } else if (isH) {
-          e.preventDefault();
-          onSplit?.(paneId, 'horizontal');
-          toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} horizontally...` });
-        } else if (isV) {
-          e.preventDefault();
-          onSplit?.(paneId, 'vertical');
-          toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} vertically...` });
-        }
+      if (matchesShortcut(e, shortcuts.resetPane)) {
+        e.preventDefault();
+        relaunch();
+        toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${index + 1}...` });
+      } else if (matchesShortcut(e, shortcuts.splitHorizontal)) {
+        e.preventDefault();
+        onSplit?.(paneId, 'horizontal');
+        toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} horizontally...` });
+      } else if (matchesShortcut(e, shortcuts.splitVertical)) {
+        e.preventDefault();
+        onSplit?.(paneId, 'vertical');
+        toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} vertically...` });
+      } else if (matchesShortcut(e, shortcuts.closePane)) {
+        e.preventDefault();
+        onKill?.(paneId);
+        toast.success(`Pane Closed`, { description: `Closing PANE ${index + 1}...` });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFocused, isReady, relaunch, index, onSplit, paneId]);
+  }, [isFocused, isReady, relaunch, index, onSplit, onKill, paneId, shortcuts]);
 
   const handleContainerClick = () => { if (xtermRef.current && isReady) xtermRef.current.focus(); };
 
@@ -631,7 +656,7 @@ export function XtermTerminal({
           onRelaunch={relaunch}
           onSaveSnippet={onSaveSnippet}
           terminalInstance={xtermRef.current}
-          detectedUrl={detectedUrl}
+          detectedUrls={detectedUrls}
           headerVisibility={headerVisibility}
         />
       )}

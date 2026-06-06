@@ -6,6 +6,8 @@ import { gridToLayoutNode, findNeighborPane } from "@/lib/setup-utils";
 import { LayoutConfig } from "@/lib/setup-constants";
 import { ThemeName } from "@/hooks/useTheme";
 import { LayoutNode, PaneNode } from "@/types";
+import { getSettingsGroup, SHORTCUT_DEFAULTS, ShortcutSettings } from "@/lib/store";
+import { matchesShortcut } from "@/lib/shortcut-utils";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -58,7 +60,12 @@ export function SpaceView({
 
   const [focusedPaneId, setFocusedPaneId] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
+  }, []);
 
   // Find all panes to manage focus and maximization
   const allPanes = useMemo(() => {
@@ -110,11 +117,24 @@ export function SpaceView({
           setFocusedPaneId(neighborId);
         }
       }
+
+      // 4. Pane Management (Reset / Close)
+      if (focusedPaneId) {
+        if (matchesShortcut(e, shortcuts.resetPane)) {
+          // Reset is handled by the terminal itself via its own listener 
+          // but we can add it here if we had a way to trigger it.
+          // Since it's handled in XtermTerminal, we don't necessarily need it here
+          // UNLESS the terminal is not focused.
+        } else if (matchesShortcut(e, shortcuts.closePane)) {
+          e.preventDefault();
+          onKillPane?.(focusedPaneId);
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [allPanes, focusedPaneId, layoutTree]);
+  }, [allPanes, focusedPaneId, layoutTree, shortcuts, onKillPane]);
 
   const renderTerminalPane = (pane: PaneNode, isForcedFocus = false) => {
     const pIndex = allPanes.findIndex(p => p.id === pane.id);

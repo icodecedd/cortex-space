@@ -40,7 +40,7 @@ interface PaneElevatorProps {
   onRelaunch: () => void;
   onSaveSnippet?: (command: string) => void;
   terminalInstance: Terminal | null;
-  detectedUrl?: string | null;
+  detectedUrls?: string[];
   headerVisibility?: 'hover' | 'always';
 }
 
@@ -56,7 +56,7 @@ export function PaneElevator({
   onRelaunch,
   onSaveSnippet,
   terminalInstance,
-  detectedUrl,
+  detectedUrls = [],
   headerVisibility = 'hover'
 }: PaneElevatorProps) {
   const [isRenaming, setIsRenaming] = useState(false);
@@ -103,7 +103,7 @@ export function PaneElevator({
   if (isZenMode) return null;
 
   const isAlwaysVisible = headerVisibility === 'always';
-  const isVisible = isHovered || isRenaming || isAlwaysVisible || !!detectedUrl;
+  const isVisible = isHovered || isRenaming || isAlwaysVisible || detectedUrls.length > 0;
 
   return (
     <div 
@@ -179,23 +179,46 @@ export function PaneElevator({
         </div>
 
         <div className="flex items-center gap-1 shrink-0 ml-4">
-          {detectedUrl && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={() => openUrl(detectedUrl)}
-                  className="h-6 px-2 gap-1.5 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 animate-pulse border border-[var(--accent-primary)]/20 rounded-md"
-                >
-                  <ExternalLink size={10} />
-                  <span className="text-[9px] font-bold uppercase tracking-wider">Open Browser</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-                Open {detectedUrl}
-              </TooltipContent>
-            </Tooltip>
+          {detectedUrls.length > 0 && (
+            detectedUrls.length === 1 ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => openUrl(detectedUrls[0])}
+                    className="h-6 px-2 gap-1.5 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 animate-pulse border border-[var(--accent-primary)]/20 rounded-md"
+                  >
+                    <ExternalLink size={10} />
+                    <span className="text-[9px] font-bold uppercase tracking-wider">Open Browser</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+                  Open {detectedUrls[0]}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    className="h-6 px-2 gap-1.5 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 animate-pulse border border-[var(--accent-primary)]/20 rounded-md"
+                  >
+                    <ExternalLink size={10} />
+                    <span className="text-[9px] font-bold uppercase tracking-wider">Open Ports ({detectedUrls.length})</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-[var(--surface-color)] border-[var(--border-color)]">
+                  {detectedUrls.map((url) => (
+                    <DropdownMenuItem key={url} onClick={() => openUrl(url)}>
+                      <ExternalLink className="mr-2 h-3 w-3" />
+                      <span className="text-xs truncate">{url}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
           )}
 
           <Tooltip>
@@ -229,7 +252,7 @@ export function PaneElevator({
                 <DropdownMenuContent align="end" className="w-48 bg-[var(--surface-color)] border-[var(--border-color)]">
                   <DropdownMenuItem onClick={onRelaunch}>
                     <RefreshCw className="mr-2 h-3 w-3" />
-                    <span className="text-xs">Reset Process</span>
+                    <span className="text-xs">Reset Pane</span>
                     <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+R</DropdownMenuShortcut>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -254,7 +277,8 @@ export function PaneElevator({
                     onClick={onKill}
                   >
                     <Trash2 className="mr-2 h-3 w-3" />
-                    <span className="text-xs">Kill Process</span>
+                    <span className="text-xs">Close Pane</span>
+                    <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+W</DropdownMenuShortcut>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

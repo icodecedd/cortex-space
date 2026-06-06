@@ -69,6 +69,8 @@ export interface ShortcutSettings {
   quickSwitcher: string;
   splitHorizontal: string;
   splitVertical: string;
+  resetPane: string;
+  closePane: string;
 }
 
 export interface FocusSettings {
@@ -145,6 +147,8 @@ export const SHORTCUT_DEFAULTS: ShortcutSettings = {
   quickSwitcher: 'Ctrl+K',
   splitHorizontal: 'Ctrl+Alt+H',
   splitVertical: 'Ctrl+Alt+V',
+  resetPane: 'Ctrl+Alt+R',
+  closePane: 'Ctrl+Alt+W',
 };
 
 // ---------------------------------------------------------------------------
