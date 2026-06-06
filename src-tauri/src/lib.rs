@@ -12,7 +12,7 @@ use once_cell::sync::Lazy;
 #[derive(Serialize, Clone)]
 struct PtyOutputPayload {
     id: String,
-    data: Vec<u8>,
+    data: String,
 }
 
 struct PtySession {
@@ -53,6 +53,24 @@ fn get_shell_env() -> HashMap<String, String> {
     }
     
     env
+}
+
+fn kill_process_tree(child: &mut Box<dyn Child + Send + Sync>) {
+    if let Some(pid) = child.process_id() {
+        #[cfg(unix)]
+        unsafe {
+            // portable-pty creates a new session leader, so PID is the PGID
+            libc::killpg(pid as libc::pid_t, libc::SIGKILL);
+        }
+        #[cfg(windows)]
+        {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/T", "/PID", &pid.to_string()])
+                .output();
+        }
+    }
+    // Fallback if the process is still around
+    let _ = child.kill();
 }
 
 #[tauri::command]
@@ -193,7 +211,7 @@ fn spawn_pty<R: Runtime>(
     let mut sessions = PTY_SESSIONS.lock().unwrap();
     // Kill existing session if any with the same ID
     if let Some(mut old_session) = sessions.remove(&id) {
-        let _ = old_session.child.kill();
+        kill_process_tree(&mut old_session.child);
     }
 
     sessions.insert(
@@ -216,7 +234,7 @@ fn spawn_pty<R: Runtime>(
         loop {
             match reader.read(&mut buffer) {
                 Ok(n) if n > 0 => {
-                    let data = buffer[..n].to_vec();
+                    let data = String::from_utf8_lossy(&buffer[..n]).into_owned();
                     let _ = app_clone.emit("pty-output", PtyOutputPayload {
                         id: id_clone.clone(),
                         data,
@@ -274,7 +292,7 @@ fn resize_pty(id: String, rows: u16, cols: u16) -> Result<(), String> {
 fn kill_pty(id: String) -> Result<(), String> {
     let mut sessions = PTY_SESSIONS.lock().unwrap();
     if let Some(mut session) = sessions.remove(&id) {
-        let _ = session.child.kill();
+        kill_process_tree(&mut session.child);
     }
     Ok(())
 }
@@ -291,36 +309,109 @@ fn get_home_dir() -> Option<String> {
 }
 
 #[tauri::command]
-fn check_port(port: u16) -> String {
-    use std::net::{TcpStream, SocketAddr};
-    use std::io::ErrorKind;
+async fn check_port(port: u16) -> String {
+    use tokio::net::TcpStream;
+    use std::time::Duration;
+    use tokio::time::timeout;
 
-    // Check IPv4 loopback
-    let ipv4_addr = SocketAddr::from(([127, 0, 0, 1], port));
-    let ipv4_res = TcpStream::connect(&ipv4_addr);
-    if ipv4_res.is_ok() {
+    let ipv4_addr = format!("127.0.0.1:{}", port);
+    let ipv6_addr = format!("[::1]:{}", port);
+
+    // Try IPv4 loopback async with a short timeout (200ms)
+    let ipv4_res = timeout(Duration::from_millis(200), TcpStream::connect(&ipv4_addr)).await;
+    if let Ok(Ok(_)) = ipv4_res {
         return "open".to_string();
     }
 
-    // Check IPv6 loopback
-    let ipv6_addr = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 1], port));
-    let ipv6_res = TcpStream::connect(&ipv6_addr);
-    if ipv6_res.is_ok() {
+    // Try IPv6 loopback async with a short timeout (200ms)
+    let ipv6_res = timeout(Duration::from_millis(200), TcpStream::connect(&ipv6_addr)).await;
+    if let Ok(Ok(_)) = ipv6_res {
         return "open".to_string();
     }
 
-    // If both failed, analyze the errors
-    let ipv4_err = ipv4_res.unwrap_err();
-    let ipv6_err = ipv6_res.unwrap_err();
+    // Determine if it was a timeout or connection refusal
+    let is_timeout = match (ipv4_res, ipv6_res) {
+        (Err(_), _) | (_, Err(_)) => true, // timeout error
+        (Ok(Err(ref e)), _) | (_, Ok(Err(ref e))) if e.kind() == std::io::ErrorKind::TimedOut => true,
+        _ => false,
+    };
 
-    let ipv4_is_timeout = matches!(ipv4_err.kind(), ErrorKind::TimedOut | ErrorKind::WouldBlock);
-    let ipv6_is_timeout = matches!(ipv6_err.kind(), ErrorKind::TimedOut | ErrorKind::WouldBlock);
-
-    if ipv4_is_timeout || ipv6_is_timeout {
+    if is_timeout {
         "timeout".to_string()
     } else {
         "refused".to_string()
     }
+}
+
+#[tauri::command]
+fn is_port_blocked(port: u16) -> bool {
+    // Blocklist: well-known non-browser ports (DBs, SSH, SMTP, etc.)
+    matches!(port, 5432 | 3306 | 6379 | 27017 | 5672 | 9200 | 2181 | 25 | 22 | 21 | 3307 | 1433 | 5433)
+}
+
+#[tauri::command]
+async fn check_port_lsof(port: u16) -> String {
+    use tokio::process::Command;
+    
+    if cfg!(target_os = "windows") {
+        let output = Command::new("cmd")
+            .args(["/C", &format!("netstat -ano | findstr :{} | findstr LISTEN", port)])
+            .output()
+            .await;
+            
+        if let Ok(output) = output {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if !stdout.trim().is_empty() {
+                return "open".to_string();
+            }
+        }
+    } else {
+        let output = Command::new("sh")
+            .args(["-c", &format!("lsof -iTCP:{} -sTCP:LISTEN", port)])
+            .output()
+            .await;
+            
+        if let Ok(output) = output {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains("LISTEN") {
+                return "open".to_string();
+            }
+        }
+    }
+    
+    "closed".to_string()
+}
+
+#[tauri::command]
+async fn kill_port_process(port: u16) -> Result<(), String> {
+    use tokio::process::Command;
+
+    if cfg!(target_os = "windows") {
+        // Find PID holding the port
+        let output = Command::new("cmd")
+            .args(["/C", &format!("netstat -ano | findstr :{} | findstr LISTEN", port)])
+            .output()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if let Some(line) = stdout.lines().next() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if let Some(pid) = parts.last() {
+                let _ = Command::new("taskkill")
+                    .args(["/F", "/T", "/PID", pid])
+                    .output()
+                    .await;
+            }
+        }
+    } else {
+        // Unix: lsof -t -iTCP:<port> -sTCP:LISTEN | xargs kill -9
+        let _ = Command::new("sh")
+            .args(["-c", &format!("lsof -t -iTCP:{} -sTCP:LISTEN | xargs kill -9", port)])
+            .output()
+            .await;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -351,6 +442,9 @@ pub fn run() {
             validate_directory,
             get_home_dir,
             check_port,
+            is_port_blocked,
+            check_port_lsof,
+            kill_port_process,
             debug_env
         ])
         .run(tauri::generate_context!())

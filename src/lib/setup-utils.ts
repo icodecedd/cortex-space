@@ -211,3 +211,59 @@ function findDeepestPane(node: LayoutNode, fromDirection: 'up' | 'down' | 'left'
 
   return findDeepestPane(node.children[nextIndex], fromDirection);
 }
+
+/**
+ * Derives a semantic name for a terminal pane based on its command.
+ */
+export function derivePaneName(command: string, defaultName: string): string {
+  if (!command || command.trim() === "") return defaultName;
+
+  const cmd = command.trim().toLowerCase();
+  const parts = cmd.split(/\s+/);
+  const base = parts[0];
+
+  // 1. Specific Tool Mapping
+  if (base === 'npm' || base === 'pnpm' || base === 'yarn' || base === 'bun') {
+    if (parts.includes('run')) {
+      const script = parts[parts.indexOf('run') + 1];
+      if (script) return script.charAt(0).toUpperCase() + script.slice(1);
+    }
+    if (parts[1] === 'start' || parts[1] === 'dev' || parts[1] === 'build' || parts[1] === 'test') {
+      return parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+    }
+    return base.toUpperCase();
+  }
+
+  if (base === 'docker-compose' || base === 'docker') {
+    if (parts.includes('up')) return 'Docker Up';
+    if (parts.includes('build')) return 'Docker Build';
+    return 'Docker';
+  }
+
+  if (base === 'git') {
+    if (parts[1] === 'status') return 'Git Status';
+    if (parts[1] === 'log') return 'Git Log';
+    if (parts[1] === 'pull' || parts[1] === 'push') return `Git ${parts[1].charAt(0).toUpperCase() + parts[1].slice(1)}`;
+    return 'Git';
+  }
+
+  if (base === 'python' || base === 'python3') {
+    const file = parts.find(p => p.endsWith('.py'));
+    if (file) return file.split(/[\\/]/).pop()?.replace('.py', '') || 'Python';
+    return 'Python';
+  }
+
+  if (base === 'node') {
+    const file = parts.find(p => p.endsWith('.js') || p.endsWith('.ts'));
+    if (file) return file.split(/[\\/]/).pop()?.replace(/\.(js|ts)$/, '') || 'Node';
+    return 'Node';
+  }
+
+  if (base === 'gemini' || base === 'claude' || base === 'gpt' || base === 'codex') {
+    return `${base.charAt(0).toUpperCase() + base.slice(1)} Agent`;
+  }
+
+  // 2. Generic Fallback: Use the command itself if short, or the base command
+  if (cmd.length < 12) return cmd.toUpperCase();
+  return base.toUpperCase();
+}

@@ -146,7 +146,7 @@ body::after {
 }
 
 .btn-tactile:hover {
-  background: var(--text-primary)/[0.03];
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
   border-color: var(--accent-primary);
 }
 
@@ -445,13 +445,13 @@ input[type="text"]:focus, select:focus {
 
 .xterm-viewport::-webkit-scrollbar,
 .pane-content::-webkit-scrollbar {
-  width: 4px;
+  width: 2px;
   height: 0px;
 }
 
 .xterm-viewport::-webkit-scrollbar:vertical,
 .pane-content::-webkit-scrollbar:vertical {
-  width: 4px;
+  width: 2px;
 }
 
 .xterm-viewport::-webkit-scrollbar:horizontal,
@@ -710,4 +710,23 @@ body, #root {
 
 [data-radix-popper-content-wrapper] {
   z-index: 9999 !important;
+}
+/* ========================================================
+   Port Detection Badge Animations
+   ======================================================== */
+
+@keyframes portBadgeIn {
+  from { opacity: 0; transform: scale(0.85) translateY(-2px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+@keyframes portDotPulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.4);
+  }
+  50% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 4px rgba(29, 158, 117, 0);
+  }
 }

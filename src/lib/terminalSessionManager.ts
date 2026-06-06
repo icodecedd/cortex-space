@@ -3,13 +3,14 @@ import { listen } from '@tauri-apps/api/event';
 
 interface PtyOutputPayload {
   id: string;
-  data: number[];
+  data: string;
 }
 
 interface Session {
   id: string;
-  buffer: number[]; // Store output bytes
-  onDataCallbacks: Set<(data: Uint8Array) => void>;
+  buffer: string[]; // Store output strings
+  bufferLength: number; // Keep track of characters
+  onDataCallbacks: Set<(data: string) => void>;
   onExitCallbacks: Set<() => void>;
   cleanupTimeout: any | null;
   isTerminated: boolean;
@@ -104,15 +105,20 @@ class SessionManager {
         session = this.createSessionRecord(id);
       }
       
-      // Append to buffer, keeping a limit (e.g. 200,000 bytes)
-      session.buffer.push(...data);
-      if (session.buffer.length > 250000) {
-        session.buffer = session.buffer.slice(-200000);
+      // Append to buffer, keeping a limit (e.g. 200,000 characters)
+      session.buffer.push(data);
+      session.bufferLength += data.length;
+      if (session.bufferLength > 250000) {
+        while (session.bufferLength > 200000 && session.buffer.length > 0) {
+          const removed = session.buffer.shift();
+          if (removed) {
+            session.bufferLength -= removed.length;
+          }
+        }
       }
 
       // Route data to active callbacks
-      const uint8Array = new Uint8Array(data);
-      session.onDataCallbacks.forEach(cb => cb(uint8Array));
+      session.onDataCallbacks.forEach(cb => cb(data));
     });
 
     // Listen to pty-exit globally
@@ -131,6 +137,7 @@ class SessionManager {
     const session: Session = {
       id,
       buffer: [],
+      bufferLength: 0,
       onDataCallbacks: new Set(),
       onExitCallbacks: new Set(),
       cleanupTimeout: null,
@@ -143,13 +150,15 @@ class SessionManager {
   // Get session history buffer
   getHistory(id: string): Uint8Array {
     const session = this.sessions.get(id);
-    return session ? new Uint8Array(session.buffer) : new Uint8Array();
+    if (!session) return new Uint8Array();
+    const encoder = new TextEncoder();
+    return encoder.encode(session.buffer.join(''));
   }
 
   // Register active component callbacks
   register(
     id: string, 
-    onData: (data: Uint8Array) => void, 
+    onData: (data: string) => void, 
     onExit: () => void
   ) {
     this.init(); // Ensure initialized
@@ -167,14 +176,15 @@ class SessionManager {
     session.onDataCallbacks.add(onData);
     session.onExitCallbacks.add(onExit);
 
+    const encoder = new TextEncoder();
     return {
       isTerminated: session.isTerminated,
-      history: new Uint8Array(session.buffer)
+      history: encoder.encode(session.buffer.join(''))
     };
   }
 
   // Unregister active component callbacks (mark inactive)
-  unregister(id: string, onData: (data: Uint8Array) => void, onExit: () => void) {
+  unregister(id: string, onData: (data: string) => void, onExit: () => void) {
     const session = this.sessions.get(id);
     if (!session) return;
 

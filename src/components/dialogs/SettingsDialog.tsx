@@ -304,7 +304,7 @@ export function SettingsDialog({
 
   // Focus settings
   const focus = focusSettings;
-  
+
   // Demo settings
   const demo = demoSettings;
 
@@ -338,7 +338,7 @@ export function SettingsDialog({
         await getSetting("startup.confirmModeChange", true)
       );
       setDefaultShell(await getSetting("startup.defaultShell", ""));
-      
+
       const savedShortcuts = await getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS);
       setShortcuts(savedShortcuts);
     })();
@@ -406,16 +406,16 @@ export function SettingsDialog({
     const updated = { ...shortcuts, [key]: value };
     setShortcuts(updated);
     await setSetting(`shortcuts.${key}`, value);
-    window.dispatchEvent(new CustomEvent('cortex-settings-changed', { 
-      detail: { shortcuts: updated } 
+    window.dispatchEvent(new CustomEvent('cortex-settings-changed', {
+      detail: { shortcuts: updated }
     }));
   };
 
   const handleResetShortcuts = async () => {
     setShortcuts(SHORTCUT_DEFAULTS);
     await setSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS);
-    window.dispatchEvent(new CustomEvent('cortex-settings-changed', { 
-      detail: { shortcuts: SHORTCUT_DEFAULTS } 
+    window.dispatchEvent(new CustomEvent('cortex-settings-changed', {
+      detail: { shortcuts: SHORTCUT_DEFAULTS }
     }));
   };
 
@@ -706,8 +706,8 @@ export function SettingsDialog({
                       const v = e.target.value;
                       setDefaultShell(v);
                       await setSetting("startup.defaultShell", v);
-                      window.dispatchEvent(new CustomEvent('cortex-settings-changed', { 
-                        detail: { startup: { defaultShell: v } } 
+                      window.dispatchEvent(new CustomEvent('cortex-settings-changed', {
+                        detail: { startup: { defaultShell: v } }
                       }));
                     }}
                     className="w-[160px] h-8 text-[12px] font-mono bg-[var(--bg-color)] border-[var(--border-color)]"
@@ -1217,9 +1217,9 @@ export function SettingsDialog({
             <TabsContent value="themes" className="m-0 space-y-6">
               <div className="flex items-center justify-between">
                 <SectionHeader title="Select Theme" />
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setIsImporting(!isImporting)}
                   className="h-7 text-[10px] gap-1.5 bg-[var(--text-primary)]/5 hover:bg-[var(--text-primary)]/10"
                 >
@@ -1239,16 +1239,16 @@ export function SettingsDialog({
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-[var(--text-secondary)] font-bold">Live Preview</span>
-                          <Switch 
-                            checked={isPreviewing} 
-                            onCheckedChange={setIsPreviewing} 
+                          <Switch
+                            checked={isPreviewing}
+                            onCheckedChange={setIsPreviewing}
                             className="scale-75 origin-right"
                           />
                         </div>
                         <Badge variant="outline" className="text-[9px] border-[var(--border-color)] text-[var(--text-secondary)] font-bold">Standard Schema</Badge>
                       </div>
                     </div>
-                    <Textarea 
+                    <Textarea
                       placeholder='{ "id": "my-theme", "name": "My Theme", "dark": { "bg": "#...", ... }, "light": { ... } }'
                       value={jsonInput}
                       onChange={(e) => setJsonInput(e.target.value)}
@@ -1256,9 +1256,9 @@ export function SettingsDialog({
                     />
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => { setIsImporting(false); setIsPreviewing(false); cancelPreview(); }} className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Cancel</Button>
-                      <Button 
-                        size="sm" 
-                        onClick={handleImportTheme} 
+                      <Button
+                        size="sm"
+                        onClick={handleImportTheme}
                         className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] text-[11px] gap-1.5"
                       >
                         <Check size={12} />

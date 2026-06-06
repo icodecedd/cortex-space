@@ -8,7 +8,8 @@ import {
   RefreshCw, 
   Maximize2, 
   Minimize2,
-  ExternalLink
+  ExternalLink,
+  Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ import {
 import { toast } from "sonner";
 import { Terminal } from '@xterm/xterm';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import type { DetectedPort } from '@/components/XtermTerminal';
 
 interface PaneElevatorProps {
   name?: string;
@@ -40,7 +42,7 @@ interface PaneElevatorProps {
   onRelaunch: () => void;
   onSaveSnippet?: (command: string) => void;
   terminalInstance: Terminal | null;
-  detectedUrls?: string[];
+  detectedPorts?: DetectedPort[];
   headerVisibility?: 'hover' | 'always';
 }
 
@@ -56,7 +58,7 @@ export function PaneElevator({
   onRelaunch,
   onSaveSnippet,
   terminalInstance,
-  detectedUrls = [],
+  detectedPorts = [],
   headerVisibility = 'hover'
 }: PaneElevatorProps) {
   const [isRenaming, setIsRenaming] = useState(false);
@@ -102,8 +104,13 @@ export function PaneElevator({
 
   if (isZenMode) return null;
 
+  const activePorts = detectedPorts.filter(p => p.state === 'detected');
   const isAlwaysVisible = headerVisibility === 'always';
-  const isVisible = isHovered || isRenaming || isAlwaysVisible || detectedUrls.length > 0;
+  const isVisible = isHovered || isRenaming || isAlwaysVisible || activePorts.length > 0;
+
+  const MAX_VISIBLE = 2;
+  const visiblePorts = activePorts.slice(0, MAX_VISIBLE);
+  const overflowPorts = activePorts.slice(MAX_VISIBLE);
 
   return (
     <div 
@@ -179,46 +186,92 @@ export function PaneElevator({
         </div>
 
         <div className="flex items-center gap-1 shrink-0 ml-4">
-          {detectedUrls.length > 0 && (
-            detectedUrls.length === 1 ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => openUrl(detectedUrls[0])}
-                    className="h-6 px-2 gap-1.5 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 animate-pulse border border-[var(--accent-primary)]/20 rounded-md"
-                  >
-                    <ExternalLink size={10} />
-                    <span className="text-[9px] font-bold uppercase tracking-wider">Open Browser</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-                  Open {detectedUrls[0]}
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="h-6 px-2 gap-1.5 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 animate-pulse border border-[var(--accent-primary)]/20 rounded-md"
-                  >
-                    <ExternalLink size={10} />
-                    <span className="text-[9px] font-bold uppercase tracking-wider">Open Ports ({detectedUrls.length})</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-[var(--surface-color)] border-[var(--border-color)]">
-                  {detectedUrls.map((url) => (
-                    <DropdownMenuItem key={url} onClick={() => openUrl(url)}>
-                      <ExternalLink className="mr-2 h-3 w-3" />
-                      <span className="text-xs truncate">{url}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )
+          {/* Port Badges — up to 2 visible, rest in overflow pill */}
+          {visiblePorts.map((dp) => (
+            <Tooltip key={dp.port}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => openUrl(dp.url)}
+                  aria-label={`Open localhost:${dp.port} in browser`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '3px 8px 3px 6px',
+                    borderRadius: '9999px',
+                    border: '0.5px solid rgba(var(--accent-primary-rgb), 0.35)',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    color: 'var(--accent-primary)',
+                    background: 'rgba(var(--accent-primary-rgb), 0.08)',
+                    animation: 'portBadgeIn 0.2s ease',
+                    letterSpacing: '0.02em',
+                    fontFamily: 'monospace',
+                    whiteSpace: 'nowrap',
+                    outline: 'none',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: '#1D9E75',
+                      display: 'inline-block',
+                      flexShrink: 0,
+                      animation: 'portDotPulse 2s ease-in-out infinite',
+                    }}
+                    aria-hidden="true"
+                  />
+                  <ExternalLink size={9} aria-hidden="true" style={{ opacity: 0.7 }} />
+                  :{dp.port}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+                Open {dp.url} in browser
+              </TooltipContent>
+            </Tooltip>
+          ))}
+
+          {/* Overflow pill for 3+ ports */}
+          {overflowPorts.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '9999px',
+                    border: '0.5px solid var(--border-color)',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    background: 'rgba(var(--surface-color-rgb), 0.8)',
+                    outline: 'none',
+                    fontFamily: 'monospace',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  <Globe size={9} />
+                  +{overflowPorts.length}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 bg-[var(--surface-color)] border-[var(--border-color)]">
+                {overflowPorts.map((dp) => (
+                  <DropdownMenuItem key={dp.port} onClick={() => openUrl(dp.url)}>
+                    <span
+                      style={{ width: 6, height: 6, borderRadius: '50%', background: '#1D9E75', display: 'inline-block', marginRight: 6, flexShrink: 0 }}
+                    />
+                    <ExternalLink className="mr-2 h-3 w-3" />
+                    <span className="text-xs truncate font-mono">localhost:{dp.port}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           <Tooltip>

@@ -35,10 +35,10 @@ interface SpaceViewProps {
   onSaveSnippet?: (command: string) => void;
 }
 
-export function SpaceView({ 
-  workspaceId, 
-  config, 
-  isZenMode, 
+export function SpaceView({
+  workspaceId,
+  config,
+  isZenMode,
   zenPadding = 32,
   onSplitPane,
   onKillPane,
@@ -121,7 +121,7 @@ export function SpaceView({
       // 4. Pane Management (Reset / Close)
       if (focusedPaneId) {
         if (matchesShortcut(e, shortcuts.resetPane)) {
-          // Reset is handled by the terminal itself via its own listener 
+          // Reset is handled by the terminal itself via its own listener
           // but we can add it here if we had a way to trigger it.
           // Since it's handled in XtermTerminal, we don't necessarily need it here
           // UNLESS the terminal is not focused.
@@ -209,7 +209,7 @@ export function SpaceView({
           const key = item.node.type === 'pane' ? item.node.id : `split-${getFirstPaneId(item.node)}`;
           return (
             <React.Fragment key={key}>
-              <ResizablePanel defaultSize={item.size}>
+              <ResizablePanel defaultSize={item.size} minSize={100}>
                 {renderLayout(item.node)}
               </ResizablePanel>
               {index < flatPanes.length - 1 && <ResizableHandle />}

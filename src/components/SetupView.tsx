@@ -5,6 +5,7 @@ import { INITIAL_STEP, MAX_STEP } from "@/lib/setup-constants";
 import { useWorkspaceDirectory } from "@/hooks/useWorkspaceDirectory";
 import { usePresets } from "@/hooks/usePresets";
 import { useSetupPanes } from "@/hooks/useSetupPanes";
+import { useSnippets } from "@/hooks/useSnippets";
 import { SetupHeader } from "./setup/SetupHeader";
 import { SetupControls } from "./setup/SetupControls";
 import { StepWorkspace } from "./setup/steps/StepWorkspace";
@@ -50,10 +51,13 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
     activePanes,
     handleLayoutChange,
     updatePaneCommand,
+    updatePaneName,
     updateAllPaneCommands,
     restoreDefaults,
     isInitialized
   } = useSetupPanes();
+
+  const { snippets } = useSnippets();
 
   const isStepValid = useMemo(() => {
     if (step === 1) return (rootPath || defaultDir).trim() !== "";
@@ -151,7 +155,9 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
                 mode={mode}
                 activePanes={activePanes}
                 updatePaneCommand={updatePaneCommand}
+                updatePaneName={updatePaneName}
                 updateAllPaneCommands={updateAllPaneCommands}
+                snippets={snippets}
               />
             )}
 

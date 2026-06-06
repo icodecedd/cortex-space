@@ -15,6 +15,17 @@ import { PaneElevator } from './space/PaneElevator';
 import { terminalSessionManager } from '../lib/terminalSessionManager';
 import '@xterm/xterm/css/xterm.css';
 
+// Port state machine types
+export type PortState = 'detected' | 'gone';
+export interface DetectedPort {
+  port: number;
+  url: string;
+  state: PortState;
+}
+
+// Well-known non-browser ports blocklist (mirrors Rust side)
+const PORT_BLOCKLIST = new Set([5432, 3306, 6379, 27017, 5672, 9200, 2181, 25, 22, 21, 3307, 1433, 5433]);
+
 interface XtermTerminalProps {
   id: string;
   paneId: string;
@@ -52,7 +63,7 @@ export function XtermTerminal({
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const decoderRef = useRef(new TextDecoder());
+
   const { theme, allThemes } = useTheme();
   const { resolvedScheme } = useColorScheme();
 
@@ -62,22 +73,34 @@ export function XtermTerminal({
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
   const [showFloatingHeader, setShowFloatingHeader] = useState(true);
   const [headerVisibility, setHeaderVisibility] = useState<'hover' | 'always'>('hover');
-  const [detectedUrls, setDetectedUrls] = useState<string[]>([]);
+  const [detectedPorts, setDetectedPorts] = useState<DetectedPort[]>([]);
   const outputBufferRef = useRef<string>("");
   const checkPortRef = useRef<(() => void) | null>(null);
-  const failuresMapRef = useRef<Map<string, number>>(new Map());
+  const failuresMapRef = useRef<Map<number, number>>(new Map());
+  const seenUrlsRef = useRef<Set<string>>(new Set());
+  const promotingRef = useRef<Set<number>>(new Set());
+  const notifiedPortsRef = useRef<Set<number>>(new Set());
+  const activePortsRef = useRef<DetectedPort[]>([]);
 
-  // Show toast when new URLs are detected
+  // Keep ref in sync with state for callbacks
   useEffect(() => {
-    if (detectedUrls.length > 0) {
-      toast.info("Application Ready", {
-        description: `Cortex detected ${detectedUrls.length > 1 ? 'services' : 'a service'}. Click 'Open Browser' in the header.`,
-        duration: 4000
-      });
-    }
-  }, [detectedUrls.length]);
+    activePortsRef.current = detectedPorts;
+  }, [detectedPorts]);
 
-  console.log("[XtermTerminal Debug]", { isZenMode, isFocused, id });
+  // Show one-time toast per newly detected port
+  const firePortToast = useCallback((dp: DetectedPort) => {
+    if (notifiedPortsRef.current.has(dp.port)) return;
+    notifiedPortsRef.current.add(dp.port);
+    toast.success(`Port ${dp.port} is ready`, {
+      description: dp.url,
+      duration: 6000,
+      action: {
+        label: 'Open Browser',
+        onClick: () => openUrl(dp.url),
+      },
+    });
+  }, []);
+
 
   useEffect(() => {
     getSettingsGroup<TerminalSettings>('startup', { defaultShell: '' } as any).then((saved: any) => {
@@ -130,58 +153,75 @@ export function XtermTerminal({
     return palette.ansi || {};
   }, [getThemePalette]);
 
-  // CHECKLIST ITEM 3: Single-Source Rendering
-  // Confirm that data only appears in the terminal UI *after* it has made a full round trip from the backend process.
-  // Data from Backend -> Frontend
-  const handlePtyData = useCallback((data: Uint8Array) => {
+  // Port Promotion: verify a candidate port before adding it to state
+  const promotePort = useCallback(async (port: number, rawUrl: string) => {
+    if (PORT_BLOCKLIST.has(port)) return;
+    if (promotingRef.current.has(port)) return;
+    promotingRef.current.add(port);
+
+    // Normalize URL to http://localhost:PORT
+    let url = rawUrl;
+    if (!url.startsWith('http')) url = `http://${url}`;
+    url = url.replace(/(?:127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\])/g, 'localhost');
+    // Strip path — we only need the origin for browser opening
+    try { url = new URL(url).origin; } catch { /* keep as-is */ }
+
+    // Retry up to 3× with 500ms delay to verify the port is actually listening
+    let open = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const status = await invoke<string>('check_port', { port });
+        if (status === 'open') { open = true; break; }
+      } catch { /* ignore */ }
+      if (attempt < 2) await new Promise(r => setTimeout(r, 500));
+    }
+
+    if (open) {
+      const newPort: DetectedPort = { port, url, state: 'detected' };
+      setDetectedPorts(prev => {
+        if (prev.some(p => p.port === port)) return prev; // already tracked
+        return [...prev, newPort];
+      });
+      firePortToast(newPort);
+    }
+
+    promotingRef.current.delete(port);
+  }, [firePortToast]);
+
+  // CHECKLIST ITEM 3: Single-Source Rendering — string data from backend
+  const handlePtyData = useCallback((data: string) => {
     if (xtermRef.current) {
       xtermRef.current.write(data);
 
-      // Simple heuristic for local port detection
-      const text = decoderRef.current.decode(data, { stream: true });
+      // Maintain rolling context buffer (last 600 chars)
+      outputBufferRef.current = (outputBufferRef.current + data).slice(-600);
 
-      // Append to buffer and keep it small (last 600 chars to be safe for long lines and ANSI codes)
-      outputBufferRef.current = (outputBufferRef.current + text).slice(-600);
+      // Strip ANSI escape codes before regex matching
+      const cleanText = outputBufferRef.current
+        .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
 
-      // Strip ANSI escape codes to improve regex matching accuracy
-      const cleanText = outputBufferRef.current.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+      // Spec regex: covers Vite, Next.js, Express, Remix, Astro, Nuxt, Rails, Django, etc.
+      const portRegex =
+        /(?:https?:\/\/localhost:(\d+)|listening on[:\s]+(\d+)|ready on[:\s]+(\d+)|Local:\s+https?:\/\/localhost:(\d+)|server running.*:(\d+)|started on.*:(\d+)|running at.*:(\d+)|available at.*:(\d+)|((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{2,5})))/gi;
 
-      // Improved regex with global flag:
-      // 1. Optional protocol (http/https)
-      // 2. Localhost, loopback IP, or [::]
-      // 3. Required port (1-5 digits)
-      // 4. Optional trailing path or query
-      const localUrlRegex = /((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{1,5})(?:\/\S*)?)/gi;
-      const matches = Array.from(cleanText.matchAll(localUrlRegex));
-
-      if (matches.length > 0) {
-        setDetectedUrls(prev => {
-          const newUrls = [...prev];
-          let changed = false;
-
-          matches.forEach(match => {
-            let url = match[1].trim();
-
-            // Basic normalization
-            if (!url.startsWith('http')) {
-              url = `http://${url}`;
-            }
-
-            // Normalize loopback IPs and [::] to localhost for better compatibility
-            url = url.replace(/(?:127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\])/g, 'localhost');
-
-            if (!newUrls.includes(url)) {
-              console.log(`[PTY ${id}] Port detected: ${url}`);
-              newUrls.push(url);
-              changed = true;
-            }
-          });
-
-          return changed ? newUrls : prev;
-        });
+      let match: RegExpExecArray | null;
+      while ((match = portRegex.exec(cleanText)) !== null) {
+        // Find first non-undefined capture group that is a pure port number
+        const portStr = match.slice(1).find(g => g && /^\d+$/.test(g));
+        if (!portStr) continue;
+        const port = parseInt(portStr, 10);
+        // Ignore ports < 1024 (system ports) and blocklisted ones
+        if (port < 1024 || PORT_BLOCKLIST.has(port)) continue;
+        // Build a canonical URL key for dedup
+        const urlKey = `http://localhost:${port}`;
+        if (!seenUrlsRef.current.has(urlKey)) {
+          seenUrlsRef.current.add(urlKey);
+          promotePort(port, urlKey);
+        }
       }
     }
-  }, [id]);
+  }, [promotePort]);
+
 
   const ptyConfig = useMemo(() => ({
     command,
@@ -196,88 +236,168 @@ export function XtermTerminal({
 
 
   const relaunch = useCallback(() => {
-    setDetectedUrls([]);
+    setDetectedPorts([]);
     failuresMapRef.current.clear();
+    seenUrlsRef.current.clear();
+    promotingRef.current.clear();
+    notifiedPortsRef.current.clear();
     outputBufferRef.current = "";
     relaunchPty();
   }, [relaunchPty]);
 
-  // Port Validation Loop: Periodically check if detected ports are still alive
+  // Aggressive cleanup on process termination
+  // We do not instantly remove the badges. Instead, we aggressively poll the ports
+  // to confirm they have been released by the OS. This prevents premature badge removal
+  // and race conditions where a killed node process lingers in TIME_WAIT.
   useEffect(() => {
-    if (detectedUrls.length === 0) {
+    if (!isTerminated) return;
+
+    // Cancel regular liveness polling immediately
+    if (checkPortRef.current) {
+      checkPortRef.current = null;
+    }
+
+    const checkExitStatus = async () => {
+      let activePorts = detectedPorts.filter(p => p.state === 'detected');
+      if (activePorts.length === 0) return;
+
+      const results = await Promise.all(activePorts.map(async (dp) => {
+        try {
+          // check_port_lsof provides a definitive "is it listening" system check
+          const lsofStatus = await invoke<string>('check_port_lsof', { port: dp.port });
+          if (lsofStatus === 'closed') return { port: dp.port, status: 'closed' };
+
+          // Fallback to connection test if lsof is inconclusive
+          const connStatus = await invoke<string>('check_port', { port: dp.port });
+          return { port: dp.port, status: connStatus === 'open' ? 'open' : 'closed' };
+        } catch {
+          return { port: dp.port, status: 'closed' };
+        }
+      }));
+
+      let changed = false;
+      setDetectedPorts(prev => {
+        const next = prev.filter(dp => {
+          if (dp.state === 'gone') return false;
+          const res = results.find(r => r.port === dp.port);
+          if (res && res.status === 'closed') {
+            failuresMapRef.current.delete(dp.port);
+            seenUrlsRef.current.delete(dp.url);
+            changed = true;
+            return false;
+          }
+          return true;
+        });
+        return changed ? next : prev;
+      });
+
+      // If there are still active ports, continue aggressive polling
+      if (results.some(r => r.status === 'open')) {
+        setTimeout(checkExitStatus, 500); // 500ms aggressive poll
+      } else {
+        promotingRef.current.clear();
+      }
+    };
+
+    checkExitStatus();
+
+    // Note: keep notifiedPortsRef — we still want toast dedup across restarts
+  }, [isTerminated, detectedPorts]);
+
+  // Port Liveness Polling — periodically verify detected ports are still listening
+  useEffect(() => {
+    if (detectedPorts.filter(p => p.state === 'detected').length === 0) {
       failuresMapRef.current.clear();
       return;
     }
 
-    const maxFailures = 5;
+    const maxFailures = 3;
     let isChecking = false;
 
     const checkAll = async () => {
       if (isChecking) return;
       isChecking = true;
 
-      const results = await Promise.all(detectedUrls.map(async (url) => {
-        const portMatch = url.match(/:(\d+)/);
-        if (!portMatch) return { url, status: 'invalid' };
-        
-        const port = parseInt(portMatch[1], 10);
+      const activePorts = detectedPorts.filter(p => p.state === 'detected');
+      const results = await Promise.all(activePorts.map(async (dp) => {
         try {
-          const status = await invoke<string>('check_port', { port });
-          return { url, status };
-        } catch (err) {
-          return { url, status: 'error' };
+          const status = await invoke<string>('check_port', { port: dp.port });
+          return { port: dp.port, status };
+        } catch {
+          return { port: dp.port, status: 'error' };
         }
       }));
 
       let changed = false;
-      const nextUrls = detectedUrls.filter(url => {
-        const res = results.find(r => r.url === url);
-        if (!res) return true;
-
-        if (res.status === 'open') {
-          failuresMapRef.current.set(url, 0);
-          return true;
-        } else if (res.status === 'refused') {
-          console.log(`[PTY ${id}] Port for ${url} refused. Removing.`);
-          failuresMapRef.current.delete(url);
-          changed = true;
-          return false;
-        } else {
-          const currentFailures = (failuresMapRef.current.get(url) || 0) + 1;
-          failuresMapRef.current.set(url, currentFailures);
-          if (currentFailures >= maxFailures) {
-            console.log(`[PTY ${id}] Port for ${url} timed out. Removing.`);
-            failuresMapRef.current.delete(url);
+      setDetectedPorts(prev => {
+        const next = prev.filter(dp => {
+          if (dp.state === 'gone') return false; // already gone, prune
+          const res = results.find(r => r.port === dp.port);
+          if (!res) return true;
+          if (res.status === 'open') {
+            failuresMapRef.current.set(dp.port, 0);
+            return true;
+          }
+          // Connection refused — remove immediately
+          if (res.status === 'refused') {
+            failuresMapRef.current.delete(dp.port);
+            seenUrlsRef.current.delete(dp.url);
+            changed = true;
+            return false;
+          }
+          // Timeout / error — increment failure count
+          const failures = (failuresMapRef.current.get(dp.port) || 0) + 1;
+          failuresMapRef.current.set(dp.port, failures);
+          if (failures >= maxFailures) {
+            failuresMapRef.current.delete(dp.port);
+            seenUrlsRef.current.delete(dp.url);
             changed = true;
             return false;
           }
           return true;
-        }
+        });
+        return changed ? next : prev;
       });
 
-      if (changed) {
-        setDetectedUrls(nextUrls);
-      }
       isChecking = false;
     };
 
     checkPortRef.current = checkAll;
-    const checkInterval = setInterval(checkAll, 1000);
-
+    const checkInterval = setInterval(checkAll, 5000);
     return () => {
       clearInterval(checkInterval);
       checkPortRef.current = null;
     };
-  }, [detectedUrls.length, id]);
+  }, [detectedPorts.length, id]);
 
   // Synchronize dynamic callbacks (write, resize, shortcuts) with session manager
   useEffect(() => {
     const writeCb = (data: string) => {
       writeToPty(data);
       if (data === '\x03') { // Ctrl+C keypress
-        setTimeout(() => {
-          checkPortRef.current?.();
-        }, 300);
+        // On Windows, child processes like node.exe are often orphaned when Ctrl+C is sent to npm.cmd.
+        // We wait 1 second for graceful shutdown. If the port is still bound, we forcefully kill it.
+        setTimeout(async () => {
+          const activePorts = activePortsRef.current.filter(p => p.state === 'detected');
+          if (activePorts.length === 0) return;
+          
+          let anyKilled = false;
+          for (const p of activePorts) {
+            try {
+              const status = await invoke<string>('check_port_lsof', { port: p.port });
+              if (status === 'open') {
+                console.log(`[PTY ${id}] Port ${p.port} still open after Ctrl+C, forcefully killing process.`);
+                await invoke('kill_port_process', { port: p.port });
+                anyKilled = true;
+              }
+            } catch (e) {
+              console.warn("Failed to kill port process:", e);
+            }
+          }
+          if (anyKilled) {
+            checkPortRef.current?.();
+          }
+        }, 1000);
       }
     };
 
@@ -656,7 +776,7 @@ export function XtermTerminal({
           onRelaunch={relaunch}
           onSaveSnippet={onSaveSnippet}
           terminalInstance={xtermRef.current}
-          detectedUrls={detectedUrls}
+          detectedPorts={detectedPorts}
           headerVisibility={headerVisibility}
         />
       )}

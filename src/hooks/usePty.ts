@@ -6,7 +6,7 @@ export type PtyStatus = 'idle' | 'thinking' | 'finished';
 
 export function usePty(
   id: string, 
-  onData: (data: Uint8Array) => void, 
+  onData: (data: string) => void, 
   config?: { command?: string; cwd?: string; rows?: number; cols?: number; shell?: string; enabled?: boolean }
 ) {
   const [isReady, setIsReady] = useState(false);
@@ -120,10 +120,10 @@ export function usePty(
     isMountedRef.current = true;
     let active = true;
 
-    const handleNewData = (uint8Array: Uint8Array) => {
+    const handleNewData = (data: string) => {
       if (active && isMountedRef.current) {
         updateStatusOnData();
-        onDataRef.current(uint8Array);
+        onDataRef.current(data);
       }
     };
 

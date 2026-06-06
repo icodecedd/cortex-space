@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { LayoutType, LayoutConfig, SavedLayout, INITIAL_LAYOUTS, PaneConfig } from "@/lib/setup-constants";
-import { getPaneCount } from "@/lib/setup-utils";
+import { getPaneCount, derivePaneName } from "@/lib/setup-utils";
 import { getSetting, setSetting } from "@/lib/store";
 import { toast } from "sonner";
 
@@ -104,19 +104,31 @@ export function useSetupPanes() {
   };
 
   const updatePaneCommand = (id: number, command: string, isCustom?: boolean) => {
+    setPanes(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      
+      const newIsCustom = isCustom !== undefined ? isCustom : p.isCustom;
+      // Auto-derive name if it's currently a default one or empty
+      const isDefaultName = p.name === `Pane ${p.id}` || p.name === `New Pane` || p.name.trim() === "";
+      const name = isDefaultName ? derivePaneName(command, `Pane ${id}`) : p.name;
+      
+      return { ...p, command, name, isCustom: newIsCustom };
+    }));
+  };
+
+  const updatePaneName = (id: number, name: string) => {
     setPanes(prev => prev.map(p => 
-      p.id === id 
-        ? { ...p, command, isCustom: isCustom !== undefined ? isCustom : p.isCustom } 
-        : p
+      p.id === id ? { ...p, name } : p
     ));
   };
 
   const updateAllPaneCommands = useCallback((command: string, isCustom?: boolean) => {
-    setPanes(prev => prev.map(p => ({
-      ...p,
-      command,
-      isCustom: isCustom !== undefined ? isCustom : p.isCustom
-    })));
+    setPanes(prev => prev.map(p => {
+      const newIsCustom = isCustom !== undefined ? isCustom : p.isCustom;
+      const isDefaultName = p.name === `Pane ${p.id}` || p.name === `New Pane` || p.name.trim() === "";
+      const name = isDefaultName ? derivePaneName(command, `Pane ${p.id}`) : p.name;
+      return { ...p, command, name, isCustom: newIsCustom };
+    }));
   }, []);
 
   return {
@@ -133,6 +145,7 @@ export function useSetupPanes() {
     activePanes,
     handleLayoutChange,
     updatePaneCommand,
+    updatePaneName,
     updateAllPaneCommands,
     restoreDefaults,
     isInitialized
