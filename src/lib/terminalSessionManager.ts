@@ -18,6 +18,77 @@ interface Session {
 class SessionManager {
   private sessions = new Map<string, Session>();
   private initialized = false;
+  private xtermInstances = new Map<string, any>();
+  private fitAddons = new Map<string, any>();
+  private writeDelegates = new Map<string, (data: string) => void>();
+  private resizeDelegates = new Map<string, (rows: number, cols: number) => void>();
+  private keyEventHandlerDelegates = new Map<string, (e: KeyboardEvent) => boolean>();
+
+  setWriteDelegate(id: string, cb: ((data: string) => void) | undefined) {
+    if (cb === undefined) {
+      this.writeDelegates.delete(id);
+    } else {
+      this.writeDelegates.set(id, cb);
+    }
+  }
+
+  getWriteDelegate(id: string): ((data: string) => void) | undefined {
+    return this.writeDelegates.get(id);
+  }
+
+  setResizeDelegate(id: string, cb: ((rows: number, cols: number) => void) | undefined) {
+    if (cb === undefined) {
+      this.resizeDelegates.delete(id);
+    } else {
+      this.resizeDelegates.set(id, cb);
+    }
+  }
+
+  getResizeDelegate(id: string): ((rows: number, cols: number) => void) | undefined {
+    return this.resizeDelegates.get(id);
+  }
+
+  setKeyEventHandlerDelegate(id: string, cb: ((e: KeyboardEvent) => boolean) | undefined) {
+    if (cb === undefined) {
+      this.keyEventHandlerDelegates.delete(id);
+    } else {
+      this.keyEventHandlerDelegates.set(id, cb);
+    }
+  }
+
+  getKeyEventHandlerDelegate(id: string): ((e: KeyboardEvent) => boolean) | undefined {
+    return this.keyEventHandlerDelegates.get(id);
+  }
+
+  getXterm(id: string): any {
+    return this.xtermInstances.get(id);
+  }
+
+  setXterm(id: string, term: any) {
+    this.xtermInstances.set(id, term);
+  }
+
+  getFitAddon(id: string): any {
+    return this.fitAddons.get(id);
+  }
+
+  setFitAddon(id: string, fitAddon: any) {
+    this.fitAddons.set(id, fitAddon);
+  }
+
+  removeXterm(id: string) {
+    const term = this.xtermInstances.get(id);
+    if (term) {
+      try {
+        term.dispose();
+      } catch (e) {}
+      this.xtermInstances.delete(id);
+    }
+    this.fitAddons.delete(id);
+    this.writeDelegates.delete(id);
+    this.resizeDelegates.delete(id);
+    this.keyEventHandlerDelegates.delete(id);
+  }
 
   async init() {
     if (this.initialized) return;
@@ -118,12 +189,13 @@ class SessionManager {
       session.cleanupTimeout = setTimeout(async () => {
         console.log(`[SessionManager] Cleaning up PTY session ${id} (no reconnects received within timeout)`);
         this.sessions.delete(id);
+        this.removeXterm(id);
         try {
           await invoke('kill_pty', { id });
         } catch (e) {
           console.warn(`Failed to kill PTY ${id}:`, e);
         }
-      }, 1500); // Wait 1.5 seconds for potential layout remounts
+      }, 10000); // Wait 10 seconds for potential layout remounts
     }
   }
 
@@ -139,6 +211,7 @@ class SessionManager {
       session.onExitCallbacks.clear();
     }
     this.sessions.delete(id);
+    this.removeXterm(id);
     try {
       await invoke('kill_pty', { id });
     } catch (e) {

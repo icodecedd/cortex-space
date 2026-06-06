@@ -20,13 +20,13 @@ interface TerminalPaneProps {
   onSaveSnippet?: (command: string) => void;
 }
 
-export function TerminalPane({ 
-  workspaceId, 
-  pane, 
-  isFocused, 
+export function TerminalPane({
+  workspaceId,
+  pane,
+  isFocused,
   index,
-  isMultiPane = true, 
-  onFocus, 
+  isMultiPane = true,
+  onFocus,
   rootPath,
   isZenMode = false,
   zenPadding = 32,
@@ -56,7 +56,7 @@ export function TerminalPane({
 
       updateCoords();
       window.addEventListener('resize', updateCoords);
-      
+
       const timer = setTimeout(updateCoords, 100);
 
       return () => {
@@ -74,8 +74,8 @@ export function TerminalPane({
   console.log("[TerminalPane Debug]", { isZenMode, isFocused, fixedCoords, isHidden });
 
   const paneContent = (
-    <div 
-      className="pane" 
+    <div
+      className="pane"
       onClick={() => {
         onFocus();
         // The XtermTerminal component already handles focus when isFocused changes,
@@ -87,17 +87,17 @@ export function TerminalPane({
       tabIndex={isHidden ? -1 : 0}
       role="region"
       aria-label={`Terminal Pane: ${pane.name || pane.command || 'Idle'}`}
-      style={{ 
-        background: 'var(--bg-color)', 
+      style={{
+        background: 'var(--bg-color)',
         borderRadius: 0,
         transition: 'all var(--duration-normal) var(--ease-out)',
-        boxShadow: isFocused 
-          ? 'inset 0 0 60px rgba(var(--accent-primary-rgb), 0.05)' 
+        boxShadow: isFocused
+          ? 'inset 0 0 60px rgba(var(--accent-primary-rgb), 0.05)'
           : 'none',
         outline: 'none',
         display: 'flex',
         flexDirection: 'column',
-        
+
         // CSS Positioning overrides for maximize/zen mode
         position: isZenMode ? 'fixed' : (fixedCoords ? 'fixed' : 'relative'),
         top: isZenMode ? '0px' : (fixedCoords ? `${fixedCoords.top}px` : 'auto'),
@@ -123,10 +123,10 @@ export function TerminalPane({
       }} />
 
 
-      <div 
-        className="pane-content" 
-        style={{ 
-          borderRadius: 0, 
+      <div
+        className="pane-content"
+        style={{
+          borderRadius: 0,
           position: 'relative',
           overflow: 'hidden',
           flex: 1,
@@ -136,10 +136,10 @@ export function TerminalPane({
           transition: 'background var(--duration-normal) var(--ease-out)'
         }}
       >
-        <XtermTerminal 
-          id={`${workspaceId}-${pane.id}`} 
+        <XtermTerminal
+          id={`${workspaceId}-${pane.id}`}
           paneId={pane.id}
-          isFocused={isFocused} 
+          isFocused={isFocused}
           index={index}
           command={pane.command}
           cwd={rootPath}

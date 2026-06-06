@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group"
 import { ChevronDownIcon, XIcon, CheckIcon } from "lucide-react"
@@ -25,14 +27,11 @@ function ComboboxTrigger({
   return (
     <ComboboxPrimitive.Trigger
       data-slot="combobox-trigger"
-      className={cn(
-        "flex items-center justify-center transition-colors hover:bg-accent/50 hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed outline-none",
-        className
-      )}
+      className={cn("[&_svg:not([class*='size-'])]:size-4", className)}
       {...props}
     >
       {children}
-      <ChevronDownIcon className="pointer-events-none size-3.5 text-muted-foreground group-hover/combobox-trigger:text-foreground transition-colors" />
+      <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
     </ComboboxPrimitive.Trigger>
   )
 }
@@ -41,13 +40,11 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
   return (
     <ComboboxPrimitive.Clear
       data-slot="combobox-clear"
-      className={cn(
-        "flex size-6 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors",
-        className
-      )}
+      render={<InputGroupButton variant="ghost" size="icon-xs" />}
+      className={cn(className)}
       {...props}
     >
-      <XIcon className="size-3.5 pointer-events-none" />
+      <XIcon className="pointer-events-none" />
     </ComboboxPrimitive.Clear>
   )
 }
@@ -64,20 +61,26 @@ function ComboboxInput({
   showClear?: boolean
 }) {
   return (
-    <InputGroup className={cn("w-full overflow-hidden p-0", className)}>
+    <InputGroup className={cn("w-auto", className)}>
       <ComboboxPrimitive.Input
-        render={<InputGroupInput disabled={disabled} className="px-3" />}
+        render={<InputGroupInput disabled={disabled} />}
         {...props}
       />
-      <div className="flex items-center h-full border-l border-input/30">
-        {showClear && <ComboboxClear disabled={disabled} className="mr-1" />}
+      <InputGroupAddon align="inline-end">
         {showTrigger && (
-          <ComboboxTrigger 
-            className="h-full w-8 group/combobox-trigger" 
-            disabled={disabled} 
-          />
+          <InputGroupButton
+            size="icon-xs"
+            variant="ghost"
+            asChild
+            data-slot="input-group-button"
+            className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
+            disabled={disabled}
+          >
+            <ComboboxTrigger />
+          </InputGroupButton>
         )}
-      </div>
+        {showClear && <ComboboxClear disabled={disabled} />}
+      </InputGroupAddon>
       {children}
     </InputGroup>
   )

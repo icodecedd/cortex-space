@@ -5,11 +5,6 @@ import { PaneConfigCard } from "../ui-parts/PaneConfigCard";
 import { useState } from "react";
 import {
   Combobox,
-  ComboboxContent,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxEmpty,
 } from "@/components/ui/combobox";
 
 interface StepConfigureProps {
@@ -85,43 +80,17 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updateAllP
             
             <div className="w-full md:w-72 flex flex-col gap-3">
               <Combobox
-                items={AGENT_PRESETS}
+                items={AGENT_PRESETS.map(p => ({ label: p.label, value: p.command }))}
                 value={globalAgent}
                 onValueChange={(val) => {
-                  if (val !== undefined) {
-                    setGlobalAgent(val as string);
-                    const isPreset = AGENT_PRESETS.some(p => p.command === val);
-                    updateAllPaneCommands(val as string, !isPreset);
-                  }
+                  setGlobalAgent(val);
+                  const isPreset = AGENT_PRESETS.some(p => p.command === val);
+                  updateAllPaneCommands(val, !isPreset);
                 }}
-              >
-                <div className="relative">
-                  <ComboboxInput
-                    placeholder="Select global identity..."
-                    className="font-mono h-10 bg-[var(--bg-color)]/40 border-[var(--border-color)] text-xs focus:border-[var(--accent-primary)] transition-all rounded-md placeholder:text-[var(--text-secondary)]/60"
-                  />
-                </div>
-                <ComboboxContent
-                  className="bg-[var(--surface-color)] border-[var(--border-color)] rounded-md"
-                  style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}
-                >
-                  <ComboboxEmpty className="text-[10px] font-mono p-4">Identity matrix not found.</ComboboxEmpty>
-                  <ComboboxList>
-                    {(preset: { label: string, command: string }) => (
-                      <ComboboxItem
-                        key={preset.label}
-                        value={preset.command}
-                        className="flex items-center justify-between gap-4 font-mono text-[11px] py-2.5 px-4 cursor-pointer hover:bg-[var(--text-primary)]/5 transition-colors"
-                      >
-                        <span className="font-bold text-[var(--text-primary)]">{preset.label}</span>
-                        <span className="text-[9px] text-[var(--text-secondary)] font-bold truncate opacity-80">
-                          {preset.command}
-                        </span>
-                      </ComboboxItem>
-                    )}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
+                placeholder="Select global identity..."
+                triggerClassName="font-mono h-10 bg-[var(--bg-color)]/40 border-[var(--border-color)] text-xs focus:border-[var(--accent-primary)] transition-all rounded-md placeholder:text-[var(--text-secondary)]/60"
+                emptyText="Identity matrix not found."
+              />
               <div className="flex items-center gap-2 opacity-80">
                 <span className="text-[9px] font-mono text-[var(--text-secondary)] font-bold uppercase tracking-tighter">Overrides enabled per pane</span>
               </div>

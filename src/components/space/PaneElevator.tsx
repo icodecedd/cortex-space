@@ -192,7 +192,7 @@ export function PaneElevator({
                   <span className="text-[9px] font-bold uppercase tracking-wider">Open Browser</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-[10px]">
+              <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
                 Open {detectedUrl}
               </TooltipContent>
             </Tooltip>
@@ -209,53 +209,60 @@ export function PaneElevator({
                 {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-[10px]">
+            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
               {isMaximized ? "Restore" : "Maximize"}
             </TooltipContent>
           </Tooltip>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="h-6 w-6 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              >
-                <MoreVertical size={12} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-[var(--surface-color)] border-[var(--border-color)]">
-              <DropdownMenuItem onClick={onRelaunch}>
-                <RefreshCw className="mr-2 h-3 w-3" />
-                <span className="text-xs">Reset Process</span>
-                <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+R</DropdownMenuShortcut>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onSplit?.('horizontal')}>
-                <SquareSplitHorizontal className="mr-2 h-3 w-3" />
-                <span className="text-xs">Split Horizontal</span>
-                <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+H</DropdownMenuShortcut>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSplit?.('vertical')}>
-                <SquareSplitVertical className="mr-2 h-3 w-3" />
-                <span className="text-xs">Split Vertical</span>
-                <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+V</DropdownMenuShortcut>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSaveSnippet}>
-                <BookmarkPlus className="mr-2 h-3 w-3" />
-                <span className="text-xs">Save as Snippet</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="text-red-400 focus:text-red-400"
-                onClick={onKill}
-              >
-                <Trash2 className="mr-2 h-3 w-3" />
-                <span className="text-xs">Kill Process</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="h-6 w-6 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  >
+                    <MoreVertical size={12} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-[var(--surface-color)] border-[var(--border-color)]">
+                  <DropdownMenuItem onClick={onRelaunch}>
+                    <RefreshCw className="mr-2 h-3 w-3" />
+                    <span className="text-xs">Reset Process</span>
+                    <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+R</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onSplit?.('horizontal')}>
+                    <SquareSplitVertical className="mr-2 h-3 w-3" />
+                    <span className="text-xs">Split Horizontal</span>
+                    <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+H</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onSplit?.('vertical')}>
+                    <SquareSplitHorizontal className="mr-2 h-3 w-3" />
+                    <span className="text-xs">Split Vertical</span>
+                    <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+V</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSaveSnippet}>
+                    <BookmarkPlus className="mr-2 h-3 w-3" />
+                    <span className="text-xs">Save as Snippet</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-red-400 focus:text-red-400"
+                    onClick={onKill}
+                  >
+                    <Trash2 className="mr-2 h-3 w-3" />
+                    <span className="text-xs">Kill Process</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+              Pane Options
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ export type PtyStatus = 'idle' | 'thinking' | 'finished';
 export function usePty(
   id: string, 
   onData: (data: Uint8Array) => void, 
-  config?: { command?: string; cwd?: string; rows?: number; cols?: number; shell?: string }
+  config?: { command?: string; cwd?: string; rows?: number; cols?: number; shell?: string; enabled?: boolean }
 ) {
   const [isReady, setIsReady] = useState(false);
   const [isTerminated, setIsTerminated] = useState(false);
@@ -135,6 +135,8 @@ export function usePty(
     };
 
     const setup = async () => {
+      if (config?.enabled === false) return;
+
       const isAlreadyRunning = terminalSessionManager.hasSession(id);
       const { isTerminated: termVal } = terminalSessionManager.register(id, handleNewData, handleExit);
       
@@ -171,7 +173,7 @@ export function usePty(
     };
     // ONLY restart if the core process definition changes.
     // Dimensions (rows/cols) changes must be handled by resize() to keep session alive.
-  }, [id, config?.command, config?.cwd, config?.shell, spawn, updateStatusOnData]);
+  }, [id, config?.command, config?.cwd, config?.shell, config?.enabled, spawn, updateStatusOnData]);
 
   return { write, resize, isReady, isTerminated, relaunch, status };
 }

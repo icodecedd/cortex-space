@@ -154,17 +154,48 @@ export function SpaceView({
       return renderTerminalPane(node);
     }
 
-    const orientation = node.direction === 'horizontal' ? 'horizontal' : 'vertical';
+    const direction = node.direction;
+    const orientation = direction === 'horizontal' ? 'horizontal' : 'vertical';
+
+    const getFirstPaneId = (n: LayoutNode): string => {
+      if (n.type === 'pane') return n.id;
+      return getFirstPaneId(n.children[0]);
+    };
+
+    const collectPanes = (
+      currentNode: LayoutNode,
+      targetDir: 'horizontal' | 'vertical',
+      ratioMultiplier: number = 1
+    ): { node: LayoutNode; size: number }[] => {
+      if (currentNode.type === 'pane') {
+        return [{ node: currentNode, size: ratioMultiplier * 100 }];
+      }
+
+      if (currentNode.direction === targetDir) {
+        return [
+          ...collectPanes(currentNode.children[0], targetDir, ratioMultiplier * currentNode.ratio),
+          ...collectPanes(currentNode.children[1], targetDir, ratioMultiplier * (1 - currentNode.ratio))
+        ];
+      }
+
+      return [{ node: currentNode, size: ratioMultiplier * 100 }];
+    };
+
+    const flatPanes = collectPanes(node, direction);
 
     return (
       <ResizablePanelGroup orientation={orientation} className="h-full w-full">
-        <ResizablePanel defaultSize={node.ratio * 100}>
-          {renderLayout(node.children[0])}
-        </ResizablePanel>
-        <ResizableHandle />
-        <ResizablePanel defaultSize={(1 - node.ratio) * 100}>
-          {renderLayout(node.children[1])}
-        </ResizablePanel>
+        {flatPanes.map((item, index) => {
+          const key = item.node.type === 'pane' ? item.node.id : `split-${getFirstPaneId(item.node)}`;
+          return (
+            <React.Fragment key={key}>
+              <ResizablePanel defaultSize={item.size}>
+                {renderLayout(item.node)}
+              </ResizablePanel>
+              {index < flatPanes.length - 1 && <ResizableHandle />}
+            </React.Fragment>
+          );
+        })}
       </ResizablePanelGroup>
     );
   };

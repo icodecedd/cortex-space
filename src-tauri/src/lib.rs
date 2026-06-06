@@ -291,12 +291,36 @@ fn get_home_dir() -> Option<String> {
 }
 
 #[tauri::command]
-fn check_port(port: u16) -> bool {
+fn check_port(port: u16) -> String {
     use std::net::{TcpStream, SocketAddr};
-    use std::time::Duration;
+    use std::io::ErrorKind;
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
-    TcpStream::connect_timeout(&addr, Duration::from_millis(150)).is_ok()
+    // Check IPv4 loopback
+    let ipv4_addr = SocketAddr::from(([127, 0, 0, 1], port));
+    let ipv4_res = TcpStream::connect(&ipv4_addr);
+    if ipv4_res.is_ok() {
+        return "open".to_string();
+    }
+
+    // Check IPv6 loopback
+    let ipv6_addr = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 1], port));
+    let ipv6_res = TcpStream::connect(&ipv6_addr);
+    if ipv6_res.is_ok() {
+        return "open".to_string();
+    }
+
+    // If both failed, analyze the errors
+    let ipv4_err = ipv4_res.unwrap_err();
+    let ipv6_err = ipv6_res.unwrap_err();
+
+    let ipv4_is_timeout = matches!(ipv4_err.kind(), ErrorKind::TimedOut | ErrorKind::WouldBlock);
+    let ipv6_is_timeout = matches!(ipv6_err.kind(), ErrorKind::TimedOut | ErrorKind::WouldBlock);
+
+    if ipv4_is_timeout || ipv6_is_timeout {
+        "timeout".to_string()
+    } else {
+        "refused".to_string()
+    }
 }
 
 #[tauri::command]

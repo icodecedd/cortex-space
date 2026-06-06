@@ -32,13 +32,13 @@ interface XtermTerminalProps {
   onSaveSnippet?: (command: string) => void;
 }
 
-export function XtermTerminal({ 
-  id, 
+export function XtermTerminal({
+  id,
   paneId,
-  isFocused, 
+  isFocused,
   index,
-  command, 
-  cwd, 
+  command,
+  cwd,
   isZenMode = false,
   isMaximized = false,
   onMaximize,
@@ -55,14 +55,26 @@ export function XtermTerminal({
   const decoderRef = useRef(new TextDecoder());
   const { theme, allThemes } = useTheme();
   const { resolvedScheme } = useColorScheme();
-  
+
   const [dimensions, setDimensions] = useState({ rows: 24, cols: 80 });
+  const [isMeasured, setIsMeasured] = useState(() => terminalSessionManager.hasSession(id));
   const [defaultShell, setDefaultShell] = useState<string>('');
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
   const [showFloatingHeader, setShowFloatingHeader] = useState(true);
   const [headerVisibility, setHeaderVisibility] = useState<'hover' | 'always'>('hover');
   const [detectedUrl, setDetectedUrl] = useState<string | null>(null);
   const outputBufferRef = useRef<string>("");
+  const checkPortRef = useRef<(() => void) | null>(null);
+
+  // Show toast when detectedUrl changes to a valid URL
+  useEffect(() => {
+    if (detectedUrl) {
+      toast.info("Application Ready", {
+        description: `Cortex detected a service on ${detectedUrl}. Click 'Open Browser' in the header.`,
+        duration: 4000
+      });
+    }
+  }, [detectedUrl]);
 
   console.log("[XtermTerminal Debug]", { isZenMode, isFocused, id });
 
@@ -126,39 +138,35 @@ export function XtermTerminal({
 
       // Simple heuristic for local port detection
       const text = decoderRef.current.decode(data, { stream: true });
-      
+
       // Append to buffer and keep it small (last 600 chars to be safe for long lines and ANSI codes)
       outputBufferRef.current = (outputBufferRef.current + text).slice(-600);
 
       // Strip ANSI escape codes to improve regex matching accuracy
       const cleanText = outputBufferRef.current.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
 
-      // Improved regex: 
+      // Improved regex:
       // 1. Optional protocol (http/https)
       // 2. Localhost, loopback IP, or [::]
       // 3. Required port (1-5 digits)
       // 4. Optional trailing path or query
       const localUrlRegex = /((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{1,5})(?:\/\S*)?)/i;
       const match = cleanText.match(localUrlRegex);
-      
+
       if (match) {
         let url = match[1].trim();
-        
+
         // Basic normalization
         if (!url.startsWith('http')) {
           url = `http://${url}`;
         }
-        
+
         // Normalize loopback IPs and [::] to localhost for better compatibility
         url = url.replace(/(?:127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\])/g, 'localhost');
-        
+
         setDetectedUrl(prev => {
           if (prev !== url) {
             console.log(`[PTY ${id}] Port detected: ${url}`);
-            toast.info("Application Ready", { 
-              description: `Cortex detected a service on ${url}. Click 'Open Browser' in the header.`,
-              duration: 4000
-            });
             return url;
           }
           return prev;
@@ -167,13 +175,14 @@ export function XtermTerminal({
     }
   }, [id]);
 
-  const ptyConfig = useMemo(() => ({ 
-    command, 
-    cwd, 
-    rows: dimensions.rows, 
+  const ptyConfig = useMemo(() => ({
+    command,
+    cwd,
+    rows: dimensions.rows,
     cols: dimensions.cols,
-    shell: defaultShell
-  }), [command, cwd, dimensions.rows, dimensions.cols, defaultShell]);
+    shell: defaultShell,
+    enabled: isMeasured
+  }), [command, cwd, dimensions.rows, dimensions.cols, defaultShell, isMeasured]);
 
   const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch: relaunchPty } = usePty(id, handlePtyData, ptyConfig);
 
@@ -190,90 +199,67 @@ export function XtermTerminal({
 
     const portMatch = detectedUrl.match(/:(\d+)/);
     if (!portMatch) return;
-    
+
     const port = parseInt(portMatch[1], 10);
     let isChecking = false;
+    let consecutiveFailures = 0;
+    const maxFailures = 5; // Allow 5 consecutive failures for a 5-second timeout grace period (at 1s interval)
 
-    const checkInterval = setInterval(async () => {
+    const check = async () => {
       if (isChecking) return;
       isChecking = true;
-      
+
       try {
-        const isOpen = await invoke<boolean>('check_port', { port });
-        if (!isOpen) {
-          console.log(`[PTY ${id}] Port ${port} closed. Clearing detected URL.`);
+        const status = await invoke<string>('check_port', { port });
+        if (status === 'open') {
+          consecutiveFailures = 0;
+        } else if (status === 'refused') {
+          console.log(`[PTY ${id}] Port ${port} connection refused. Clearing detected URL immediately.`);
           setDetectedUrl(null);
+        } else {
+          consecutiveFailures++;
+          if (consecutiveFailures >= maxFailures) {
+            console.log(`[PTY ${id}] Port ${port} timed out for ${maxFailures} consecutive checks. Clearing detected URL.`);
+            setDetectedUrl(null);
+          }
         }
       } catch (err) {
         console.error('Failed to check port status:', err);
+        consecutiveFailures++;
+        if (consecutiveFailures >= maxFailures) {
+          setDetectedUrl(null);
+        }
       } finally {
         isChecking = false;
       }
-    }, 2000); // Check every 2 seconds
+    };
 
-    return () => clearInterval(checkInterval);
+    checkPortRef.current = check;
+    const checkInterval = setInterval(check, 1000); // Check every 1 second
+
+    return () => {
+      clearInterval(checkInterval);
+      checkPortRef.current = null;
+    };
   }, [detectedUrl, id]);
 
-  // Bridge for xterm.js event handlers to always use latest PTY callbacks
-  const writeRef = useRef(writeToPty);
-  const resizeRef = useRef(resizePty);
-  
-  useEffect(() => { writeRef.current = writeToPty; }, [writeToPty]);
-  useEffect(() => { resizeRef.current = resizePty; }, [resizePty]);
-
-  // Main Terminal Lifecycle
+  // Synchronize dynamic callbacks (write, resize, shortcuts) with session manager
   useEffect(() => {
-    if (!terminalRef.current) return;
+    const writeCb = (data: string) => {
+      writeToPty(data);
+      if (data === '\x03') { // Ctrl+C keypress
+        setTimeout(() => {
+          checkPortRef.current?.();
+        }, 300);
+      }
+    };
 
-    const root = document.documentElement;
-    const initialFontSize = parseInt(getComputedStyle(root).getPropertyValue('--terminal-font-size').trim(), 10) || TERMINAL_DEFAULTS.fontSize;
-    const initialFontFamily = getComputedStyle(root).getPropertyValue('--terminal-font-family').trim() || TERMINAL_DEFAULTS.fontFamily;
-    const initialLineHeight = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-line-height').trim()) || TERMINAL_DEFAULTS.lineHeight;
-    const initialLetterSpacing = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-letter-spacing').trim()) || TERMINAL_DEFAULTS.letterSpacing;
+    const resizeCb = (rows: number, cols: number) => {
+      setDimensions({ rows, cols });
+      resizePty(rows, cols);
+    };
 
-    // Load full settings from store for fields not covered by CSS vars
-    let initialSettings = { ...TERMINAL_DEFAULTS };
-    getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS).then((saved) => {
-      initialSettings = saved;
-    });
-
-    const term = new Terminal({
-      cursorBlink: initialSettings.cursorBlink,
-      cursorStyle: initialSettings.cursorStyle,
-      fontSize: initialFontSize,
-      fontFamily: initialFontFamily,
-      lineHeight: initialLineHeight,
-      letterSpacing: initialLetterSpacing,
-      theme: {
-        background: getThemePalette(theme, resolvedScheme).bg || '#000000',
-        foreground: getThemePalette(theme, resolvedScheme).textPrimary || '#ffffff',
-        cursor: getThemePalette(theme, resolvedScheme).accent || '#ffffff',
-        selectionBackground: resolvedScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
-        ...getActiveAnsiColors(theme, resolvedScheme)
-      },
-      allowTransparency: true,
-      scrollback: initialSettings.scrollbackLines,
-      convertEol: true,
-      allowProposedApi: true,
-    });
-
-    const fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
-    term.loadAddon(new WebLinksAddon((_event, uri) => {
-      openUrl(uri).catch((err: unknown) => {
-        console.error('Failed to open external link:', err);
-      });
-    }));
-    term.open(terminalRef.current);
-
-    // Replay terminal history if this is a layout restore/remount
-    const history = terminalSessionManager.getHistory(id);
-    if (history.length > 0) {
-      term.write(history);
-    }
-
-    // Centralized shortcut bubbling logic
-    term.attachCustomKeyEventHandler((e) => {
+    const keyCb = (e: KeyboardEvent) => {
       const isEscape = e.key === 'Escape';
       const isNumKey = e.key >= '1' && e.key <= '9';
       const isArrowKey = e.key.startsWith('Arrow');
@@ -286,22 +272,131 @@ export function XtermTerminal({
         return false; // Bubble up
       }
       return true;
-    });
-    
-    term.onResize(({ rows, cols }) => {
-      if (rows <= 0 || cols <= 0) return;
-      setDimensions({ rows, cols });
-      resizeRef.current(rows, cols);
-    });
+    };
 
-    xtermRef.current = term;
-    fitAddonRef.current = fitAddon;
+    terminalSessionManager.setWriteDelegate(id, writeCb);
+    terminalSessionManager.setResizeDelegate(id, resizeCb);
+    terminalSessionManager.setKeyEventHandlerDelegate(id, keyCb);
+
+    return () => {
+      if (terminalSessionManager.getWriteDelegate(id) === writeCb) {
+        terminalSessionManager.setWriteDelegate(id, undefined);
+      }
+      if (terminalSessionManager.getResizeDelegate(id) === resizeCb) {
+        terminalSessionManager.setResizeDelegate(id, undefined);
+      }
+      if (terminalSessionManager.getKeyEventHandlerDelegate(id) === keyCb) {
+        terminalSessionManager.setKeyEventHandlerDelegate(id, undefined);
+      }
+    };
+  }, [id, writeToPty, resizePty, shortcuts]);
+
+  // Main Terminal Lifecycle
+  useEffect(() => {
+    if (!terminalRef.current) return;
+
+    let term = terminalSessionManager.getXterm(id) as Terminal | undefined;
+    let fitAddon = terminalSessionManager.getFitAddon(id) as FitAddon | undefined;
+    let isNew = false;
+
+    if (!term || !fitAddon) {
+      isNew = true;
+
+      const root = document.documentElement;
+      const initialFontSize = parseInt(getComputedStyle(root).getPropertyValue('--terminal-font-size').trim(), 10) || TERMINAL_DEFAULTS.fontSize;
+      const initialFontFamily = getComputedStyle(root).getPropertyValue('--terminal-font-family').trim() || TERMINAL_DEFAULTS.fontFamily;
+      const initialLineHeight = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-line-height').trim()) || TERMINAL_DEFAULTS.lineHeight;
+      const initialLetterSpacing = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-letter-spacing').trim()) || TERMINAL_DEFAULTS.letterSpacing;
+
+      // Load full settings from store for fields not covered by CSS vars
+      let initialSettings = { ...TERMINAL_DEFAULTS };
+      getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS).then((saved) => {
+        initialSettings = saved;
+      });
+
+      term = new Terminal({
+        cursorBlink: initialSettings.cursorBlink,
+        cursorStyle: initialSettings.cursorStyle,
+        fontSize: initialFontSize,
+        fontFamily: initialFontFamily,
+        lineHeight: initialLineHeight,
+        letterSpacing: initialLetterSpacing,
+        theme: {
+          background: getThemePalette(theme, resolvedScheme).bg || '#000000',
+          foreground: getThemePalette(theme, resolvedScheme).textPrimary || '#ffffff',
+          cursor: getThemePalette(theme, resolvedScheme).accent || '#ffffff',
+          selectionBackground: resolvedScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+          ...getActiveAnsiColors(theme, resolvedScheme)
+        },
+        allowTransparency: true,
+        scrollback: initialSettings.scrollbackLines,
+        convertEol: true,
+        allowProposedApi: true,
+      });
+
+      fitAddon = new FitAddon();
+      term.loadAddon(fitAddon);
+      term.loadAddon(new WebLinksAddon((_event, uri) => {
+        openUrl(uri).catch((err: unknown) => {
+          console.error('Failed to open external link:', err);
+        });
+      }));
+
+      terminalSessionManager.setXterm(id, term);
+      terminalSessionManager.setFitAddon(id, fitAddon);
+    }
+
+    const activeTerm = term;
+    const activeFit = fitAddon;
+
+    if (activeTerm.element) {
+      terminalRef.current.appendChild(activeTerm.element);
+      activeTerm.refresh(0, activeTerm.rows - 1);
+    } else {
+      activeTerm.open(terminalRef.current);
+    }
+
+    if (isNew) {
+      // Centralized shortcut bubbling logic via dynamic delegate lookup
+      activeTerm.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+        const delegate = terminalSessionManager.getKeyEventHandlerDelegate(id);
+        if (delegate) {
+          return delegate(e);
+        }
+        return true; // default: do not bubble
+      });
+
+      activeTerm.onResize(({ rows, cols }: { rows: number; cols: number }) => {
+        if (rows <= 0 || cols <= 0) return;
+        const delegate = terminalSessionManager.getResizeDelegate(id);
+        if (delegate) {
+          delegate(rows, cols);
+        }
+      });
+
+      activeTerm.onData((data: string) => {
+        const delegate = terminalSessionManager.getWriteDelegate(id);
+        if (delegate) {
+          delegate(data);
+        }
+      });
+      activeTerm.onBinary((data: string) => {
+        const delegate = terminalSessionManager.getWriteDelegate(id);
+        if (delegate) {
+          delegate(data);
+        }
+      });
+    }
+
+    xtermRef.current = activeTerm;
+    fitAddonRef.current = activeFit;
 
     const performInitialFit = () => {
       if (fitAddonRef.current && xtermRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
         try {
           fitAddonRef.current.fit();
           setDimensions({ rows: xtermRef.current.rows, cols: xtermRef.current.cols });
+          setIsMeasured(true);
         } catch (e) {}
       }
     };
@@ -314,13 +409,14 @@ export function XtermTerminal({
 
     const rafId = requestAnimationFrame(() => {
       if (fitAddonRef.current && xtermRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
-        try { fitAddonRef.current.fit(); } catch (e) {}
+        try {
+          fitAddonRef.current.fit();
+          setDimensions({ rows: xtermRef.current.rows, cols: xtermRef.current.cols });
+          setIsMeasured(true);
+        } catch (e) {}
         xtermRef.current.focus();
       }
     });
-
-    term.onData((data) => writeRef.current(data));
-    term.onBinary((data) => writeRef.current(data));
 
     let resizeTimeout: ReturnType<typeof setTimeout>;
     const handleResize = () => {
@@ -340,10 +436,9 @@ export function XtermTerminal({
       cancelAnimationFrame(rafId);
       clearTimeout(resizeTimeout);
       window.removeEventListener('resize', handleResize);
-      term.dispose();
       resizeObserver.disconnect();
     };
-  }, [shortcuts]);
+  }, [id]);
 
   // Theme Sync
   useEffect(() => {
@@ -459,22 +554,22 @@ export function XtermTerminal({
   useEffect(() => {
     const handleWriteRequest = (e: any) => {
       const { workspaceId: targetWsId, command, execute } = e.detail;
-      
+
       // We only respond if we are in the target workspace AND we are the currently focused pane
       if (targetWsId === workspaceId && isFocused && isReady) {
-        // Write the command
-        writeRef.current(command);
-        
+        // Write the command directly
+        writeToPty(command);
+
         // If execution is requested, send the Enter signal
         if (execute) {
-          writeRef.current('\r');
+          writeToPty('\r');
         }
       }
     };
 
     window.addEventListener('cortex:write-to-terminal', handleWriteRequest);
     return () => window.removeEventListener('cortex:write-to-terminal', handleWriteRequest);
-  }, [workspaceId, isFocused, isReady]);
+  }, [workspaceId, isFocused, isReady, writeToPty]);
 
   useEffect(() => {
     if (!isFocused || !isReady) return;
@@ -511,16 +606,16 @@ export function XtermTerminal({
   };
 
   return (
-    <div 
-      className="group" 
-      style={{ 
-        position: 'relative', 
-        width: '100%', 
-        height: '100%', 
-        overflow: 'hidden', 
-        display: 'flex', 
+    <div
+      className="group"
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+        display: 'flex',
         flexDirection: 'column',
-        background: 'transparent'
+        background: 'var(--bg-color)'
       }}
     >
       {showFloatingHeader && (
@@ -540,18 +635,18 @@ export function XtermTerminal({
           headerVisibility={headerVisibility}
         />
       )}
-      
+
       {/* Spacer for the floating header in 'always' mode */}
       {getTerminalPaddingTop() !== '0px' && (
-        <div style={{ 
-          height: getTerminalPaddingTop(), 
-          width: '100%', 
+        <div style={{
+          height: getTerminalPaddingTop(),
+          width: '100%',
           flexShrink: 0,
           transition: 'height 0.3s ease'
         }} />
       )}
 
-      <div 
+      <div
         className="terminal-viewport"
         style={{
           flex: 1,
@@ -564,18 +659,18 @@ export function XtermTerminal({
           flexDirection: 'column'
         }}
       >
-        <div 
-          ref={terminalRef} 
+        <div
+          ref={terminalRef}
           className="terminal-container"
           onClick={handleContainerClick}
-          style={{ 
+          style={{
             flex: 1,
-            width: '100%', 
+            width: '100%',
             height: '100%',
-            margin: '0', 
+            margin: '0',
             background: 'transparent',
             overflow: 'hidden'
-          }} 
+          }}
         />
       </div>
       <div style={{
@@ -587,7 +682,7 @@ export function XtermTerminal({
         <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em' }}>
           SESSION TERMINATED
         </span>
-        <Button 
+        <Button
           onClick={() => relaunch()}
           className="primary btn-tactile"
           style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', letterSpacing: '0.05em', borderRadius: 'var(--radius-sm)' }}

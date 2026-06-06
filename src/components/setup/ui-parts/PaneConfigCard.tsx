@@ -2,11 +2,6 @@ import { CheckCircle2, Terminal, Code, Cpu } from "lucide-react";
 import { AGENT_PRESETS, PaneConfig } from "@/lib/setup-constants";
 import {
   Combobox,
-  ComboboxContent,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxEmpty,
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
@@ -73,40 +68,16 @@ export function PaneConfigCard({ pane, index, mode, onUpdate }: PaneConfigCardPr
 
         {mode === 'agents' ? (
           <Combobox
-            items={AGENT_PRESETS}
+            items={AGENT_PRESETS.map(p => ({ label: p.label, value: p.command }))}
             value={pane.command || ""}
             onValueChange={(val) => {
-              if (val !== undefined) {
-                const isPreset = AGENT_PRESETS.some(p => p.command === val);
-                onUpdate(pane.id, val as string, !isPreset);
-              }
+              const isPreset = AGENT_PRESETS.some(p => p.command === val);
+              onUpdate(pane.id, val, !isPreset);
             }}
-          >
-            <div className="relative">
-              <ComboboxInput
-                placeholder="Select AI agent..."
-                className="font-mono h-9 bg-[var(--bg-color)]/20 border-[var(--border-color)] text-[11px] focus:border-[var(--accent-primary)] transition-all rounded-md pl-3 placeholder:text-[var(--text-secondary)]/50"
-              />
-            </div>
-            <ComboboxContent
-              className="bg-[var(--surface-color)] border-[var(--border-color)] rounded-md"
-              style={{ boxShadow: '0 15px 40px rgba(0,0,0,0.7)' }}
-            >
-              <ComboboxEmpty className="text-[10px] font-mono p-3">No matching protocol.</ComboboxEmpty>
-              <ComboboxList>
-                {(preset: { label: string, command: string }) => (
-                  <ComboboxItem
-                    key={preset.label}
-                    value={preset.command}
-                    className="flex items-center justify-between gap-4 font-mono text-[11px] py-2 px-3 cursor-pointer hover:bg-[var(--text-primary)]/5 transition-colors"
-                  >
-                    <span className="font-bold text-[var(--text-primary)]">{preset.label}</span>
-                    <span className="text-[9px] text-[var(--text-secondary)] font-bold truncate opacity-80">{preset.command}</span>
-                  </ComboboxItem>
-                )}
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
+            placeholder="Select AI agent..."
+            triggerClassName="font-mono h-9 bg-[var(--bg-color)]/20 border-[var(--border-color)] text-[11px] focus:border-[var(--accent-primary)] transition-all rounded-md pl-3 placeholder:text-[var(--text-secondary)]/50"
+            emptyText="No matching protocol."
+          />
         ) : (
           <div className="relative group/input">
             <Input

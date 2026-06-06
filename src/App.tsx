@@ -80,13 +80,19 @@ function App() {
 
   const handleSplitPane = (paneId: string, direction: 'horizontal' | 'vertical') => {
     if (!activeWorkspaceId) return;
+
+    // Map user split-line action to internal stacking direction:
+    // - A vertical split line separates left/right panes (horizontal stack)
+    // - A horizontal split line separates top/bottom panes (vertical stack)
+    const internalDir = direction === 'vertical' ? 'horizontal' : 'vertical';
+
     setWorkspaces(prev => prev.map(w => {
       if (w.id === activeWorkspaceId && w.config) {
         return {
           ...w,
           config: {
             ...w.config,
-            layout: splitNode(w.config.layout, paneId, direction)
+            layout: splitNode(w.config.layout, paneId, internalDir)
           }
         };
       }
