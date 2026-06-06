@@ -21,10 +21,9 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-// Sub-components
-import { WorkspacesTab } from "./cortex-library/tabs/WorkspacesTab";
-import { SnippetsTab } from "./cortex-library/tabs/SnippetsTab";
-import { AssetsTab } from "./cortex-library/tabs/AssetsTab";
+import { WorkspacesTab } from "./components/WorkspacesTab";
+import { SnippetsTab } from "./components/SnippetsTab";
+import { AssetsTab } from "./components/AssetsTab";
 
 interface CortexLibraryDialogProps {
   isOpen: boolean;

@@ -28,7 +28,7 @@ import {
 import { toast } from "sonner";
 import { Terminal } from '@xterm/xterm';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import type { DetectedPort } from '@/components/XtermTerminal';
+import type { DetectedPort } from '../../terminal/components/XtermTerminal';
 
 interface PaneElevatorProps {
   name?: string;

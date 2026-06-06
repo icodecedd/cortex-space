@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useMemo, useEffect } from "react";
-import { TerminalPane } from "./TerminalPane";
+import { TerminalPane } from "../terminal/TerminalPane";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { gridToLayoutNode, findNeighborPane } from "@/lib/setup-utils";
 import { LayoutConfig } from "@/lib/setup-constants";

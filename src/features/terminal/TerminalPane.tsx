@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { XtermTerminal } from "./XtermTerminal";
+import { XtermTerminal } from "./components/XtermTerminal";
 
 interface TerminalPaneProps {
   workspaceId: string;

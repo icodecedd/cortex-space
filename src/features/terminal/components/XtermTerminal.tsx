@@ -4,15 +4,15 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
-import { useTheme } from '../hooks/useTheme';
-import { useColorScheme } from '../hooks/useColorScheme';
-import { usePty } from '../hooks/usePty';
+import { useTheme } from '@/hooks/useTheme';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { usePty } from '@/hooks/usePty';
 import { Button } from "@/components/ui/button";
 import { getSetting, getSettingsGroup, TERMINAL_DEFAULTS, TerminalSettings, SHORTCUT_DEFAULTS, ShortcutSettings, DemoSettings } from '@/lib/store';
 import { isGlobalShortcut, matchesShortcut } from '@/lib/shortcut-utils';
 import { toast } from "sonner";
-import { PaneElevator } from './space/PaneElevator';
-import { terminalSessionManager } from '../lib/terminalSessionManager';
+import { PaneElevator } from '@/features/space/components/PaneElevator';
+import { terminalSessionManager } from '@/lib/terminalSessionManager';
 import '@xterm/xterm/css/xterm.css';
 
 // Port state machine types

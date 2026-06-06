@@ -6,15 +6,15 @@ import { useWorkspaceDirectory } from "@/hooks/useWorkspaceDirectory";
 import { usePresets } from "@/hooks/usePresets";
 import { useSetupPanes } from "@/hooks/useSetupPanes";
 import { useSnippets } from "@/hooks/useSnippets";
-import { SetupHeader } from "./setup/SetupHeader";
-import { SetupControls } from "./setup/SetupControls";
-import { StepWorkspace } from "./setup/steps/StepWorkspace";
-import { StepConfigure } from "./setup/steps/StepConfigure";
-import { StepPreview } from "./setup/steps/StepPreview";
+import { SetupHeader } from "./components/SetupHeader";
+import { SetupControls } from "./components/SetupControls";
+import { StepWorkspace } from "./components/steps/StepWorkspace";
+import { StepConfigure } from "./components/steps/StepConfigure";
+import { StepPreview } from "./components/steps/StepPreview";
 import { gridToLayoutNode } from "@/lib/setup-utils";
 import { LayoutNode } from "@/types";
 import { PaneConfig } from "@/lib/setup-constants";
-import { ScrollArea } from "./ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SetupViewProps {
   mode: 'normal' | 'agents';
