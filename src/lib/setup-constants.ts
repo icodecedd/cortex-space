@@ -1,3 +1,5 @@
+import { Agent } from "@/types";
+
 export interface LayoutConfig {
   rows: number;
   cols: number;
@@ -18,15 +20,54 @@ export const INITIAL_LAYOUTS: SavedLayout[] = [
   { id: '3x3', name: '3X3', rows: 3, cols: 3 },
 ];
 
-export const AGENT_PRESETS = [
-  { label: "GEMINI", command: "gemini" },
-  { label: "CLAUDE", command: "claude" },
-  { label: "CODEX", command: "codex" },
-  { label: "OPENCODE", command: "opencode" },
-  { label: "CO-PILOT", command: "copilot" },
-  { label: "QODO", command: "qodo" },
-  { label: "CODY", command: "cody" }
+export const DEFAULT_AGENTS: Agent[] = [
+  { 
+    id: 'agent-gemini', 
+    label: "GEMINI", 
+    command: "gemini", 
+    isDefault: true, 
+    status: 'not-installed',
+    downloadUrl: "https://github.com/google/gemini-cli/releases/latest",
+    installCommand: "npm install -g @google/gemini-cli"
+  },
+  { 
+    id: 'agent-claude', 
+    label: "CLAUDE", 
+    command: "claude", 
+    isDefault: true, 
+    status: 'not-installed',
+    downloadUrl: "https://github.com/anthropic/claude-cli/releases/latest",
+    installCommand: "irm https://claude.ai/install.ps1 | iex"
+  },
+  { 
+    id: 'agent-antigravity', 
+    label: "ANTIGRAVITY", 
+    command: "agy", 
+    isDefault: true, 
+    status: 'not-installed',
+    downloadUrl: "https://github.com/antigravity/agy-cli/releases/latest",
+    installCommand: "irm https://antigravity.google/cli/install.ps1 | iex"
+  },
+  { 
+    id: 'agent-opencode', 
+    label: "OPENCODE", 
+    command: "opencode", 
+    isDefault: true, 
+    status: 'not-installed',
+    installCommand: "npm install -g @opencode/cli"
+  },
+  { 
+    id: 'agent-codex', 
+    label: "CODEX", 
+    command: "codex", 
+    isDefault: true, 
+    status: 'not-installed',
+    installCommand: "npm install -g @openai/codex-cli"
+  },
 ];
+
+// For backward compatibility during transition
+export const AGENT_PRESETS = DEFAULT_AGENTS.map(a => ({ label: a.label, command: a.command }));
 
 export const DEFAULT_PRESETS = [
   { id: 'preset-prog', label: "PROGRAMMING", path: "C:\\Users\\Chaoscedd\\Programming" },

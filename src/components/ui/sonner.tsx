@@ -1,6 +1,6 @@
 import { useColorScheme } from "@/hooks/useColorScheme"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "@/components/ui/icons"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { resolvedScheme } = useColorScheme()

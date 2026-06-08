@@ -1,4 +1,4 @@
-export type AppState = 'splash' | 'running';
+export type AppState = 'splash' | 'agent-setup' | 'running';
 export type WorkspaceStatus = 'mode-select' | 'setup' | 'active';
 export type Mode = 'normal' | 'agents';
 
@@ -10,6 +10,7 @@ export interface Workspace {
   status: WorkspaceStatus;
   color?: 'slate' | 'emerald' | 'cobalt' | 'crimson' | 'amber';
   customName?: string;
+  isPinned?: boolean;
 }
 
 export type SplitDirection = 'horizontal' | 'vertical';
@@ -47,9 +48,21 @@ export interface SpaceTemplate {
 export interface Snippet {
   id: string;
   label: string;
-  command: string;
+  command: string; // Supports variable placeholders like {{VARIABLE_NAME}}
   category?: string;
   tags?: string[];
+}
+
+export interface Agent {
+  id: string;
+  label: string;
+  command: string;
+  isDefault?: boolean;
+  status: 'not-installed' | 'installing' | 'installed' | 'error';
+  binaryPath?: string;
+  downloadUrl?: string;
+  installCommand?: string;
+  version?: string;
 }
 
 export type PaletteItem = 

@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { LayoutType, LayoutConfig, SavedLayout, INITIAL_LAYOUTS, PaneConfig } from "@/lib/setup-constants";
-import { getPaneCount } from "@/lib/setup-utils";
+import { getPaneCount, derivePaneName } from "@/lib/setup-utils";
 import { getSetting, setSetting } from "@/lib/store";
 import { toast } from "sonner";
+import { Agent } from "@/types";
 
-export function useSetupPanes() {
+export function useSetupPanes(agents: Agent[] = []) {
   const [layoutType, setLayoutType] = useState<LayoutType>("2x2");
   const [customLayout, setCustomLayout] = useState<LayoutConfig>({ rows: 2, cols: 2 });
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>(INITIAL_LAYOUTS);
@@ -104,20 +105,32 @@ export function useSetupPanes() {
   };
 
   const updatePaneCommand = (id: number, command: string, isCustom?: boolean) => {
+    setPanes(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      
+      const newIsCustom = isCustom !== undefined ? isCustom : p.isCustom;
+      // Auto-derive name if it's currently a default one or empty
+      const isDefaultName = p.name === `Pane ${p.id}` || p.name === `New Pane` || p.name.trim() === "";
+      const name = isDefaultName ? derivePaneName(command, `Pane ${id}`, agents) : p.name;
+      
+      return { ...p, command, name, isCustom: newIsCustom };
+    }));
+  };
+
+  const updatePaneName = (id: number, name: string) => {
     setPanes(prev => prev.map(p => 
-      p.id === id 
-        ? { ...p, command, isCustom: isCustom !== undefined ? isCustom : p.isCustom } 
-        : p
+      p.id === id ? { ...p, name } : p
     ));
   };
 
   const updateAllPaneCommands = useCallback((command: string, isCustom?: boolean) => {
-    setPanes(prev => prev.map(p => ({
-      ...p,
-      command,
-      isCustom: isCustom !== undefined ? isCustom : p.isCustom
-    })));
-  }, []);
+    setPanes(prev => prev.map(p => {
+      const newIsCustom = isCustom !== undefined ? isCustom : p.isCustom;
+      const isDefaultName = p.name === `Pane ${p.id}` || p.name === `New Pane` || p.name.trim() === "";
+      const name = isDefaultName ? derivePaneName(command, `Pane ${p.id}`, agents) : p.name;
+      return { ...p, command, name, isCustom: newIsCustom };
+    }));
+  }, [agents]);
 
   return {
     layoutType,
@@ -133,6 +146,7 @@ export function useSetupPanes() {
     activePanes,
     handleLayoutChange,
     updatePaneCommand,
+    updatePaneName,
     updateAllPaneCommands,
     restoreDefaults,
     isInitialized

@@ -6,17 +6,58 @@ const storePromise = load('settings.json', { autoSave: true, defaults: {} });
 
 export const getStore = () => storePromise;
 
+let cachedStore: Record<string, any> | null = null;
+let cachePromise: Promise<Record<string, any>> | null = null;
+
+async function ensureCache(): Promise<Record<string, any>> {
+  if (cachedStore) return cachedStore;
+  if (cachePromise) return cachePromise;
+
+  cachePromise = (async () => {
+    try {
+      const store = await getStore();
+      const entries = await store.entries();
+      const cache: Record<string, any> = {};
+      for (const [key, value] of entries) {
+        cache[key] = value;
+      }
+      cachedStore = cache;
+      return cache;
+    } catch (e) {
+      console.warn("[Store] Failed to load store entries for cache:", e);
+      cachedStore = {};
+      return cachedStore;
+    }
+  })();
+
+  return cachePromise;
+}
+
 export async function setSetting<T>(key: string, value: T) {
   const store = await getStore();
   await store.set(key, value);
-  // autoSave is true, but we can call save() explicitly if we want to be certain
   await store.save();
+  
+  // Update cache
+  if (cachedStore) {
+    cachedStore[key] = value;
+  } else if (cachePromise) {
+    const cache = await cachePromise;
+    cache[key] = value;
+  }
 }
 
 export async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
-  const store = await getStore();
-  const val = await store.get<T>(key);
+  const cache = await ensureCache();
+  const val = cache[key];
   return val !== null && val !== undefined ? val : defaultValue;
+}
+
+export async function clearAllSettings() {
+  const store = await getStore();
+  await store.clear();
+  await store.save();
+  cachedStore = {};
 }
 
 // ---------------------------------------------------------------------------
@@ -69,6 +110,8 @@ export interface ShortcutSettings {
   quickSwitcher: string;
   splitHorizontal: string;
   splitVertical: string;
+  resetPane: string;
+  closePane: string;
 }
 
 export interface FocusSettings {
@@ -145,6 +188,8 @@ export const SHORTCUT_DEFAULTS: ShortcutSettings = {
   quickSwitcher: 'Ctrl+K',
   splitHorizontal: 'Ctrl+Alt+H',
   splitVertical: 'Ctrl+Alt+V',
+  resetPane: 'Ctrl+Alt+R',
+  closePane: 'Ctrl+Alt+W',
 };
 
 // ---------------------------------------------------------------------------

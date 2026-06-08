@@ -1,5 +1,5 @@
 import { LayoutConfig, PaneConfig } from "./setup-constants";
-import { LayoutNode, SplitNode, PaneNode } from "@/types";
+import { LayoutNode, SplitNode, PaneNode, Agent } from "@/types";
 
 export function getPaneCount(layout: LayoutConfig) {
   return layout.rows * layout.cols;
@@ -150,6 +150,85 @@ export function updatePaneNode(root: LayoutNode, targetId: string, updates: Part
   };
 }
 
+/**
+ * Recursively find and remove a node, returning BOTH the new tree and the removed node.
+ */
+export function extractNode(root: LayoutNode, targetId: string): { newRoot: LayoutNode | null, extracted: PaneNode | null } {
+  if (root.type === 'pane') {
+    if (root.id === targetId) {
+      return { newRoot: null, extracted: root };
+    }
+    return { newRoot: root, extracted: null };
+  }
+
+  const { newRoot: left, extracted: leftExtracted } = extractNode(root.children[0], targetId);
+  const { newRoot: right, extracted: rightExtracted } = extractNode(root.children[1], targetId);
+
+  const extracted = leftExtracted || rightExtracted;
+
+  if (left === null) return { newRoot: right, extracted };
+  if (right === null) return { newRoot: left, extracted };
+
+  return {
+    newRoot: {
+      ...root,
+      children: [left, right]
+    },
+    extracted
+  };
+}
+
+/**
+ * Re-inserts a node relative to a target node.
+ */
+export function insertNode(
+  root: LayoutNode,
+  targetId: string,
+  nodeToInsert: PaneNode,
+  direction: 'top' | 'bottom' | 'left' | 'right'
+): LayoutNode {
+  if (root.type === 'pane') {
+    if (root.id === targetId) {
+      const isVerticalSplit = direction === 'top' || direction === 'bottom';
+      const isFirst = direction === 'top' || direction === 'left';
+      
+      return {
+        type: 'split',
+        direction: isVerticalSplit ? 'vertical' : 'horizontal',
+        ratio: 0.5,
+        children: isFirst ? [nodeToInsert, root] : [root, nodeToInsert]
+      };
+    }
+    return root;
+  }
+
+  return {
+    ...root,
+    children: [
+      insertNode(root.children[0], targetId, nodeToInsert, direction),
+      insertNode(root.children[1], targetId, nodeToInsert, direction)
+    ]
+  };
+}
+
+/**
+ * High-level function to move a pane from one position to another.
+ */
+export function repositionNode(
+  root: LayoutNode,
+  dragId: string,
+  dropId: string,
+  direction: 'top' | 'bottom' | 'left' | 'right'
+): LayoutNode {
+  // 1. Extract the node
+  const { newRoot, extracted } = extractNode(root, dragId);
+  
+  if (!extracted || !newRoot) return root; // Should not happen in valid drag-drop
+
+  // 2. Re-insert into the modified tree
+  return insertNode(newRoot, dropId, extracted, direction);
+}
+
 export function findNeighborPane(
   root: LayoutNode,
   currentId: string,
@@ -210,4 +289,67 @@ function findDeepestPane(node: LayoutNode, fromDirection: 'up' | 'down' | 'left'
   }
 
   return findDeepestPane(node.children[nextIndex], fromDirection);
+}
+
+/**
+ * Derives a semantic name for a terminal pane based on its command.
+ */
+export function derivePaneName(command: string, defaultName: string, agents: Agent[] = []): string {
+  if (!command || command.trim() === "") return defaultName;
+
+  const cmd = command.trim().toLowerCase();
+  const parts = cmd.split(/\s+/);
+  const base = parts[0];
+
+  // 1. Specific Tool Mapping
+  if (base === 'npm' || base === 'pnpm' || base === 'yarn' || base === 'bun') {
+    if (parts.includes('run')) {
+      const script = parts[parts.indexOf('run') + 1];
+      if (script) return script.charAt(0).toUpperCase() + script.slice(1);
+    }
+    if (parts[1] === 'start' || parts[1] === 'dev' || parts[1] === 'build' || parts[1] === 'test') {
+      return parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+    }
+    return base.toUpperCase();
+  }
+
+  if (base === 'docker-compose' || base === 'docker') {
+    if (parts.includes('up')) return 'Docker Up';
+    if (parts.includes('build')) return 'Docker Build';
+    return 'Docker';
+  }
+
+  if (base === 'git') {
+    if (parts[1] === 'status') return 'Git Status';
+    if (parts[1] === 'log') return 'Git Log';
+    if (parts[1] === 'pull' || parts[1] === 'push') return `Git ${parts[1].charAt(0).toUpperCase() + parts[1].slice(1)}`;
+    return 'Git';
+  }
+
+  if (base === 'python' || base === 'python3') {
+    const file = parts.find(p => p.endsWith('.py'));
+    if (file) return file.split(/[\\/]/).pop()?.replace('.py', '') || 'Python';
+    return 'Python';
+  }
+
+  if (base === 'node') {
+    const file = parts.find(p => p.endsWith('.js') || p.endsWith('.ts'));
+    if (file) return file.split(/[\\/]/).pop()?.replace(/\.(js|ts)$/, '') || 'Node';
+    return 'Node';
+  }
+
+  // 2. Dynamic Agent Mapping
+  const matchedAgent = agents.find(a => a.command.toLowerCase() === base);
+  if (matchedAgent) {
+    return `${matchedAgent.label.charAt(0).toUpperCase() + matchedAgent.label.slice(1).toLowerCase()} Agent`;
+  }
+
+  // 3. Fallback for hardcoded common agents
+  if (base === 'gemini' || base === 'claude' || base === 'gpt' || base === 'codex') {
+    return `${base.charAt(0).toUpperCase() + base.slice(1)} Agent`;
+  }
+
+  // 4. Generic Fallback: Use the command itself if short, or the base command
+  if (cmd.length < 12) return cmd.toUpperCase();
+  return base.toUpperCase();
 }

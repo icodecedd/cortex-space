@@ -74,7 +74,7 @@ export function useAppShortcuts({
       // 2. Terminate active workspace
       if (matchesShortcut(e, shortcuts.closeWorkspace)) {
         e.preventDefault();
-        if (activeWorkspaceId) {
+        if (activeWorkspaceId && workspaces.length > 1) {
           onCloseWorkspace(activeWorkspaceId);
         }
         return;

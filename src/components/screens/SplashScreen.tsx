@@ -54,27 +54,23 @@ export function SplashScreen({ splashKey, reducedMotion = false }: SplashScreenP
   };
 
   return (
-    <div style={{
-      flex: 1,
-      width: '100%',
-      position: 'relative',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden'
-    }}>
+    <div 
+      className="flex-1 w-full relative flex items-center justify-center overflow-hidden"
+      style={{ backgroundColor: "var(--bg-color)" }}
+    >
+      {/* Deep, subtle background glow effect aligned with the theme accent */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] rounded-full blur-[120px] pointer-events-none" 
+        style={{ backgroundColor: "var(--accent-primary)", opacity: 0.15 }}
+      />
+      
       <motion.div
         key={splashKey}
         variants={containerVariants}
         initial="initial"
         animate="animate"
         exit="exit"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        className="relative z-10 flex flex-col items-center justify-center"
       >
         <motion.div variants={textVariants} className="splash-text">
           CORTEX<span style={{ color: "var(--accent-primary)" }}> SPACE</span>
@@ -82,12 +78,11 @@ export function SplashScreen({ splashKey, reducedMotion = false }: SplashScreenP
         
         <motion.div 
           variants={textVariants} 
-          className="splash-subtext"
-          style={{ display: 'flex', alignItems: 'center', gap: '2px' }}
+          className="splash-subtext flex items-center gap-[2px]"
         >
           AWAKENING SYSTEM
           {!reducedMotion && (
-            <div style={{ display: 'flex', marginLeft: '4px' }}>
+            <div className="flex ml-1">
               <motion.span variants={dotVariants} animate="animate">.</motion.span>
               <motion.span variants={dotVariants} animate="animate" transition={{ delay: 0.2 }}>.</motion.span>
               <motion.span variants={dotVariants} animate="animate" transition={{ delay: 0.4 }}>.</motion.span>

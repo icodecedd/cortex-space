@@ -1,10 +1,12 @@
 import * as React from "react";
-import { SquareTerminal, Bot, Keyboard, Settings, Minus, Square, X, Plus, Rocket } from "lucide-react";
+import { SquareTerminal, Bot, Keyboard, Settings, Minus, Square, Copy, X, Plus, Rocket } from "@/components/ui/icons";
+import { Reorder } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Workspace } from "@/types";
 import { InteractiveTab } from "@/components/ui/interactive-tab";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { countPanes } from "@/lib/setup-utils";
+import { getWorkspacePlaceholder } from "@/lib/utils";
 
 interface AppHeaderProps {
   workspaces: Workspace[];
@@ -13,9 +15,12 @@ interface AppHeaderProps {
   onSwitchWorkspace: (id: string) => void;
   onCloseWorkspace: (id: string) => void;
   onCloseWorkspaces: (ids: string[]) => void;
+  onReorderWorkspaces: (newOrder: Workspace[]) => void;
   onNewWorkspaceFlow: () => void;
+  onNewWorkspaceToRight: (id: string) => void;
   onRenameWorkspace: (id: string, name: string) => void;
   onColorWorkspace: (id: string, color: any) => void;
+  onPinWorkspace: (id: string, isPinned: boolean) => void;
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
   onOpenTemplates: () => void;
@@ -34,9 +39,12 @@ export function AppHeader({
   onSwitchWorkspace,
   onCloseWorkspace,
   onCloseWorkspaces,
+  onReorderWorkspaces,
   onNewWorkspaceFlow,
+  onNewWorkspaceToRight,
   onRenameWorkspace,
   onColorWorkspace,
+  onPinWorkspace,
   onOpenShortcuts,
   onOpenSettings,
   onOpenTemplates,
@@ -48,6 +56,7 @@ export function AppHeader({
   showShortcutsButton = true
 }: AppHeaderProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = React.useState(false);
 
   // Allow horizontal scrolling with mouse wheel
   React.useEffect(() => {
@@ -77,7 +86,7 @@ export function AppHeader({
   }, [activeWorkspaceId]);
 
   const handleCloseOthers = (id: string) => {
-    const idsToClose = workspaces.filter(ws => ws.id !== id).map(ws => ws.id);
+    const idsToClose = workspaces.filter(ws => ws.id !== id && !ws.isPinned).map(ws => ws.id);
     if (idsToClose.length > 0) {
       onCloseWorkspaces(idsToClose);
     }
@@ -109,38 +118,58 @@ export function AppHeader({
             ref={scrollRef}
             className="flex items-center h-full gap-0.5 overflow-x-auto scrollbar-none flex-1 [mask-image:linear-gradient(to_right,black,95%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black,95%,transparent_100%)]"
           >
-            <div className="flex items-center gap-0.5 px-1">
+            <Reorder.Group 
+              axis="x" 
+              values={workspaces} 
+              onReorder={onReorderWorkspaces}
+              className="flex items-center gap-0.5 px-1 h-full"
+            >
                 {workspaces.map((ws, idx) => {
                   const isActive = activeWorkspaceId === ws.id;
                   const isDraft = ws.status !== 'active';
                   const terminalCount = ws.config?.layout ? countPanes(ws.config.layout) : 0;
+                  const isLast = idx === workspaces.length - 1;
+                  const canCloseOthers = workspaces.some(w => w.id !== ws.id && !w.isPinned);
 
                   return (
-                    <div key={ws.id} data-active={isActive}>
+                    <Reorder.Item 
+                      key={ws.id} 
+                      value={ws}
+                      data-active={isActive}
+                      className="h-full flex items-center"
+                      onDragStart={() => setIsDragging(true)}
+                      onDragEnd={() => setIsDragging(false)}
+                    >
                       <InteractiveTab
                         id={ws.id}
-                        name={ws.name ? ws.name : `WS ${idx + 1}`}
+                        name={ws.name ? ws.name : getWorkspacePlaceholder(idx)}
                         customName={ws.customName}
                         isActive={isActive}
                         isDraft={isDraft}
                         color={ws.color}
+                        isPinned={ws.isPinned}
                         terminalCount={terminalCount}
                         icon={
                           ws.mode === 'agents' ? (
-                            <Bot size={11} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
+                            <Bot size={13} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
                           ) : (
-                            <SquareTerminal size={11} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
+                            <SquareTerminal size={13} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
                           )
                         }
                         onSelect={() => onSwitchWorkspace(ws.id)}
                         onClose={() => onCloseWorkspace(ws.id)}
                         onRename={(newName) => onRenameWorkspace(ws.id, newName)}
                         onColorChange={(newColor) => onColorWorkspace(ws.id, newColor)}
+                        onPin={(pinned) => onPinWorkspace(ws.id, pinned)}
+                        onNewToRight={() => onNewWorkspaceToRight(ws.id)}
                         onCloseOthers={() => handleCloseOthers(ws.id)}
                         onCloseToRight={() => handleCloseToRight(ws.id)}
                         canClose={workspaces.length > 1}
+                        canCloseOthers={canCloseOthers}
+                        isLast={isLast}
+                        disableTooltip={isDragging}
                       />
-                    </div>
+                    </Reorder.Item>
                   );
                 })}
 
@@ -160,7 +189,7 @@ export function AppHeader({
                     New Workspace (Ctrl+T)
                   </TooltipContent>
                 </Tooltip>
-            </div>
+            </Reorder.Group>
           </div>
         )}
 
@@ -181,7 +210,7 @@ export function AppHeader({
                 onClick={onOpenTemplates}
                 className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-ansi-green hover:bg-ansi-green/10 rounded transition-all cursor-pointer"
               >
-                <Rocket size={13} />
+                <Rocket size={15} />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
@@ -200,7 +229,7 @@ export function AppHeader({
                 onClick={onOpenShortcuts}
                 className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded transition-all cursor-pointer"
               >
-                <Keyboard size={13} />
+                <Keyboard size={15} />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
@@ -218,7 +247,7 @@ export function AppHeader({
               onClick={onOpenSettings}
               className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded transition-all cursor-pointer"
             >
-              <Settings size={13} />
+              <Settings size={15} />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
@@ -237,7 +266,7 @@ export function AppHeader({
                 onClick={onMinimize}
                 className="w-7 h-7 flex items-center justify-center hover:bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-all cursor-pointer"
               >
-                <Minus size={13} />
+                <Minus size={15} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
@@ -252,12 +281,9 @@ export function AppHeader({
                 className="w-7 h-7 flex items-center justify-center hover:bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-all cursor-pointer"
               >
                 {isWindowMaximized ? (
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
-                    <path d="M2.5 1.5h6v6" />
-                    <rect x="1.5" y="2.5" width="6" height="6" />
-                  </svg>
+                  <Copy size={13} />
                 ) : (
-                  <Square size={11} />
+                  <Square size={13} />
                 )}
               </button>
             </TooltipTrigger>
@@ -272,7 +298,7 @@ export function AppHeader({
                 onClick={onClose}
                 className="w-7 h-7 flex items-center justify-center hover:bg-[#E81123] hover:text-white text-[var(--text-secondary)] rounded transition-all cursor-pointer"
               >
-                <X size={13} />
+                <X size={15} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">

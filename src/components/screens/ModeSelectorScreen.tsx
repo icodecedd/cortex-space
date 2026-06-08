@@ -1,4 +1,4 @@
-import { Terminal, Users, Cpu } from "lucide-react";
+import { Terminal, Users, Cpu } from "@/components/ui/icons";
 import { motion, useReducedMotion } from "framer-motion";
 import { Mode } from "@/types";
 import { setSetting } from "@/lib/store";
@@ -53,14 +53,14 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
   };
 
   const itemVariants = {
-    hidden: { 
-      opacity: 0, 
-      y: shouldReduceMotion ? 0 : 8, 
-      scale: shouldReduceMotion ? 1 : 0.99 
+    hidden: {
+      opacity: 0,
+      y: shouldReduceMotion ? 0 : 8,
+      scale: shouldReduceMotion ? 1 : 0.99
     },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
+    visible: {
+      opacity: 1,
+      y: 0,
       scale: 1,
       transition: {
         duration: 0.4,
@@ -126,7 +126,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
               }}
             />
           </motion.div>
-          
+
           <motion.div variants={itemVariants}>
             <h1
               style={{
@@ -160,7 +160,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
               background: "var(--border-color)",
             }}
           />
-          
+
           <motion.p
             variants={itemVariants}
             style={{

@@ -46,10 +46,13 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
     {
       title: "Active Terminal Sessions",
       items: [
-        { label: "Focus Pane 1 - 4", value: "Ctrl + 1..4" },
+        { label: "Focus Pane 1 - 9", value: "Ctrl + 1..9" },
         { label: "Snap Focus (Directional)", value: "Alt + Arrows" },
         { label: "Maximize Focused Pane", value: "Ctrl + Shift + M" },
-        { label: "Execute / Relaunch Session", value: "Ctrl + Alt + R" },
+        { label: "Split Horizontal", value: shortcuts.splitHorizontal },
+        { label: "Split Vertical", value: shortcuts.splitVertical },
+        { label: "Reset Pane", value: shortcuts.resetPane },
+        { label: "Close Pane", value: shortcuts.closePane, critical: true },
       ]
     }
   ];
