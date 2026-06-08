@@ -8,7 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen } from "@/components/ui/icons";
 import { 
   Select, 
   SelectContent, 

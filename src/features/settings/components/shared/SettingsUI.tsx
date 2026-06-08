@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw } from "@/components/ui/icons";
 
 export function SettingsRow({
   label,

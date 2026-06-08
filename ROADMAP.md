@@ -28,6 +28,8 @@ _Core engine and architectural foundations._
 - [x] **Contextual Notifications:** Rich toast notification system (Title + Description) for clear user feedback.
 - [x] **Snippet Variable Placeholders:** Support for dynamic `{{VAR}}` placeholders in commands with a glassmorphic interactive prompt system for pre-execution resolution.
 - [x] **Automatic Port Detection:** Real-time terminal output parsing for local ports (e.g., localhost:3000) with verified TCP-liveness checks and pane-header link injection.
+- [x] **Environment-Aware Onboarding & Custom Agent Registries:** An onboarding screen that scans and detects existing global agent CLI tools and lets the user dynamically configure/install custom ones directly from settings.
+- [x] **Dynamic Pane Drag-and-Drop (UX Elevator):** Re-partition layout trees on the fly by dragging terminal headers, featuring quadrant-based ghost overlays and high-fidelity motion feedback.
 
 ---
 
@@ -52,8 +54,8 @@ _High-value improvements and advanced tooling._
   - Hover/Shortcut menus for renaming, splitting, or restarting individual terminal instances.
 - [ ] **Resource Sparklines:**
   - Lightweight CPU/Memory monitors integrated into pane headers for real-time process tracking.
-- [ ] **Managed AI Agent Installation Logic:**
-  - Revalidate and implement the full lifecycle (download, extract, verify) for default AI agent CLIs (Gemini, Claude, Antigravity) to replace current simulated setup.
+- [ ] **Hybrid Agent Architecture (Tauri Sidecars):**
+  - Bundle core default AI agent CLIs as local Tauri sidecars to ensure 100% offline, zero-click accessibility out-of-the-box.
 - [ ] **Built-in Kanban Task Management:**
   - Integrated task tracking system to manage workflow directly within the app, with the ability to assign tasks to specific terminal panes.
 - [ ] **Embedded Documentation Pane:**

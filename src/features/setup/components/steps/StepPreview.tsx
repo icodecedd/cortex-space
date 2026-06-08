@@ -1,4 +1,4 @@
-import { Layout, Database, Terminal, Check, Info, Layers, Cpu, ShieldCheck } from "lucide-react";
+import { Layout, Database, Terminal, Check, Info, Layers, Cpu, ShieldCheck } from "@/components/ui/icons";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { LayoutConfig, PaneConfig } from "@/lib/setup-constants";

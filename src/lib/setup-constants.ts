@@ -27,7 +27,8 @@ export const DEFAULT_AGENTS: Agent[] = [
     command: "gemini", 
     isDefault: true, 
     status: 'not-installed',
-    downloadUrl: "https://github.com/google/gemini-cli/releases/latest" // Placeholder
+    downloadUrl: "https://github.com/google/gemini-cli/releases/latest",
+    installCommand: "npm install -g @google/gemini-cli"
   },
   { 
     id: 'agent-claude', 
@@ -35,7 +36,8 @@ export const DEFAULT_AGENTS: Agent[] = [
     command: "claude", 
     isDefault: true, 
     status: 'not-installed',
-    downloadUrl: "https://github.com/anthropic/claude-cli/releases/latest" // Placeholder
+    downloadUrl: "https://github.com/anthropic/claude-cli/releases/latest",
+    installCommand: "irm https://claude.ai/install.ps1 | iex"
   },
   { 
     id: 'agent-antigravity', 
@@ -43,21 +45,24 @@ export const DEFAULT_AGENTS: Agent[] = [
     command: "agy", 
     isDefault: true, 
     status: 'not-installed',
-    downloadUrl: "https://github.com/antigravity/agy-cli/releases/latest" // Placeholder
+    downloadUrl: "https://github.com/antigravity/agy-cli/releases/latest",
+    installCommand: "irm https://antigravity.google/cli/install.ps1 | iex"
   },
   { 
     id: 'agent-opencode', 
     label: "OPENCODE", 
     command: "opencode", 
     isDefault: true, 
-    status: 'not-installed' 
+    status: 'not-installed',
+    installCommand: "npm install -g @opencode/cli"
   },
   { 
     id: 'agent-codex', 
     label: "CODEX", 
     command: "codex", 
     isDefault: true, 
-    status: 'not-installed' 
+    status: 'not-installed',
+    installCommand: "npm install -g @openai/codex-cli"
   },
 ];
 
@@ -77,7 +82,7 @@ export interface PaneConfig {
 }
 
 export const INITIAL_STEP = 1;
-export const MAX_STEP = 4;
+export const MAX_STEP = 3;
 
 export const DEFAULT_SNIPPETS = [
   { id: 'git-pull', label: 'Git Pull (Origin Main)', command: 'git pull origin main' },

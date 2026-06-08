@@ -1,4 +1,4 @@
-import { Square, Activity } from "lucide-react";
+import { Square, Activity } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 interface SpaceHeaderProps {

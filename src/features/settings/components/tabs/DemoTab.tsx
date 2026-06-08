@@ -1,6 +1,7 @@
 import { SectionHeader, SettingsRow } from "../shared/SettingsUI";
 import { Switch } from "@/components/ui/switch";
-import { DemoSettings } from "@/lib/store";
+import { DemoSettings, setSetting } from "@/lib/store";
+import { Button } from "@/components/ui/button";
 
 interface DemoTabProps {
   demo: DemoSettings;
@@ -17,6 +18,47 @@ export function DemoTab({
     <div className="space-y-0 animate-in fade-in-0 duration-300">
       <SectionHeader title="Demo Features" onReset={onResetDemo} />
       <div className="space-y-1">
+        <SettingsRow
+          label="Test Agent Onboarding"
+          description="Reset the onboarding flag and agent cache, then reload the app to simulate a new user installation."
+          htmlFor="demo-agent-onboarding"
+        >
+          <Button 
+            id="demo-agent-onboarding"
+            variant="outline" 
+            size="xs" 
+            onClick={async () => {
+              await setSetting('startup.hasOnboardedAgents', false);
+              await setSetting('cortex_agents', null);
+              window.location.reload();
+            }}
+            className="h-7 text-[10px] uppercase font-bold tracking-wider active:scale-[0.97] active:translate-y-0 duration-150"
+          >
+            Trigger Demo
+          </Button>
+        </SettingsRow>
+        <SettingsRow
+          label="Factory Reset Application"
+          description="Completely wipe all application data, presets, snippets, templates, and workspace settings back to defaults."
+          htmlFor="demo-factory-reset"
+        >
+          <Button 
+            id="demo-factory-reset"
+            variant="destructive" 
+            size="xs" 
+            onClick={async () => {
+              const confirm = window.confirm("Are you sure you want to completely wipe all application data? This cannot be undone.");
+              if (confirm) {
+                const { clearAllSettings } = await import("@/lib/store");
+                await clearAllSettings();
+                window.location.reload();
+              }
+            }}
+            className="h-7 text-[10px] uppercase font-bold tracking-wider active:scale-[0.97] active:translate-y-0 duration-150"
+          >
+            Factory Reset
+          </Button>
+        </SettingsRow>
         <SettingsRow
           label="Show Workspaces Tab"
           description="Toggle visibility of the workspace tabs in the header."

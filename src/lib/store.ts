@@ -53,6 +53,13 @@ export async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
   return val !== null && val !== undefined ? val : defaultValue;
 }
 
+export async function clearAllSettings() {
+  const store = await getStore();
+  await store.clear();
+  await store.save();
+  cachedStore = {};
+}
+
 // ---------------------------------------------------------------------------
 // Typed settings schemas
 // ---------------------------------------------------------------------------

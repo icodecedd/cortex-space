@@ -1,4 +1,4 @@
-import { Clock, ExternalLink, Folder, Trash2, Rocket, Plus } from "lucide-react";
+import { Clock, ExternalLink, Folder, Trash2, Rocket, Plus } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardHeader, CardTitle, CardFooter, CardContent } from "@/components/ui/card";

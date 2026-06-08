@@ -17,7 +17,7 @@ import {
   Rocket, 
   Zap, 
   Layers 
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -183,7 +183,9 @@ export function CortexLibraryDialog({
     setSavedLayouts(updated);
     await setSetting("cortex_saved_layouts", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
-    toast.success(`Restored ${toAdd.length} grid layouts.`);
+    toast.success("Library Updated", {
+      description: `Restored ${toAdd.length} default grid layouts to your library.`
+    });
   };
 
   const toggleSnippetSelection = (id: string) => {

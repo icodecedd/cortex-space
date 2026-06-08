@@ -1,4 +1,4 @@
-import { Terminal, Users, Cpu } from "lucide-react";
+import { Terminal, Users, Cpu } from "@/components/ui/icons";
 import { motion, useReducedMotion } from "framer-motion";
 import { Mode } from "@/types";
 import { setSetting } from "@/lib/store";

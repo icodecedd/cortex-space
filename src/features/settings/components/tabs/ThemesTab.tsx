@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Code, Trash2, Check, Plus } from "lucide-react";
+import { Code, Trash2, Check, Plus } from "@/components/ui/icons";
 import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
 import { toast } from "sonner";
 

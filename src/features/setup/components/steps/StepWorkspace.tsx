@@ -1,4 +1,4 @@
-import { FolderOpen, Lock, X, Save, Database, Layout } from "lucide-react";
+import { FolderOpen, Lock, X, Save, Database, Layout } from "@/components/ui/icons";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";

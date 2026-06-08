@@ -1,4 +1,4 @@
-import { Cpu, Download, CheckCircle2, AlertCircle, Loader2, Plus, Trash2 } from "lucide-react";
+import { Cpu, Download, CheckCircle2, AlertCircle, Loader2, Plus, Trash2 } from "@/components/ui/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAgents } from "@/hooks/useAgents";
 import { Button } from "@/components/ui/button";
@@ -10,19 +10,31 @@ export function AgentsTab() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newCommand, setNewCommand] = useState("");
+  const [newInstallCommand, setNewInstallCommand] = useState("");
+  const [newDownloadUrl, setNewDownloadUrl] = useState("");
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newCommand.trim()) {
-      addAgent(newLabel, newCommand);
+      addAgent(newLabel, newCommand, newInstallCommand, newDownloadUrl);
       setNewLabel("");
       setNewCommand("");
+      setNewInstallCommand("");
+      setNewDownloadUrl("");
       setShowAddForm(false);
     }
   };
 
+  const handleCancel = () => {
+    setNewLabel("");
+    setNewCommand("");
+    setNewInstallCommand("");
+    setNewDownloadUrl("");
+    setShowAddForm(false);
+  };
+
   return (
-    <div className="flex flex-col gap-6 py-2">
+    <div className="flex flex-col gap-6 py-2 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
       <div className="flex flex-col gap-1.5">
         <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-primary)] px-1">
           Managed AI Protocols
@@ -78,7 +90,7 @@ export function AgentsTab() {
                 )}
               </div>
 
-              {agent.status === 'not-installed' && (
+              {(agent.status === 'not-installed' || agent.status === 'error') && agent.installCommand && (
                 <Button
                   variant="ghost"
                   size="xs"
@@ -133,7 +145,7 @@ export function AgentsTab() {
                   <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest px-1">Identity Label</label>
                   <Input 
                     autoFocus
-                    placeholder="ANTIGRAVITY"
+                    placeholder="DROID"
                     value={newLabel}
                     onChange={e => setNewLabel(e.target.value)}
                     className="h-9 text-[11px] font-bold bg-[var(--surface-color)] border-[var(--border-color)] focus:border-[var(--accent-primary)]/40"
@@ -142,15 +154,43 @@ export function AgentsTab() {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest px-1">Command Protocol</label>
                   <Input 
-                    placeholder="agy"
+                    placeholder="droid"
                     value={newCommand}
                     onChange={e => setNewCommand(e.target.value)}
                     className="h-9 text-[11px] font-mono bg-[var(--surface-color)] border-[var(--border-color)] focus:border-[var(--accent-primary)]/40"
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-2 justify-end">
-                <Button type="button" variant="ghost" size="xs" className="h-8 text-[10px] uppercase font-bold" onClick={() => setShowAddForm(false)}>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest px-1">
+                  Installation Command (Optional)
+                </label>
+                <Input 
+                  placeholder="npm install -g @droid/cli"
+                  value={newInstallCommand}
+                  onChange={e => setNewInstallCommand(e.target.value)}
+                  className="h-9 text-[11px] font-mono bg-[var(--surface-color)] border-[var(--border-color)] focus:border-[var(--accent-primary)]/40"
+                />
+                <span className="text-[9px] text-[var(--text-secondary)] opacity-60 px-1 leading-normal">
+                  PowerShell/Shell script to download and install this CLI if it is not active.
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest px-1">
+                  Documentation / Download URL (Optional)
+                </label>
+                <Input 
+                  placeholder="https://droid-agent.dev/download"
+                  value={newDownloadUrl}
+                  onChange={e => setNewDownloadUrl(e.target.value)}
+                  className="h-9 text-[11px] bg-[var(--surface-color)] border-[var(--border-color)] focus:border-[var(--accent-primary)]/40"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 justify-end mt-2">
+                <Button type="button" variant="ghost" size="xs" className="h-8 text-[10px] uppercase font-bold" onClick={handleCancel}>
                   Cancel
                 </Button>
                 <Button type="submit" size="xs" className="h-8 px-6 bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 font-bold uppercase tracking-tight text-[10px]">

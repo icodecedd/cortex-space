@@ -136,15 +136,15 @@ export const DEFAULT_THEMES: Record<string, ThemeDefinition> = {
     id: 'cortex',
     name: "Cortex Default",
     dark: {
-      bg: "#050505",
-      headerBg: "#0C0C0C",
-      footerBg: "#050505",
-      surface: "#0C0C0C",
-      border: "#1A1A1A",
+      bg: "#0A0A0A",
+      headerBg: "#111111",
+      footerBg: "#0A0A0A",
+      surface: "#161616",
+      border: "#262626",
       textPrimary: "#FFFFFF",
-      textSecondary: "#737373",
+      textSecondary: "#A3A3A3",
       accent: "#FF66B2",
-      ansi: { black: '#000000', red: '#ff5555', green: '#50fa7b', yellow: '#f1fa8c', blue: '#bd93f9', magenta: '#ff79c6', cyan: '#8be9fd', white: '#f8f8f2' }
+      ansi: { black: '#111111', red: '#ff5555', green: '#50fa7b', yellow: '#f1fa8c', blue: '#bd93f9', magenta: '#ff79c6', cyan: '#8be9fd', white: '#f8f8f2' }
     },
     light: {
       bg: "#FFFFFF",
@@ -261,38 +261,12 @@ export const DEFAULT_THEMES: Record<string, ThemeDefinition> = {
       accent: "#A67C37",
       ansi: { black: '#5A4B41', red: '#AF3A03', green: '#606400', yellow: '#B57614', blue: '#076678', magenta: '#8F3F71', cyan: '#427B58', white: '#FFFFFF' }
     }
-  },
-  'soft-monochrome': {
-    id: 'soft-monochrome',
-    name: "Soft Monochrome",
-    dark: {
-      bg: "#121212",
-      headerBg: "#1E1E1E",
-      footerBg: "#121212",
-      surface: "#1A1A1A",
-      border: "#2A2A2A",
-      textPrimary: "#E5E5E5",
-      textSecondary: "#8A8A8A",
-      accent: "#E5E5E5",
-      ansi: { black: '#121212', red: '#E5E5E5', green: '#E5E5E5', yellow: '#E5E5E5', blue: '#E5E5E5', magenta: '#E5E5E5', cyan: '#E5E5E5', white: '#E5E5E5' }
-    },
-    light: {
-      bg: "#FAFAFA",
-      headerBg: "#FFFFFF",
-      footerBg: "#FAFAFA",
-      surface: "#FFFFFF",
-      border: "#D1D5DB",
-      textPrimary: "#111111",
-      textSecondary: "#525252",
-      accent: "#111111",
-      ansi: { black: '#111111', red: '#111111', green: '#111111', yellow: '#111111', blue: '#111111', magenta: '#111111', cyan: '#111111', white: '#FFFFFF' }
-    }
   }
 };
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { resolvedScheme } = useColorScheme();
-  const [theme, setThemeState] = useState<ThemeName>('soft-monochrome');
+  const [theme, setThemeState] = useState<ThemeName>('cortex');
   const [customThemes, setCustomThemes] = useState<ThemeDefinition[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -301,7 +275,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     async function init() {
       try {
         const [savedTheme, savedCustom] = await Promise.all([
-          getSetting<ThemeName>("cortex_theme", 'soft-monochrome'),
+          getSetting<ThemeName>("cortex_theme", 'cortex'),
           getSetting<ThemeDefinition[]>("custom_themes", [])
         ]);
         
@@ -377,7 +351,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const ansi = config.ansi || {};
     const ansiDefaults = {
-      black: '#000000', red: '#FF5555', green: '#50FA7B', yellow: '#F1FA8C',
+      black: '#111111', red: '#FF5555', green: '#50FA7B', yellow: '#F1FA8C',
       blue: '#BD93F9', magenta: '#FF79C6', cyan: '#8BE9FD', white: '#F8F8F2',
       brightBlack: '#4D4D4D', brightRed: '#FF6E6E', brightGreen: '#69FF94', brightYellow: '#FFFFA5',
       brightBlue: '#D6ACFF', brightMagenta: '#FF92DF', brightCyan: '#A4FFFF', brightWhite: '#FFFFFF'
@@ -401,7 +375,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Theme application side effect
   useEffect(() => {
     if (isInitialized) {
-      const themeDef = allThemesMap[theme] || DEFAULT_THEMES['soft-monochrome'];
+      const themeDef = allThemesMap[theme] || DEFAULT_THEMES['cortex'];
       console.log(`[ThemeProvider] Applying theme: ${theme}`, themeDef);
       const palette = resolvedScheme === 'light' 
         ? (themeDef.light || generateLightPalette(themeDef.dark)) 
@@ -432,7 +406,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       return updated;
     });
     setThemeState(prev => {
-      const nextTheme = prev === id ? 'soft-monochrome' : prev;
+      const nextTheme = prev === id ? 'cortex' : prev;
       return nextTheme;
     });
   }, []);
@@ -447,7 +421,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const cancelPreview = useCallback(() => {
     console.log(`[ThemeProvider] Cancel preview. Restoring theme: ${theme}`);
-    const themeDef = allThemesMap[theme] || DEFAULT_THEMES['soft-monochrome'];
+    const themeDef = allThemesMap[theme] || DEFAULT_THEMES['cortex'];
     const palette = resolvedScheme === 'light' 
       ? (themeDef.light || generateLightPalette(themeDef.dark)) 
       : themeDef.dark;

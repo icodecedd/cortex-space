@@ -1,4 +1,4 @@
-import { CheckCircle2, Settings2, Trash2 } from "lucide-react";
+import { CheckCircle2, Settings2, Trash2 } from "@/components/ui/icons";
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LayoutType, LayoutConfig, SavedLayout } from "@/lib/setup-constants";

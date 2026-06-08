@@ -5,7 +5,7 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CornerDownLeft, X } from 'lucide-react';
+import { CornerDownLeft, X } from '@/components/ui/icons';
 import { useTheme } from '@/hooks/useTheme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { usePty } from '@/hooks/usePty';
@@ -135,16 +135,16 @@ export function XtermTerminal({
   }, []);
 
   const getThemePalette = useCallback((themeName: string, scheme: 'light' | 'dark') => {
-    const themeDef = allThemes.find(t => t.id === themeName) || allThemes.find(t => t.id === 'soft-monochrome');
+    const themeDef = allThemes.find(t => t.id === themeName) || allThemes.find(t => t.id === 'cortex');
     if (!themeDef) {
       return {
-        bg: scheme === 'dark' ? '#050505' : '#ffffff',
-        headerBg: scheme === 'dark' ? '#0c0c0c' : '#f5f5f7',
-        footerBg: scheme === 'dark' ? '#050505' : '#ffffff',
-        surface: scheme === 'dark' ? '#0c0c0c' : '#ffffff',
-        border: scheme === 'dark' ? '#1a1a1a' : '#d1d1d1',
+        bg: scheme === 'dark' ? '#0A0A0A' : '#ffffff',
+        headerBg: scheme === 'dark' ? '#111111' : '#f5f5f7',
+        footerBg: scheme === 'dark' ? '#0A0A0A' : '#ffffff',
+        surface: scheme === 'dark' ? '#161616' : '#ffffff',
+        border: scheme === 'dark' ? '#262626' : '#d1d1d1',
         textPrimary: scheme === 'dark' ? '#ffffff' : '#000000',
-        textSecondary: scheme === 'dark' ? '#737373' : '#525252',
+        textSecondary: scheme === 'dark' ? '#A3A3A3' : '#525252',
         accent: '#ffffff',
         ansi: {}
       };
@@ -881,8 +881,10 @@ export function XtermTerminal({
     >
       {showFloatingHeader && (
         <PaneElevator
+          paneId={paneId}
           name={name}
           index={index}
+          isFocused={isFocused}
           isMaximized={isMaximized}
           isZenMode={isZenMode}
           onMaximize={onMaximize}

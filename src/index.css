@@ -9,12 +9,12 @@
 
 :root {
   /* Dynamic Theme Variables */
-  --bg-color: #050505;
-  --surface-color: #0f0f0f;
-  --border-color: #1f1f1f;
+  --bg-color: #0A0A0A;
+  --surface-color: #161616;
+  --border-color: #262626;
   --text-primary: #ffffff;
-  --text-secondary: #737373;
-  --accent-primary: #ffffff;
+  --text-secondary: #A3A3A3;
+  --accent-primary: #FF66B2;
   --accent-primary-rgb: 255, 255, 255;
   --accent-contrast: #000000;
 
@@ -278,7 +278,7 @@ input[type="text"]:focus, select:focus {
 .pane-content {
   flex: 1;
   padding: 0;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--terminal-font-family);
   font-size: 0.8rem;
   overflow: auto;
 }

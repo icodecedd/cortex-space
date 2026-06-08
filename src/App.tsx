@@ -16,12 +16,14 @@ import { KeyboardShortcutsDialog } from "./components/dialogs/KeyboardShortcutsD
 import { SettingsDialog } from "./features/settings/SettingsDialog";
 import { SplashScreen } from "./components/screens/SplashScreen";
 import { ModeSelectorScreen } from "./components/screens/ModeSelectorScreen";
-import { getSetting } from "./lib/store";
+import { AgentOnboardingScreen } from "./components/screens/AgentOnboardingScreen";
+import { useAgents } from "./hooks/useAgents";
+import { getSetting, setSetting } from "./lib/store";
 import { CortexLibraryDialog } from "./features/cortex-library/CortexLibraryDialog";
 import { WorkspaceSwitcherDialog } from "./components/dialogs/WorkspaceSwitcherDialog";
 import { useSpaceTemplates } from "./hooks/useSpaceTemplates";
 import { useSnippets } from "./hooks/useSnippets";
-import { splitNode, removeNode, updatePaneNode } from "./lib/setup-utils";
+import { splitNode, removeNode, updatePaneNode, repositionNode } from "./lib/setup-utils";
 import { formatWorkspaceName } from "./lib/utils";
 
 declare global {
@@ -36,6 +38,8 @@ import { useDemoSettings } from "./hooks/useDemoSettings";
 function App() {
   const [appState, setAppState] = useState<AppState>('splash');
   const [splashKey, setSplashKey] = useState(0);
+  const [splashTimerDone, setSplashTimerDone] = useState(false);
+  const { agents, installAgent, isInitialized } = useAgents();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
 
@@ -142,6 +146,24 @@ function App() {
     }));
   };
 
+  const handleMovePane = (dragId: string, dropId: string, direction: 'top' | 'bottom' | 'left' | 'right') => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces(prev => prev.map(w => {
+      if (w.id === activeWorkspaceId && w.config) {
+        const newLayout = repositionNode(w.config.layout, dragId, dropId, direction);
+        return {
+          ...w,
+          config: {
+            ...w.config,
+            layout: newLayout
+          }
+        };
+      }
+      return w;
+    }));
+    toast.success("Layout Updated", { description: "Pane repositioned successfully." });
+  };
+
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
   // Verify Tauri PATH environment on startup
@@ -155,53 +177,75 @@ function App() {
       });
   }, []);
 
+  const initWorkspace = async () => {
+    const rememberMode = await getSetting('startup.rememberLastMode', false);
+    const lastMode = await getSetting<Mode>('startup.lastMode', 'normal');
+    const openOnLaunch = await getSetting<'modeSelector' | 'newTerminal'>('startup.openOnLaunch', 'modeSelector');
+    const initialId = Date.now().toString();
+
+    let mode: Mode = 'normal';
+    let status: 'mode-select' | 'setup' = 'mode-select';
+
+    if (rememberMode) {
+      // rememberLastMode takes full precedence
+      mode = lastMode;
+      status = 'setup';
+    } else if (openOnLaunch === 'newTerminal') {
+      // Skip mode selector, jump straight to setup with normal mode
+      mode = 'normal';
+      status = 'setup';
+    }
+    // else: default mode-select
+
+    setWorkspaces([{ id: initialId, name: '', mode, config: null, status }]);
+    setActiveWorkspaceId(initialId);
+  };
+
   useEffect(() => {
     if (appState !== 'splash') return;
 
-    const initWorkspace = async () => {
-      const rememberMode = await getSetting('startup.rememberLastMode', false);
-      const lastMode = await getSetting<Mode>('startup.lastMode', 'normal');
-      const openOnLaunch = await getSetting<'modeSelector' | 'newTerminal'>('startup.openOnLaunch', 'modeSelector');
-      const initialId = Date.now().toString();
-
-      let mode: Mode = 'normal';
-      let status: 'mode-select' | 'setup' = 'mode-select';
-
-      if (rememberMode) {
-        // rememberLastMode takes full precedence
-        mode = lastMode;
-        status = 'setup';
-      } else if (openOnLaunch === 'newTerminal') {
-        // Skip mode selector, jump straight to setup with normal mode
-        mode = 'normal';
-        status = 'setup';
-      }
-      // else: default mode-select
-
-      setWorkspaces([{ id: initialId, name: '', mode, config: null, status }]);
-      setActiveWorkspaceId(initialId);
-    };
-
     let cleanup: (() => void) | undefined;
 
-    getSetting('startup.showSplashAnimation', true).then((showSplash) => {
+    getSetting('startup.showSplashAnimation', true).then(async (showSplash) => {
+      const hasOnboarded = await getSetting('startup.hasOnboardedAgents', false);
+
       if (!showSplash) {
-        // Skip splash entirely — jump straight to running
-        setAppState('running');
-        initWorkspace();
+        // Skip splash entirely
+        const nextState = hasOnboarded ? 'running' : 'agent-setup';
+        setAppState(nextState);
+        if (nextState === 'running') initWorkspace();
         return;
       }
+
       setSplashKey(prev => prev + 1);
+      setSplashTimerDone(false);
+
       const timer = setTimeout(() => {
-        setAppState('running');
-        initWorkspace();
+        setSplashTimerDone(true);
       }, 2500);
+
       cleanup = () => clearTimeout(timer);
     });
 
     return () => cleanup?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appState]);
+
+  // Handle splash transition based on state, timer, and agent path verification status
+  useEffect(() => {
+    if (appState !== 'splash' || !splashTimerDone) return;
+
+    async function evaluateTransition() {
+      const hasOnboarded = await getSetting('startup.hasOnboardedAgents', false);
+      if (hasOnboarded) {
+        setAppState('running');
+        initWorkspace();
+      } else if (isInitialized) {
+        setAppState('agent-setup');
+      }
+    }
+    evaluateTransition();
+  }, [appState, splashTimerDone, isInitialized]);
 
   const handleLaunch = async (newConfig: any) => {
     let finalPath = newConfig.rootPath;
@@ -358,6 +402,44 @@ function App() {
     }));
   };
 
+  const handleReorderWorkspaces = (newOrder: Workspace[]) => {
+    const pinned = newOrder.filter(w => w.isPinned);
+    const unpinned = newOrder.filter(w => !w.isPinned);
+    setWorkspaces([...pinned, ...unpinned]);
+  };
+
+  const handlePinWorkspace = (id: string, isPinned: boolean) => {
+    setWorkspaces(prev => {
+      const updated = prev.map(w => w.id === id ? { ...w, isPinned } : w);
+      // Sort: pinned first, then preserve relative order
+      return [...updated].sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return 0;
+      });
+    });
+  };
+
+  const handleNewWorkspaceToRight = (targetId: string) => {
+    const newId = Date.now().toString();
+    const newWs: Workspace = {
+      id: newId,
+      name: '',
+      mode: 'normal',
+      config: null,
+      status: 'mode-select'
+    };
+    
+    setWorkspaces(prev => {
+      const index = prev.findIndex(w => w.id === targetId);
+      if (index === -1) return [...prev, newWs];
+      const next = [...prev];
+      next.splice(index + 1, 0, newWs);
+      return next;
+    });
+    setActiveWorkspaceId(newId);
+  };
+
   const handleNewWorkspaceFlow = () => {
     const newId = Date.now().toString();
     setWorkspaces(prev => [...prev, {
@@ -505,9 +587,12 @@ function App() {
             onSwitchWorkspace={handleSwitchWorkspace}
             onCloseWorkspace={handleCloseWorkspace}
             onCloseWorkspaces={handleCloseWorkspaces}
+            onReorderWorkspaces={handleReorderWorkspaces}
             onNewWorkspaceFlow={handleNewWorkspaceFlow}
+            onNewWorkspaceToRight={handleNewWorkspaceToRight}
             onRenameWorkspace={handleRenameWorkspace}
             onColorWorkspace={handleColorWorkspace}
+            onPinWorkspace={handlePinWorkspace}
             onOpenShortcuts={() => setShortcutsOpen(true)}
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenTemplates={() => setTemplatesOpen(true)}
@@ -529,6 +614,19 @@ function App() {
           overflow: 'hidden'
         }}>
           {appState === 'splash' && <SplashScreen splashKey={splashKey} reducedMotion={colorSchemeSettings.reducedMotion} />}
+
+          {appState === 'agent-setup' && (
+            <AgentOnboardingScreen 
+              agents={agents}
+              installAgent={installAgent}
+              isInitialized={isInitialized}
+              onComplete={async () => {
+                await setSetting('startup.hasOnboardedAgents', true);
+                setAppState('running');
+                initWorkspace();
+              }} 
+            />
+          )}
 
           {appState === 'running' && workspaces.map(ws => {
             const isCurrent = activeWorkspaceId === ws.id;
@@ -599,6 +697,7 @@ function App() {
                     zenPadding={colorSchemeSettings.zenPadding}
                     showPaneHeaders={focusSettings.showPaneHeaders as boolean}
                     onSplitPane={handleSplitPane}
+                    onMovePane={handleMovePane}
                     onKillPane={handleKillPane}
                     onRenamePane={handleRenamePane}
                     onSaveSnippet={(command) => addSnippet("", command)}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useDraggable } from '@dnd-kit/core';
 import { 
   MoreVertical, 
   SquareSplitVertical, 
@@ -10,7 +11,7 @@ import {
   Minimize2,
   ExternalLink,
   Globe
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,6 +32,8 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import type { DetectedPort } from '../../terminal/components/XtermTerminal';
 
 interface PaneElevatorProps {
+  paneId: string;
+  isFocused: boolean;
   name?: string;
   index: number;
   isMaximized: boolean;
@@ -47,6 +50,8 @@ interface PaneElevatorProps {
 }
 
 export function PaneElevator({
+  paneId,
+  isFocused,
   name,
   index,
   isMaximized,
@@ -61,9 +66,14 @@ export function PaneElevator({
   detectedPorts = [],
   headerVisibility = 'hover'
 }: PaneElevatorProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: paneId,
+  });
+
   const [isRenaming, setIsRenaming] = useState(false);
   const [tempName, setTempName] = useState(name || `Pane ${index + 1}`);
   const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
 
   useEffect(() => {
     setTempName(name || `Pane ${index + 1}`);
@@ -112,6 +122,11 @@ export function PaneElevator({
   const visiblePorts = activePorts.slice(0, MAX_VISIBLE);
   const overflowPorts = activePorts.slice(MAX_VISIBLE);
 
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 1000,
+  } : undefined;
+
   return (
     <div 
       className="pane-elevator-trigger-zone"
@@ -133,18 +148,33 @@ export function PaneElevator({
 
 
       <div 
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
+        onPointerDown={(e) => {
+          setIsPressed(true);
+          listeners?.onPointerDown(e);
+        }}
+        onPointerUp={(e) => {
+          setIsPressed(false);
+          listeners?.onPointerUp(e);
+        }}
         className={`pane-elevator-toolbar transition-all duration-300 ease-out flex items-center justify-between px-3 py-1 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
         }`}
         style={{
-          background: 'rgba(var(--surface-color-rgb), 0.9)',
+          background: isDragging ? 'rgba(var(--accent-primary-rgb), 0.2)' : 'rgba(var(--surface-color-rgb), 0.9)',
           backdropFilter: 'blur(12px) saturate(180%)',
-          border: '1px solid var(--border-color)',
+          border: isDragging ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
           borderRadius: '8px',
-          boxShadow: '0 8px 32px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+          boxShadow: isDragging 
+            ? '0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1)' 
+            : '0 8px 32px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
           height: '32px',
           width: '100%',
           pointerEvents: isVisible ? 'auto' : 'none',
+          cursor: isDragging || isPressed ? 'grabbing' : (isFocused ? 'grab' : 'default'),
+          ...style
         }}
       >
         <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
@@ -282,7 +312,7 @@ export function PaneElevator({
                 onClick={onMaximize}
                 className="h-6 w-6 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               >
-                {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
@@ -299,7 +329,7 @@ export function PaneElevator({
                     size="icon-xs"
                     className="h-6 w-6 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   >
-                    <MoreVertical size={12} />
+                    <MoreVertical size={14} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-[var(--surface-color)] border-[var(--border-color)]">

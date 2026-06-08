@@ -1,6 +1,15 @@
 import * as React from "react";
 import { useState, useMemo, useEffect } from "react";
+import { 
+  DndContext, 
+  DragEndEvent, 
+  DragStartEvent, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+} from "@dnd-kit/core";
 import { TerminalPane } from "../terminal/TerminalPane";
+import { DropZone } from "./components/DropZone";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { gridToLayoutNode, findNeighborPane } from "@/lib/setup-utils";
 import { LayoutConfig } from "@/lib/setup-constants";
@@ -30,9 +39,14 @@ interface SpaceViewProps {
   zenPadding?: number;
   showPaneHeaders?: boolean;
   onSplitPane?: (paneId: string, direction: 'horizontal' | 'vertical') => void;
+  onMovePane?: (dragId: string, dropId: string, direction: 'top' | 'bottom' | 'left' | 'right') => void;
   onKillPane?: (paneId: string) => void;
   onRenamePane?: (paneId: string, newName: string) => void;
   onSaveSnippet?: (command: string) => void;
+}
+
+interface DropData {
+  direction: 'top' | 'bottom' | 'left' | 'right';
 }
 
 export function SpaceView({
@@ -41,6 +55,7 @@ export function SpaceView({
   isZenMode,
   zenPadding = 32,
   onSplitPane,
+  onMovePane,
   onKillPane,
   onRenamePane,
   onSaveSnippet
@@ -60,8 +75,17 @@ export function SpaceView({
 
   const [focusedPaneId, setFocusedPaneId] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
   const isMobile = useIsMobile();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   useEffect(() => {
     getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
@@ -136,35 +160,53 @@ export function SpaceView({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [allPanes, focusedPaneId, layoutTree, shortcuts, onKillPane]);
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDragId(null);
+
+    if (over && active.id !== over.id) {
+      const overData = over.data.current as unknown as DropData;
+      const dropDirection = overData?.direction || 'right';
+      
+      onMovePane?.(active.id as string, over.id as string, dropDirection);
+    }
+  };
+
   const renderTerminalPane = (pane: PaneNode, isForcedFocus = false) => {
     const pIndex = allPanes.findIndex(p => p.id === pane.id);
     return (
-      <TerminalPane
-        key={pane.id}
-        workspaceId={workspaceId}
-        pane={{
-          id: pane.id,
-          name: pane.name,
-          command: pane.command,
-          isCustom: true
-        }}
-        isFocused={isForcedFocus || focusedPaneId === pane.id}
-        index={pIndex}
-        isMultiPane={allPanes.length > 1}
-        onFocus={() => setFocusedPaneId(pane.id)}
-        rootPath={config.rootPath}
-        isZenMode={isZenMode}
-        zenPadding={zenPadding}
-        isMaximized={isMaximized}
-        onMaximize={() => {
-          setFocusedPaneId(pane.id);
-          setIsMaximized(!isMaximized);
-        }}
-        onSplit={onSplitPane}
-        onKill={onKillPane}
-        onRename={onRenamePane}
-        onSaveSnippet={onSaveSnippet}
-      />
+      <DropZone id={pane.id} activeDragId={activeDragId}>
+        <TerminalPane
+          key={pane.id}
+          workspaceId={workspaceId}
+          pane={{
+            id: pane.id,
+            name: pane.name,
+            command: pane.command,
+            isCustom: true
+          }}
+          isFocused={isForcedFocus || focusedPaneId === pane.id}
+          index={pIndex}
+          isMultiPane={allPanes.length > 1}
+          onFocus={() => setFocusedPaneId(pane.id)}
+          rootPath={config.rootPath}
+          isZenMode={isZenMode}
+          zenPadding={zenPadding}
+          isMaximized={isMaximized}
+          onMaximize={() => {
+            setFocusedPaneId(pane.id);
+            setIsMaximized(!isMaximized);
+          }}
+          onSplit={onSplitPane}
+          onKill={onKillPane}
+          onRename={onRenamePane}
+          onSaveSnippet={onSaveSnippet}
+        />
+      </DropZone>
     );
   };
 
@@ -223,17 +265,23 @@ export function SpaceView({
   return (
     <div className="space-view-container w-full h-full flex flex-col bg-[var(--bg-color)] overflow-hidden text-[var(--text-secondary)] font-sans">
       <div className="flex-1 bg-[var(--bg-color)] overflow-hidden flex flex-col relative">
-        {isMobile ? (
-           <div className="h-full overflow-y-auto bg-[var(--border-color)] flex flex-col gap-[1px]">
-              {allPanes.map((pane) => (
-                <div key={pane.id} className="h-[300px] shrink-0">
-                  {renderTerminalPane(pane)}
-                </div>
-              ))}
-           </div>
-        ) : (
-          renderLayout(layoutTree)
-        )}
+        <DndContext 
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {isMobile ? (
+             <div className="h-full overflow-y-auto bg-[var(--border-color)] flex flex-col gap-[1px]">
+                {allPanes.map((pane) => (
+                  <div key={pane.id} className="h-[300px] shrink-0">
+                    {renderTerminalPane(pane)}
+                  </div>
+                ))}
+             </div>
+          ) : (
+            renderLayout(layoutTree)
+          )}
+        </DndContext>
       </div>
     </div>
   );

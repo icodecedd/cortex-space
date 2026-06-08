@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 interface SetupControlsProps {
@@ -31,27 +31,6 @@ export function SetupControls({ step, isStepValid, onPrev, onNext, onLaunch, mod
       </Button>
 
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        {step === 2 && (
-          <Button
-            onClick={onLaunch}
-            disabled={!isStepValid}
-            variant="outline"
-            className="btn-tactile"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              borderColor: 'var(--accent-primary)',
-              color: 'var(--accent-primary)',
-              opacity: isStepValid ? 1 : 0.5,
-              cursor: isStepValid ? 'pointer' : 'not-allowed'
-            }}
-          >
-            <Play size={14} fill="currentColor" />
-            SKIP PREVIEW & LAUNCH
-          </Button>
-        )}
-
         {step < 3 ? (
           <Button
             onClick={onNext}
@@ -65,7 +44,7 @@ export function SetupControls({ step, isStepValid, onPrev, onNext, onLaunch, mod
               cursor: (isStepValid || step === 1) ? 'pointer' : 'not-allowed'
             }}
           >
-            NEXT: {step === 1 ? (mode === 'agents' ? 'AGENTS' : 'COMMANDS') : 'PREVIEW'}
+            NEXT: {step === 1 ? (mode === 'agents' ? 'ASSIGN' : 'COMMANDS') : 'PREVIEW'}
             <ChevronRight size={16} />
           </Button>
         ) : (

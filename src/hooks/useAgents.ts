@@ -19,18 +19,36 @@ export function useAgents() {
     async function loadAgents() {
       const saved = await getSetting<Agent[]>("cortex_agents", DEFAULT_AGENTS);
       
-      // Update installation status for each agent
-      const updated = await Promise.all(saved.map(async (agent) => {
-        const isInstalled = await invoke<boolean>("check_command", { command: agent.command });
-        return { 
-          ...agent, 
-          status: isInstalled ? 'installed' : agent.status === 'installed' ? 'not-installed' : agent.status 
+      // 1. Immediately set the loaded state from memory/store and initialize to avoid blocking the UI
+      const initial = saved.map(agent => {
+        const defaultAgent = DEFAULT_AGENTS.find(da => da.id === agent.id);
+        return {
+          ...agent,
+          installCommand: defaultAgent?.installCommand ?? agent.installCommand,
+          downloadUrl: defaultAgent?.downloadUrl ?? agent.downloadUrl,
         } as Agent;
-      }));
+      });
       
+      setAgents(initial);
+      agentsRef.current = initial;
+      setIsInitialized(true);
+
+      // 2. Perform verification check asynchronously in the background
+      const updated = await Promise.all(initial.map(async (agent) => {
+        try {
+          const isInstalled = await invoke<boolean>("check_command", { command: agent.command });
+          return {
+            ...agent,
+            status: isInstalled ? 'installed' : agent.status === 'installed' ? 'not-installed' : agent.status 
+          } as Agent;
+        } catch (e) {
+          console.error("Verification failed for agent:", agent.label, e);
+          return agent;
+        }
+      }));
+
       setAgents(updated);
       agentsRef.current = updated;
-      setIsInitialized(true);
     }
     loadAgents();
   }, []);
@@ -41,9 +59,11 @@ export function useAgents() {
     }
   }, [agents, isInitialized]);
 
-  const addAgent = useCallback((label: string, command: string, downloadUrl?: string) => {
+  const addAgent = useCallback((label: string, command: string, installCommand?: string, downloadUrl?: string) => {
     const trimmedLabel = label?.trim();
     const trimmedCommand = command?.trim();
+    const trimmedInstallCommand = installCommand?.trim();
+    const trimmedDownloadUrl = downloadUrl?.trim();
     
     if (!trimmedCommand) {
       toast.error("Empty Command", {
@@ -67,7 +87,8 @@ export function useAgents() {
       label: trimmedLabel || trimmedCommand.toUpperCase(),
       command: trimmedCommand,
       status: 'not-installed',
-      downloadUrl,
+      downloadUrl: trimmedDownloadUrl || undefined,
+      installCommand: trimmedInstallCommand || undefined,
       isDefault: false
     };
 
@@ -97,7 +118,9 @@ export function useAgents() {
       return;
     }
     setAgents(prev => prev.filter(a => a.id !== id));
-    toast.info("Agent Removed");
+    toast.info("Agent Removed", {
+      description: agent ? `"${agent.label}" has been removed from your protocol matrix.` : "The selected agent has been deleted."
+    });
   }, []);
 
   const installAgent = useCallback(async (id: string) => {
@@ -108,8 +131,14 @@ export function useAgents() {
     
     // Simulate managed setup for now
     try {
-      // In a real implementation, we would call a Tauri command to download/install
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (agent.installCommand) {
+        await invoke("install_agent_cli", { command: agent.installCommand });
+        // Add a small artificial delay so the UI progress animation is visible
+        await new Promise(resolve => setTimeout(resolve, 2500));
+      } else {
+        // Fallback for agents without an install script (simulate)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
       
       // Check again if command is now available
       const isInstalled = await invoke<boolean>("check_command", { command: agent.command });

@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Workspace, SpaceTemplate, Snippet } from "@/types";
 import { ThemeDefinition } from "@/hooks/useTheme";
 import { LayoutPreviewIcon } from "@/components/ui/layout-preview-icon";
-import { Search, Folder, Terminal, Bot, Zap, Rocket, Settings, Keyboard, Maximize, Palette, ChevronRightSquare, Code, Play, Command } from "lucide-react";
+import { Search, Folder, Terminal, Bot, Zap, Rocket, Settings, Keyboard, Maximize, Palette, ChevronRightSquare, Code, Play, Command } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
 import { EmptyState } from "@/components/ui/empty-state";

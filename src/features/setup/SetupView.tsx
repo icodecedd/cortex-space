@@ -10,7 +10,6 @@ import { useAgents } from "@/hooks/useAgents";
 import { SetupHeader } from "./components/SetupHeader";
 import { SetupControls } from "./components/SetupControls";
 import { StepWorkspace } from "./components/steps/StepWorkspace";
-import { StepAgents } from "./components/steps/StepAgents";
 import { StepConfigure } from "./components/steps/StepConfigure";
 import { StepPreview } from "./components/steps/StepPreview";
 import { gridToLayoutNode } from "@/lib/setup-utils";
@@ -43,7 +42,7 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
   } = usePresets(rootPath || defaultDir, isValidDir);
 
   const { snippets } = useSnippets();
-  const { agents, installAgent, addAgent } = useAgents();
+  const { agents } = useAgents();
 
   const {
     layoutType,
@@ -64,8 +63,7 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
 
   const isStepValid = useMemo(() => {
     if (step === 1) return (rootPath || defaultDir).trim() !== "";
-    if (step === 2) return true; // StepAgents is always valid (can skip install)
-    if (step === 3) return true; // Allow proceeding even if command inputs are empty
+    if (step === 2) return true; // Allow proceeding even if command inputs are empty
     return true;
   }, [step, rootPath, defaultDir, activePanes]);
 
@@ -155,14 +153,6 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
             )}
 
             {step === 2 && (
-              <StepAgents 
-                agents={agents}
-                installAgent={installAgent}
-                addAgent={addAgent}
-              />
-            )}
-
-            {step === 3 && (
               <StepConfigure
                 mode={mode}
                 activePanes={activePanes}
@@ -174,7 +164,7 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
               />
             )}
 
-            {step === 4 && (
+            {step === 3 && (
               <StepPreview
                 rootPath={rootPath}
                 defaultDir={defaultDir}

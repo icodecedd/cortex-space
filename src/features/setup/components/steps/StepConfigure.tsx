@@ -1,4 +1,4 @@
-import { Zap, Command } from "lucide-react";
+import { Zap, Command } from "@/components/ui/icons";
 import { motion } from "framer-motion";
 import { PaneConfig } from "@/lib/setup-constants";
 import { PaneConfigCard } from "../ui-parts/PaneConfigCard";

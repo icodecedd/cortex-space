@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRightSquare, Plus, Terminal, Trash2 } from "lucide-react";
+import { ChevronRightSquare, Plus, Terminal, Trash2 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

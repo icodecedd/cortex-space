@@ -458,6 +458,37 @@ fn get_agents_dir<R: Runtime>(app: AppHandle<R>) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+async fn install_agent_cli(command: String) -> Result<(), String> {
+    use tokio::process::Command;
+
+    if cfg!(target_os = "windows") {
+        let output = Command::new("powershell")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &command])
+            .output()
+            .await
+            .map_err(|e| format!("Failed to execute powershell: {}", e))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(String::from_utf8_lossy(&output.stderr).to_string())
+        }
+    } else {
+        let output = Command::new("sh")
+            .args(["-c", &command])
+            .output()
+            .await
+            .map_err(|e| format!("Failed to execute shell: {}", e))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(String::from_utf8_lossy(&output.stderr).to_string())
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -478,7 +509,8 @@ pub fn run() {
             kill_port_process,
             debug_env,
             check_command,
-            get_agents_dir
+            get_agents_dir,
+            install_agent_cli
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

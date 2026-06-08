@@ -1,4 +1,4 @@
-import { X, Plus, Database } from "lucide-react";
+import { X, Plus, Database } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";

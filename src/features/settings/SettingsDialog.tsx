@@ -16,7 +16,7 @@ import {
   FlaskConical,
   Info,
   Cpu
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 
 import {
@@ -35,7 +35,7 @@ import {
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
 import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { useAgents } from "@/hooks/useAgents";
+
 
 // Tab Components
 import { GeneralTab } from "./components/tabs/GeneralTab";

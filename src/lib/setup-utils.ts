@@ -150,6 +150,85 @@ export function updatePaneNode(root: LayoutNode, targetId: string, updates: Part
   };
 }
 
+/**
+ * Recursively find and remove a node, returning BOTH the new tree and the removed node.
+ */
+export function extractNode(root: LayoutNode, targetId: string): { newRoot: LayoutNode | null, extracted: PaneNode | null } {
+  if (root.type === 'pane') {
+    if (root.id === targetId) {
+      return { newRoot: null, extracted: root };
+    }
+    return { newRoot: root, extracted: null };
+  }
+
+  const { newRoot: left, extracted: leftExtracted } = extractNode(root.children[0], targetId);
+  const { newRoot: right, extracted: rightExtracted } = extractNode(root.children[1], targetId);
+
+  const extracted = leftExtracted || rightExtracted;
+
+  if (left === null) return { newRoot: right, extracted };
+  if (right === null) return { newRoot: left, extracted };
+
+  return {
+    newRoot: {
+      ...root,
+      children: [left, right]
+    },
+    extracted
+  };
+}
+
+/**
+ * Re-inserts a node relative to a target node.
+ */
+export function insertNode(
+  root: LayoutNode,
+  targetId: string,
+  nodeToInsert: PaneNode,
+  direction: 'top' | 'bottom' | 'left' | 'right'
+): LayoutNode {
+  if (root.type === 'pane') {
+    if (root.id === targetId) {
+      const isVerticalSplit = direction === 'top' || direction === 'bottom';
+      const isFirst = direction === 'top' || direction === 'left';
+      
+      return {
+        type: 'split',
+        direction: isVerticalSplit ? 'vertical' : 'horizontal',
+        ratio: 0.5,
+        children: isFirst ? [nodeToInsert, root] : [root, nodeToInsert]
+      };
+    }
+    return root;
+  }
+
+  return {
+    ...root,
+    children: [
+      insertNode(root.children[0], targetId, nodeToInsert, direction),
+      insertNode(root.children[1], targetId, nodeToInsert, direction)
+    ]
+  };
+}
+
+/**
+ * High-level function to move a pane from one position to another.
+ */
+export function repositionNode(
+  root: LayoutNode,
+  dragId: string,
+  dropId: string,
+  direction: 'top' | 'bottom' | 'left' | 'right'
+): LayoutNode {
+  // 1. Extract the node
+  const { newRoot, extracted } = extractNode(root, dragId);
+  
+  if (!extracted || !newRoot) return root; // Should not happen in valid drag-drop
+
+  // 2. Re-insert into the modified tree
+  return insertNode(newRoot, dropId, extracted, direction);
+}
+
 export function findNeighborPane(
   root: LayoutNode,
   currentId: string,

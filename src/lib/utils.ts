@@ -59,3 +59,7 @@ export function formatWorkspaceName(name: string): string {
     .join(" ");
 }
 
+export function getWorkspacePlaceholder(_index: number): string {
+  return "New Workspace";
+}
+
