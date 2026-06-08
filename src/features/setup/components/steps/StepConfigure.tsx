@@ -41,7 +41,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
   };
 
   const globalItems = mode === 'agents' 
-    ? agents.map(p => ({ label: p.label, value: p.command }))
+    ? agents.filter(p => p.status === 'installed').map(p => ({ label: p.label, value: p.command }))
     : snippets.map(s => ({ label: s.label, value: s.command }));
 
   return (

@@ -45,6 +45,12 @@ export interface SpaceTemplate {
   color?: string;
 }
 
+export interface DirectoryPreset {
+  id: string;
+  label: string;
+  path: string;
+}
+
 export interface Snippet {
   id: string;
   label: string;

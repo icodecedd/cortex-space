@@ -45,8 +45,19 @@ function App() {
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState("general");
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+
+  const handleOpenSettings = (tab: string = "general") => {
+    setSettingsInitialTab(tab);
+    setSettingsOpen(true);
+  };
+
+  const handleCustomizeShortcuts = () => {
+    setShortcutsOpen(false);
+    handleOpenSettings("shortcuts");
+  };
   const [isBackgroundRecessed, setIsBackgroundRecessed] = useState(false);
   const { settings: colorSchemeSettings, resolvedScheme, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
   const { theme, setTheme, allThemes, addCustomTheme, removeCustomTheme, previewTheme, cancelPreview } = useTheme();
@@ -111,7 +122,7 @@ function App() {
         const newLayout = removeNode(w.config.layout, paneId);
         if (!newLayout) {
           // If no layout left, close workspace or reset
-          toast.info("Workspace Reset", { description: "Last pane closed. Reverting to empty state." });
+          toast.success("Workspace reset successfully", { description: "The workspace has reverted to an empty state." });
           return {
             ...w,
             status: 'mode-select',
@@ -161,7 +172,7 @@ function App() {
       }
       return w;
     }));
-    toast.success("Layout Updated", { description: "Pane repositioned successfully." });
+    toast.success("Layout updated successfully", { description: "The pane position has been saved." });
   };
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
@@ -289,8 +300,8 @@ function App() {
     const currentWs = workspaces.find(w => w.id === activeWorkspaceId);
     const m = currentWs ? currentWs.mode : 'normal';
 
-    toast.success("Workspace Activated", {
-      description: `Loaded ${rootName} successfully in ${m.toUpperCase()} mode.`,
+    toast.success(`${rootName} activated successfully`, {
+      description: `Workspace is now active in ${m} mode.`,
     });
   };
 
@@ -316,7 +327,7 @@ function App() {
         status: 'mode-select'
       }]);
       setActiveWorkspaceId(newId);
-      toast.info("Workspace Reset", { description: "Returning to mode selection." });
+      toast.success("Workspace reset successfully", { description: "Returning to the mode selection screen." });
       return;
     }
 
@@ -342,8 +353,8 @@ function App() {
 
     setWorkspaces(updated);
 
-    toast.warning("Workspace Closed", {
-      description: "PTY process connections terminated cleanly.",
+    toast.warning("Workspace closed successfully", {
+      description: "Process connections have been terminated.",
     });
   };
 
@@ -373,8 +384,8 @@ function App() {
       return updated;
     });
 
-    toast.warning("Workspaces Closed", {
-      description: `${ids.length} workspaces terminated cleanly.`,
+    toast.warning("Workspaces closed successfully", {
+      description: `${ids.length} workspaces have been terminated.`,
     });
   };
 
@@ -471,8 +482,8 @@ function App() {
     try {
       const exists = await invoke<boolean>('validate_directory', { path: template.rootPath });
       if (!exists) {
-        toast.error("Directory not found", {
-          description: `The path "${template.rootPath}" no longer exists.`,
+        toast.error("Failed to find directory", {
+          description: "The template path no longer exists.",
         });
         return;
       }
@@ -518,15 +529,15 @@ function App() {
     setTemplatesOpen(false);
     setSwitcherOpen(false);
     
-    toast.success("Workspace Launched", {
-      description: `Loaded "${template.name}" from library.`,
+    toast.success(`${template.name} launched successfully`, {
+      description: "The template was loaded from the library.",
     });
   };
 
   const handleCaptureCurrent = () => {
     if (!activeWorkspace || activeWorkspace.status !== 'active') {
-      toast.error("No active workspace to capture", {
-        description: "Go to a workspace and configure it first."
+      toast.error("Workspace cannot be captured", {
+        description: "Select an active workspace before capturing."
       });
       return;
     }
@@ -719,10 +730,15 @@ function App() {
         )}
       </motion.div>
 
-      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <KeyboardShortcutsDialog 
+        open={shortcutsOpen} 
+        onOpenChange={setShortcutsOpen} 
+        onCustomize={handleCustomizeShortcuts}
+      />
       <SettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+        initialTab={settingsInitialTab}
         theme={theme}
         setTheme={setTheme}
         allThemes={allThemes}
@@ -778,7 +794,7 @@ function App() {
         allThemes={allThemes}
       />
 
-      <Toaster position="bottom-right" closeButton richColors theme={resolvedScheme as any} />
+      <Toaster position="bottom-right" closeButton richColors theme={resolvedScheme as "light" | "dark" | "system"} />
     </div>
   );
 }

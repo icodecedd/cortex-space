@@ -184,16 +184,29 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                     <div className="px-2 py-1.5 text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest border-b border-[var(--border-color)] mb-1">
                       Quick Snippets
                     </div>
-                    {snippets.map((snippet) => (
-                      <button
-                        key={snippet.id}
-                        onClick={() => handleSnippetSelect(snippet)}
-                        className="flex flex-col gap-0.5 text-left px-2 py-1.5 rounded hover:bg-[var(--text-primary)]/5 transition-colors group/snippet"
-                      >
-                        <span className="text-[10px] font-bold text-[var(--text-primary)] group-hover/snippet:text-[var(--accent-primary)]">{snippet.label}</span>
-                        <span className="text-[9px] font-mono text-[var(--text-secondary)] truncate opacity-70">{snippet.command}</span>
-                      </button>
-                    ))}
+                    {snippets.length === 0 ? (
+                      <div className="mx-1 my-2 p-4 flex flex-col items-center justify-center gap-1 text-center rounded-lg border border-dashed border-[var(--border-color)] bg-[var(--text-primary)]/[0.01]">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--text-primary)]/[0.03] border border-[var(--border-color)]/50 flex items-center justify-center mb-1 shadow-sm relative overflow-hidden">
+                           <div className="absolute inset-0 bg-gradient-to-br from-[var(--text-primary)]/5 via-transparent to-transparent opacity-50" />
+                           <Library size={14} className="text-[var(--text-secondary)] opacity-70 z-10" />
+                        </div>
+                        <span className="text-[10px] font-semibold text-[var(--text-primary)]">No Snippets Yet</span>
+                        <span className="text-[9px] text-[var(--text-secondary)] font-medium max-w-[140px] leading-snug">
+                          Open the Cortex Library to add commands.
+                        </span>
+                      </div>
+                    ) : (
+                      snippets.map((snippet) => (
+                        <button
+                          key={snippet.id}
+                          onClick={() => handleSnippetSelect(snippet)}
+                          className="flex flex-col gap-0.5 text-left px-2 py-1.5 rounded hover:bg-[var(--text-primary)]/5 transition-colors group/snippet"
+                        >
+                          <span className="text-[10px] font-bold text-[var(--text-primary)] group-hover/snippet:text-[var(--accent-primary)]">{snippet.label}</span>
+                          <span className="text-[9px] font-mono text-[var(--text-secondary)] truncate opacity-70">{snippet.command}</span>
+                        </button>
+                      ))
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -203,7 +216,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
 
         {mode === 'agents' && !pane.isCustom ? (
           <Combobox
-            items={agents.map(p => ({ label: p.label, value: p.command }))}
+            items={agents.filter(p => p.status === 'installed').map(p => ({ label: p.label, value: p.command }))}
             value={pane.command || ""}
             onValueChange={(val) => {
               const isPreset = agents.some(p => p.command === val);

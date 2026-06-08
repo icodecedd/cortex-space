@@ -35,7 +35,7 @@ export function AppFooter({ theme, setTheme, allThemes }: AppFooterProps) {
             <Button
               variant="ghost"
               size="xs"
-              className="btn-tactile h-6 px-2 flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 border-none rounded cursor-pointer text-[11px]"
+              className="btn-tactile h-6 px-2 flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 border-none rounded cursor-pointer text-[11px] font-bold"
             >
               <Palette size={12} />
               <span>{activeThemeName}</span>
@@ -45,15 +45,18 @@ export function AppFooter({ theme, setTheme, allThemes }: AppFooterProps) {
           <DropdownMenuContent
             align="end"
             className="w-56 bg-[var(--surface-color)] border-[var(--border-color)] animate-in p-1.5"
-            style={{ boxShadow: '0 10px 40px rgba(var(--accent-primary-rgb), 0.1), 0 0 20px rgba(0,0,0,0.2)' }}
+            style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)' }}
           >
             <DropdownMenuGroup className="max-h-[300px] overflow-y-auto scrollbar-none">
               <DropdownMenuLabel
                 style={{
-                  fontSize: '0.65rem',
+                  fontSize: '10px',
                   color: 'var(--text-secondary)',
-                  fontWeight: 600,
-                  padding: '0.75rem 0.85rem 0.5rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  padding: '0.85rem 0.85rem 0.5rem',
+                  opacity: 0.9
                 }}
               >
                 Interface Theme
@@ -65,10 +68,12 @@ export function AppFooter({ theme, setTheme, allThemes }: AppFooterProps) {
                   <DropdownMenuItem
                     key={t.id}
                     onClick={() => setTheme(t.id)}
+                    className="focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)]"
                     style={{
                       fontSize: '0.75rem',
+                      fontWeight: 700,
                       color: isActive ? 'var(--accent-primary)' : 'var(--text-primary)',
-                      background: isActive ? 'var(--text-primary)/[0.04]' : 'transparent',
+                      background: isActive ? 'rgba(var(--text-primary-rgb), 0.05)' : 'transparent',
                       cursor: 'pointer',
                       padding: '0.6rem 0.85rem',
                       margin: '0.15rem 0',
@@ -76,12 +81,12 @@ export function AppFooter({ theme, setTheme, allThemes }: AppFooterProps) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      transition: 'all 150ms ease'
+                      transition: 'background-color 150ms ease, color 150ms ease'
                     }}
                   >
                     <span>{t.name}</span>
                     {isActive && (
-                      <div className="w-1 h-1 rounded-full bg-[var(--accent-primary)] shadow-[0_0_4px_var(--accent-primary)]" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" />
                     )}
                   </DropdownMenuItem>
                 );

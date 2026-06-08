@@ -111,19 +111,19 @@ export function ThemesTab({
       const normalized = normalizeThemeInput(parsed);
 
       await addCustomTheme(normalized);
-      toast.success("Theme Imported", { description: `Successfully added "${normalized.name}" to your library.` });
+      toast.success(`${normalized.name} imported successfully`, { description: "The theme has been added to your library." });
       setJsonInput("");
       setIsImporting(false);
       setIsPreviewing(false);
     } catch (err: any) {
-      toast.error("Invalid Theme JSON", { description: err.message || "Please check your formatting and required keys." });
+      toast.error("Failed to import Theme", { description: "Check your JSON formatting and required keys." });
     }
   };
 
   const handleCopyJson = (t: ThemeDefinition) => {
     const { isCustom, ...rest } = t; // Strip internal flag
     navigator.clipboard.writeText(JSON.stringify(rest, null, 2));
-    toast.success("Copied to Clipboard", { description: `Theme JSON for "${t.name}" ready to paste.` });
+    toast.success(`${t.name} copied successfully`, { description: "The theme JSON is ready to paste." });
   };
 
   return (
@@ -255,9 +255,9 @@ export function ThemesTab({
                           e.stopPropagation();
                           removeCustomTheme(t.id);
                         }}
-                        className="w-6 h-6 rounded-md opacity-0 group-hover:opacity-100 text-[var(--text-secondary)]/40 hover:text-ansi-red hover:bg-ansi-red/10 transition-all"
+                        className="w-6 h-6 rounded-md opacity-0 group-hover:opacity-100 text-[var(--text-secondary)]/40 hover:text-red-400 hover:bg-red-500/10 transition-all"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={12} className="text-inherit" />
                       </Button>
                     )}
                     {isActive && (

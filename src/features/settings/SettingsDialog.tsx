@@ -50,6 +50,7 @@ import { AboutTab } from "./components/tabs/AboutTab";
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialTab?: string;
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
   allThemes: ThemeDefinition[];
@@ -77,6 +78,7 @@ interface SettingsDialogProps {
 export function SettingsDialog({
   open: isOpen,
   onOpenChange,
+  initialTab = "general",
   theme,
   setTheme,
   allThemes,
@@ -102,6 +104,14 @@ export function SettingsDialog({
 }: SettingsDialogProps) {
   const { resolvedScheme } = useColorScheme();
   const [defaultPath, setDefaultPath] = useState<string>("");
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Sync activeTab with initialTab when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   // Startup settings (local state, persisted on change)
   const [showSplash, setShowSplash] = useState(true);
@@ -126,26 +136,51 @@ export function SettingsDialog({
 
   // Load general + startup + shortcuts
   useEffect(() => {
-    if (!isOpen) return;
+    // We intentionally load settings even before the modal is fully open
+    // so they are ready when the user clicks. The cache inside `getSetting`
+    // makes this fast and safe.
+    let isMounted = true;
     (async () => {
-      setDefaultPath(await getSetting("cortex_default_path", ""));
-      setShowSplash(await getSetting("startup.showSplashAnimation", true));
-      setRememberMode(await getSetting("startup.rememberLastMode", false));
-      setOpenOnLaunch(
-        await getSetting<OpenOnLaunch>("startup.openOnLaunch", "modeSelector")
-      );
-      setCheckUpdates(
-        await getSetting("startup.checkForUpdatesOnStartup", true)
-      );
-      setConfirmModeChange(
-        await getSetting("startup.confirmModeChange", true)
-      );
-      setDefaultShell(await getSetting("startup.defaultShell", ""));
+      try {
+        const [
+          path,
+          splash,
+          remember,
+          launch,
+          updates,
+          confirmMode,
+          shell,
+          savedShortcuts
+        ] = await Promise.all([
+          getSetting("cortex_default_path", ""),
+          getSetting("startup.showSplashAnimation", true),
+          getSetting("startup.rememberLastMode", false),
+          getSetting<OpenOnLaunch>("startup.openOnLaunch", "modeSelector"),
+          getSetting("startup.checkForUpdatesOnStartup", true),
+          getSetting("startup.confirmModeChange", true),
+          getSetting("startup.defaultShell", ""),
+          getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS)
+        ]);
 
-      const savedShortcuts = await getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS);
-      setShortcuts(savedShortcuts);
+        if (!isMounted) return;
+
+        setDefaultPath(path);
+        setShowSplash(splash);
+        setRememberMode(remember);
+        setOpenOnLaunch(launch);
+        setCheckUpdates(updates);
+        setConfirmModeChange(confirmMode);
+        setDefaultShell(shell);
+        setShortcuts(savedShortcuts);
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
     })();
-  }, [isOpen]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Run once on mount, rely on fast caching
 
   const handleSetPath = async () => {
     try {
@@ -230,7 +265,8 @@ export function SettingsDialog({
         </DialogHeader>
 
         <Tabs
-          defaultValue="general"
+          value={activeTab}
+          onValueChange={setActiveTab}
           className="w-full flex-1 flex flex-col overflow-hidden mt-4"
         >
           <TabsList className="w-full grid grid-cols-8 shrink-0">
@@ -241,7 +277,7 @@ export function SettingsDialog({
               <Target size={13} /> Focus
             </TabsTrigger>
             <TabsTrigger value="shortcuts" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
-              <Keyboard size={13} /> Keys
+              <Keyboard size={13} /> Shortcuts
             </TabsTrigger>
             <TabsTrigger value="terminal" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Terminal size={13} /> Terminal

@@ -42,7 +42,6 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
           title="No Presets Saved"
           description="Save your current directory as a favorite to quickly switch between projects later."
           iconColor="text-green-600 dark:text-ansi-green/40"
-          className="border border-dashed border-[var(--border-color)] rounded-lg bg-[var(--text-primary)]/[0.01]"
         />
       ) : (
         <div className="flex flex-wrap gap-2">

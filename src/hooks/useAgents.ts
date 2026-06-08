@@ -66,8 +66,8 @@ export function useAgents() {
     const trimmedDownloadUrl = downloadUrl?.trim();
     
     if (!trimmedCommand) {
-      toast.error("Empty Command", {
-        description: "Please enter a valid command for the agent."
+      toast.error("Failed to add agent", {
+        description: "Enter a valid command to register the agent."
       });
       return;
     }
@@ -76,8 +76,8 @@ export function useAgents() {
     const isDuplicate = currentAgents.some(a => a.command.trim() === trimmedCommand);
     
     if (isDuplicate) {
-      toast.error("Duplicate Agent", {
-        description: `An agent with command "${trimmedCommand}" already exists.`
+      toast.error("Agent cannot be added", {
+        description: "An agent with this command already exists."
       });
       return;
     }
@@ -93,8 +93,8 @@ export function useAgents() {
     };
 
     setAgents(prev => [...prev, newAgent]);
-    toast.success("Agent Added", {
-      description: `"${newAgent.label}" is now in your protocol matrix.`
+    toast.success(`${newAgent.label} added successfully`, {
+      description: "The agent is now in your protocol matrix."
     });
     
     // Check if it's already installed
@@ -112,14 +112,14 @@ export function useAgents() {
   const deleteAgent = useCallback((id: string) => {
     const agent = agentsRef.current.find(a => a.id === id);
     if (agent?.isDefault) {
-      toast.error("Cannot Delete Default Agent", {
-        description: "Default agents can only be disabled (not yet implemented)."
+      toast.error("Agent cannot be deleted", {
+        description: "Default agents must remain in your library."
       });
       return;
     }
     setAgents(prev => prev.filter(a => a.id !== id));
-    toast.info("Agent Removed", {
-      description: agent ? `"${agent.label}" has been removed from your protocol matrix.` : "The selected agent has been deleted."
+    toast.success(`${agent?.label || 'Agent'} removed successfully`, {
+      description: "The agent has been removed from your library."
     });
   }, []);
 
@@ -145,19 +145,19 @@ export function useAgents() {
       
       if (isInstalled) {
         updateAgentStatus(id, 'installed');
-        toast.success(`${agent.label} Installed`, {
-          description: "Agent is now ready for deployment."
+        toast.success(`${agent.label} installed successfully`, {
+          description: "The agent is ready for deployment."
         });
       } else {
         updateAgentStatus(id, 'error');
-        toast.error(`Installation Failed`, {
-          description: `Could not verify installation of ${agent.label}.`
+        toast.error(`Failed to install ${agent.label}`, {
+          description: "The installation could not be verified."
         });
       }
     } catch (e) {
       updateAgentStatus(id, 'error');
-      toast.error(`Installation Error`, {
-        description: String(e)
+      toast.error(`Failed to install ${agent.label}`, {
+        description: "An error occurred during the installation process."
       });
     }
   }, [updateAgentStatus]);

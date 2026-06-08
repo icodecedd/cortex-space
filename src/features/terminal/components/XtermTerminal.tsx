@@ -95,6 +95,7 @@ export function XtermTerminal({
   const [currentVarValue, setCurrentVarValue] = useState("");
   const [initialCommandProcessed, setInitialCommandProcessed] = useState(false);
   const promptInputRef = useRef<HTMLInputElement>(null);
+  const [cursorBlinkSetting, setCursorBlinkSetting] = useState(true);
 
   const outputBufferRef = useRef<string>("");
   const checkPortRef = useRef<(() => void) | null>(null);
@@ -114,8 +115,8 @@ export function XtermTerminal({
   const firePortToast = useCallback((dp: DetectedPort) => {
     if (notifiedPortsRef.current.has(dp.port)) return;
     notifiedPortsRef.current.add(dp.port);
-    toast.success(`Port ${dp.port} is ready`, {
-      description: dp.url,
+    toast.success(`Port ${dp.port} initialized successfully`, {
+      description: `You can now access ${dp.url} in your browser.`,
       duration: 6000,
       action: {
         label: 'Open Browser',
@@ -132,6 +133,9 @@ export function XtermTerminal({
     getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
     getSetting('demo.showFloatingTerminalHeader', true).then(setShowFloatingHeader);
     getSetting<'hover' | 'always'>('demo.terminalHeaderVisibility', 'hover').then(setHeaderVisibility);
+    getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS).then((saved) => {
+      setCursorBlinkSetting(saved.cursorBlink);
+    });
   }, []);
 
   const getThemePalette = useCallback((themeName: string, scheme: 'light' | 'dark') => {
@@ -255,7 +259,7 @@ export function XtermTerminal({
     enabled: isMeasured
   }), [command, cwd, dimensions.rows, dimensions.cols, defaultShell, isMeasured]);
 
-  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch: relaunchPty } = usePty(id, handlePtyData, ptyConfig);
+  const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch: relaunchPty, status } = usePty(id, handlePtyData, ptyConfig);
 
   // Handle initial command prop for variable detection
   useEffect(() => {
@@ -512,10 +516,11 @@ export function XtermTerminal({
       let initialSettings = { ...TERMINAL_DEFAULTS };
       getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS).then((saved) => {
         initialSettings = saved;
+        setCursorBlinkSetting(saved.cursorBlink);
       });
 
       term = new Terminal({
-        cursorBlink: initialSettings.cursorBlink,
+        cursorBlink: false, // Always false - we handle blinking ourselves in CSS!
         cursorStyle: initialSettings.cursorStyle,
         fontSize: initialFontSize,
         fontFamily: initialFontFamily,
@@ -675,10 +680,11 @@ export function XtermTerminal({
       if (ts) {
         xtermRef.current.options.fontSize = ts.fontSize;
         xtermRef.current.options.fontFamily = `"${ts.fontFamily}", monospace`;
-        xtermRef.current.options.cursorBlink = ts.cursorBlink;
+        xtermRef.current.options.cursorBlink = false; // Always false - we handle blinking ourselves in CSS!
         xtermRef.current.options.cursorStyle = ts.cursorStyle as 'block' | 'underline' | 'bar';
         xtermRef.current.options.lineHeight = ts.lineHeight;
         xtermRef.current.options.letterSpacing = ts.letterSpacing;
+        setCursorBlinkSetting(ts.cursorBlink);
       }
 
       if ('fonts' in document) {
@@ -834,19 +840,19 @@ export function XtermTerminal({
       if (matchesShortcut(e, shortcuts.resetPane)) {
         e.preventDefault();
         relaunch();
-        toast.success(`Pane Execution Triggered`, { description: `Relaunching PANE ${index + 1}...` });
+        toast.success(`Pane ${index + 1} relaunching...`, { description: "The session is being restarted." });
       } else if (matchesShortcut(e, shortcuts.splitHorizontal)) {
         e.preventDefault();
         onSplit?.(paneId, 'horizontal');
-        toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} horizontally...` });
+        toast.success(`Pane ${index + 1} splitting...`, { description: "Creating a new horizontal split." });
       } else if (matchesShortcut(e, shortcuts.splitVertical)) {
         e.preventDefault();
         onSplit?.(paneId, 'vertical');
-        toast.success(`Pane Split`, { description: `Splitting PANE ${index + 1} vertically...` });
+        toast.success(`Pane ${index + 1} splitting...`, { description: "Creating a new vertical split." });
       } else if (matchesShortcut(e, shortcuts.closePane)) {
         e.preventDefault();
         onKill?.(paneId);
-        toast.success(`Pane Closed`, { description: `Closing PANE ${index + 1}...` });
+        toast.success(`Pane ${index + 1} closing...`, { description: "The pane is being removed from the layout." });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -911,6 +917,8 @@ export function XtermTerminal({
 
       <div
         className="terminal-viewport"
+        data-cursor-status={status}
+        data-cursor-blink={cursorBlinkSetting}
         style={{
           flex: 1,
           width: '100%',

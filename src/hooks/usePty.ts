@@ -85,12 +85,14 @@ export function usePty(
       inputQueueRef.current.push(data);
       return;
     }
+    // Set status to thinking immediately on keypress/write to ensure instant cursor response
+    updateStatusOnData();
     try {
       await invoke('write_pty', { id, data });
     } catch (error) {
       console.error(`[PTY ${id}] Write failed:`, error);
     }
-  }, [id, isReady]);
+  }, [id, isReady, updateStatusOnData]);
 
   const resize = useCallback(async (rows: number, cols: number) => {
     if (!isReady) {

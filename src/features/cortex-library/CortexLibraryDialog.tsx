@@ -16,7 +16,9 @@ import {
   Code, 
   Rocket, 
   Zap, 
-  Layers 
+  Layers,
+  X,
+  Database 
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -64,6 +66,8 @@ export function CortexLibraryDialog({
   const [activeTab, setActiveTab] = useState("workspaces");
   const [selectedSnippetIds, setSelectedSnippetIds] = useState<Set<string>>(new Set());
   const [isAddingSnippet, setIsAddSnippet] = useState(false);
+  const [isAddingPreset, setIsAddingPreset] = useState(false);
+  const [isAddingLayout, setIsAddingLayout] = useState(false);
 
   // Asset Management State (Directory Presets & Layouts)
   const [presets, setPresets] = useState<DirectoryPreset[]>([]);
@@ -94,8 +98,8 @@ export function CortexLibraryDialog({
     await setSetting("cortex_presets", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
     
-    toast.info("Preset Removed", {
-      description: `Targeting "${label}" has been removed from your library.`
+    toast.success(`${label} removed successfully`, {
+      description: "The preset is no longer in your library."
     });
   };
 
@@ -104,8 +108,8 @@ export function CortexLibraryDialog({
     const isDuplicate = presets.some(p => normalizePath(p.path) === normalizedTarget);
 
     if (isDuplicate) {
-      toast.error("Duplicate Preset", {
-        description: "This directory is already in your favorites."
+      toast.error("Preset cannot be added", {
+        description: "This directory already exists in your favorites."
       });
       return;
     }
@@ -119,8 +123,8 @@ export function CortexLibraryDialog({
     setPresets(updated);
     await setSetting("cortex_presets", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
-    toast.success("Preset Added", { 
-      description: `Label: ${label}` 
+    toast.success(`${label} added successfully`, { 
+      description: "The preset has been added to your favorites." 
     });
   };
 
@@ -133,8 +137,8 @@ export function CortexLibraryDialog({
     await setSetting("cortex_saved_layouts", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
 
-    toast.info("Layout Removed", {
-      description: `Configuration "${name}" has been deleted.`
+    toast.success(`${name} removed successfully`, {
+      description: "The layout configuration has been deleted."
     });
   };
 
@@ -148,8 +152,8 @@ export function CortexLibraryDialog({
     );
 
     if (isDuplicate) {
-      toast.error("Duplicate Layout", {
-        description: "A layout with this name or configuration already exists."
+      toast.error("Layout cannot be added", {
+        description: "A layout with this configuration already exists."
       });
       return;
     }
@@ -164,8 +168,8 @@ export function CortexLibraryDialog({
     setSavedLayouts(updated);
     await setSetting("cortex_saved_layouts", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
-    toast.success("Layout Saved", {
-      description: `Created ${finalName} grid arrangement.`
+    toast.success(`${finalName} saved successfully`, {
+      description: "The grid arrangement has been created."
     });
   };
 
@@ -174,8 +178,8 @@ export function CortexLibraryDialog({
     const existingIds = new Set(savedLayouts.map(l => l.id));
     const toAdd = INITIAL_LAYOUTS.filter(l => !existingIds.has(l.id));
     if (toAdd.length === 0) {
-      toast.info("Library Up to Date", {
-        description: "Your layout library already contains all default configurations."
+      toast.success("Library updated successfully", {
+        description: "Your library already contains all default configurations."
       });
       return;
     }
@@ -183,8 +187,8 @@ export function CortexLibraryDialog({
     setSavedLayouts(updated);
     await setSetting("cortex_saved_layouts", updated);
     window.dispatchEvent(new Event('cortex:assets-updated'));
-    toast.success("Library Updated", {
-      description: `Restored ${toAdd.length} default grid layouts to your library.`
+    toast.success("Library updated successfully", {
+      description: `Restored ${toAdd.length} default grid layouts.`
     });
   };
 
@@ -255,21 +259,19 @@ export function CortexLibraryDialog({
                    label="Snippets"
                 />
                 <LibraryNavButton 
-                   isActive={activeTab === 'assets'} 
-                   onClick={() => setActiveTab('assets')}
+                   isActive={activeTab === 'presets'} 
+                   onClick={() => setActiveTab('presets')}
+                   icon={<Database size={16} />}
+                   label="Presets"
+                />
+                <LibraryNavButton 
+                   isActive={activeTab === 'layouts'} 
+                   onClick={() => setActiveTab('layouts')}
                    icon={<Layers size={16} />}
-                   label="Assets"
+                   label="Layouts"
                 />
              </nav>
-
-             <div className="mt-auto">
-                <div className="p-4 rounded-lg bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 space-y-2.5">
-                   <p className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-widest">Storage Status</p>
-                   <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed font-medium">All assets are persisted to your local machine encrypted database.</p>
-                </div>
              </div>
-          </div>
-
           {/* Main Dynamic View Area */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
             <header className="px-8 py-6 border-b border-[var(--text-primary)]/5 flex items-center justify-between shrink-0 bg-[var(--bg-color)]/5">
@@ -296,10 +298,18 @@ export function CortexLibraryDialog({
                     />
                     <Input 
                       placeholder={`Filter ${activeTab === 'workspaces' ? 'templates' : activeTab === 'commands' ? 'snippets' : 'presets & layouts'}...`}
-                      className="pl-9 text-[13px] h-[38px] bg-[var(--text-primary)]/[0.03] border-[var(--text-primary)]/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]/40 transition-all text-[var(--text-primary)]"
+                      className="pl-9 pr-10 text-[13px] h-[38px] bg-[var(--text-primary)]/[0.03] border-[var(--text-primary)]/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]/40 transition-all text-[var(--text-primary)]"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-full transition-all"
+                      >
+                        <X size={12} strokeWidth={3} />
+                      </button>
+                    )}
                   </div>
                </div>
 
@@ -314,10 +324,26 @@ export function CortexLibraryDialog({
                   )}
                   {activeTab === 'commands' && (
                     <Button 
-                      onClick={() => setIsAddSnippet(true)}
+                      onClick={() => setIsAddSnippet(!isAddingSnippet)}
                       className="h-[38px] px-5 text-[12px] font-bold bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:opacity-90 rounded-md transition-all flex gap-2"
                     >
-                      <Plus size={16} strokeWidth={3} /> NEW SNIPPET
+                      <Plus size={16} strokeWidth={3} className={cn("transition-transform duration-300", isAddingSnippet && "rotate-45")} /> {isAddingSnippet ? "CANCEL" : "NEW SNIPPET"}
+                    </Button>
+                  )}
+                  {activeTab === 'presets' && (
+                    <Button 
+                      onClick={() => setIsAddingPreset(!isAddingPreset)}
+                      className="h-[38px] px-5 text-[12px] font-bold bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:opacity-90 rounded-md transition-all flex gap-2"
+                    >
+                      <Plus size={16} strokeWidth={3} className={cn("transition-transform duration-300", isAddingPreset && "rotate-45")} /> {isAddingPreset ? "CANCEL" : "ADD PRESET"}
+                    </Button>
+                  )}
+                  {activeTab === 'layouts' && (
+                    <Button 
+                      onClick={() => setIsAddingLayout(!isAddingLayout)}
+                      className="h-[38px] px-5 text-[12px] font-bold bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:opacity-90 rounded-md transition-all flex gap-2"
+                    >
+                      <Plus size={16} strokeWidth={3} className={cn("transition-transform duration-300", isAddingLayout && "rotate-45")} /> {isAddingLayout ? "CANCEL" : "NEW LAYOUT"}
                     </Button>
                   )}
                </div>
@@ -347,16 +373,34 @@ export function CortexLibraryDialog({
                     setIsAdding={setIsAddSnippet}
                   />
                 )}
-                {activeTab === 'assets' && (
+                {activeTab === 'presets' && (
                   <AssetsTab 
                     presets={presets}
-                    savedLayouts={savedLayouts}
+                    savedLayouts={[]}
                     searchQuery={searchQuery}
                     onRemovePreset={handleRemovePreset}
-                    onRemoveLayout={handleRemoveLayout}
+                    onRemoveLayout={() => {}}
                     onAddPreset={handleAddPreset}
+                    onAddLayout={() => {}}
+                    onRestoreDefaults={() => {}}
+                    viewMode="presets"
+                    isAdding={isAddingPreset}
+                    setIsAdding={setIsAddingPreset}
+                  />
+                )}
+                {activeTab === 'layouts' && (
+                  <AssetsTab 
+                    presets={[]}
+                    savedLayouts={savedLayouts}
+                    searchQuery={searchQuery}
+                    onRemovePreset={() => {}}
+                    onRemoveLayout={handleRemoveLayout}
+                    onAddPreset={() => {}}
                     onAddLayout={handleAddLayout}
                     onRestoreDefaults={handleRestoreDefaults}
+                    viewMode="layouts"
+                    isAdding={isAddingLayout}
+                    setIsAdding={setIsAddingLayout}
                   />
                 )}
               </div>
@@ -384,7 +428,7 @@ export function CortexLibraryDialog({
                     variant="destructive" 
                     size="sm" 
                     onClick={handleBulkDelete}
-                    className="h-8 px-6 text-[10px] font-bold rounded-full transition-all"
+                    className="h-8 px-6 text-[10px] font-bold rounded-full transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20"
                   >
                     <Trash2 size={12} className="mr-2" />
                     Delete Permanent

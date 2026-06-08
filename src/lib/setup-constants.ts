@@ -1,4 +1,4 @@
-import { Agent } from "@/types";
+import { Agent, Snippet, DirectoryPreset } from "@/types";
 
 export interface LayoutConfig {
   rows: number;
@@ -69,10 +69,7 @@ export const DEFAULT_AGENTS: Agent[] = [
 // For backward compatibility during transition
 export const AGENT_PRESETS = DEFAULT_AGENTS.map(a => ({ label: a.label, command: a.command }));
 
-export const DEFAULT_PRESETS = [
-  { id: 'preset-prog', label: "PROGRAMMING", path: "C:\\Users\\Chaoscedd\\Programming" },
-  { id: 'preset-web', label: "WEB DEV", path: "C:\\Users\\Chaoscedd\\Programming\\web-development" },
-];
+export const DEFAULT_PRESETS: DirectoryPreset[] = [];
 
 export interface PaneConfig {
   id: number;
@@ -84,10 +81,4 @@ export interface PaneConfig {
 export const INITIAL_STEP = 1;
 export const MAX_STEP = 3;
 
-export const DEFAULT_SNIPPETS = [
-  { id: 'git-pull', label: 'Git Pull (Origin Main)', command: 'git pull origin main' },
-  { id: 'docker-down-up', label: 'Docker: Fresh Rebuild', command: 'docker-compose down -v && docker-compose up --build' },
-  { id: 'npm-fresh', label: 'NPM: Clean Install', command: 'rm -rf node_modules package-lock.json && npm install' },
-  { id: 'tauri-dev', label: 'Tauri: Launch Dev', command: 'npm run tauri dev' },
-  { id: 'system-prune', label: 'System: Docker Prune', command: 'docker system prune -af' },
-];
+export const DEFAULT_SNIPPETS: Snippet[] = [];

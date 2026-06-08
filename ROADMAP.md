@@ -50,6 +50,8 @@ _Final stability and persistence requirements for v1.0._
 
 _High-value improvements and advanced tooling._
 
+- [ ] **Dynamic Settings Architecture:**
+  - Revalidate and refactor the settings modal into a dynamic, data-driven architecture (referencing the implementation patterns in the `terax` application).
 - [ ] **Contextual Pane Actions:**
   - Hover/Shortcut menus for renaming, splitting, or restarting individual terminal instances.
 - [ ] **Resource Sparklines:**

@@ -2,12 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { DEFAULT_PRESETS } from "@/lib/setup-constants";
 import { getSetting, setSetting } from "@/lib/store";
-
-export interface DirectoryPreset {
-  id: string;
-  label: string;
-  path: string;
-}
+import { DirectoryPreset } from "@/types";
 
 export function usePresets(rootPath: string, isValidDir: boolean | null) {
   const [presets, setPresets] = useState<DirectoryPreset[]>([]);
@@ -54,9 +49,9 @@ export function usePresets(rootPath: string, isValidDir: boolean | null) {
     lastAddRef.current = now;
     
     if (isValidDir === false) {
-      toast.error("Invalid Directory", {
+      toast.error("Failed to save preset", {
         id: "preset-invalid",
-        description: "Cannot save a preset for a directory that does not exist.",
+        description: "The directory must exist before saving as a preset.",
       });
       return;
     }
@@ -68,7 +63,7 @@ export function usePresets(rootPath: string, isValidDir: boolean | null) {
       const isDuplicate = prev.some(p => normalizePath(p.path) === normalizedTarget);
 
       if (isDuplicate) {
-        toast.error("Preset already exists", {
+        toast.error("Preset cannot be added", {
           id: `preset-dup-${normalizedTarget}`,
           description: "This directory is already in your presets list.",
         });
@@ -81,9 +76,9 @@ export function usePresets(rootPath: string, isValidDir: boolean | null) {
         path: targetPath 
       };
       
-      toast.success("Preset saved", {
+      toast.success(`${name.toUpperCase()} saved successfully`, {
         id: `preset-save-${normalizedTarget}`,
-        description: `${name.toUpperCase()} has been added to your presets.`,
+        description: "The directory has been added to your presets.",
       });
       
       return [...prev, newPreset];
@@ -95,9 +90,9 @@ export function usePresets(rootPath: string, isValidDir: boolean | null) {
       const presetToRemove = prev.find(p => p.path === path);
       if (!presetToRemove) return prev;
 
-      toast.info("Preset removed", {
+      toast.info(`${presetToRemove.label} removed successfully`, {
         id: `preset-del-${path}`,
-        description: `${presetToRemove.label} has been deleted.`,
+        description: "The preset has been deleted from your library.",
         action: {
           label: "Undo",
           onClick: () => setPresets(old => [...old, presetToRemove])

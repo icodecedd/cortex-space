@@ -51,7 +51,6 @@ interface PaneElevatorProps {
 
 export function PaneElevator({
   paneId,
-  isFocused,
   name,
   index,
   isMaximized,
@@ -83,7 +82,7 @@ export function PaneElevator({
     const trimmed = tempName.trim();
     if (onRename && trimmed) {
       onRename(trimmed);
-      toast.success("Pane Renamed", { description: `Pane updated to "${trimmed}"` });
+      toast.success("Pane renamed successfully", { description: `The pane is now named ${trimmed}.` });
     }
     setIsRenaming(false);
   };
@@ -105,8 +104,8 @@ export function PaneElevator({
       if (cmd) {
         onSaveSnippet(cmd);
       } else {
-        toast.error("No command found", { 
-          description: "Type a command or select text to save as a snippet." 
+        toast.error("Snippet cannot be saved", { 
+          description: "Select text or type a command first." 
         });
       }
     }
@@ -173,7 +172,7 @@ export function PaneElevator({
           height: '32px',
           width: '100%',
           pointerEvents: isVisible ? 'auto' : 'none',
-          cursor: isDragging || isPressed ? 'grabbing' : (isFocused ? 'grab' : 'default'),
+          cursor: isDragging || isPressed ? 'grabbing' : 'default',
           ...style
         }}
       >
@@ -356,7 +355,8 @@ export function PaneElevator({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
-                    className="text-red-400 focus:text-red-400"
+                    variant="destructive"
+                    className="cursor-pointer"
                     onClick={onKill}
                   >
                     <Trash2 className="mr-2 h-3 w-3" />

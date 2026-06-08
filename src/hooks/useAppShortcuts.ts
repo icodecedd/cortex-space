@@ -67,7 +67,7 @@ export function useAppShortcuts({
       if (matchesShortcut(e, shortcuts.newWorkspace)) {
         e.preventDefault();
         onNewWorkspaceFlow();
-        toast.info("New Workflow Initiated", { description: "Configure your new separate workspace." });
+        toast.success("New workspace initiated successfully", { description: "Configure your new separate workspace now." });
         return;
       }
 

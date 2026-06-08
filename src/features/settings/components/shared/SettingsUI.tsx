@@ -2,6 +2,57 @@ import * as React from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
+
+export function SettingsCard({
+  title,
+  icon,
+  description,
+  children,
+  onReset,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  description?: string;
+  children: React.ReactNode;
+  onReset?: () => void;
+}) {
+  return (
+    <div className="bg-[var(--surface-color)]/30 border border-[var(--border-color)]/30 rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.12)] group hover:border-[var(--accent-primary)]/20 transition-all duration-500 relative mb-5">
+      {icon && (
+        <div className="absolute top-0 right-0 p-1 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+          {icon}
+        </div>
+      )}
+      
+      <div className="p-5 pb-3 border-b border-[var(--border-color)]/10 bg-[var(--text-primary)]/[0.02] flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2.5 mb-1.5">
+            {icon && <span className="text-[var(--accent-primary)]">{icon}</span>}
+            <h4 className="text-[11px] font-bold tracking-[0.15em] text-[var(--text-primary)] uppercase">{title}</h4>
+          </div>
+          {description && (
+            <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed font-medium">{description}</p>
+          )}
+        </div>
+        {onReset && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+            className="h-8 px-3 text-[10px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all uppercase tracking-widest border border-[var(--accent-primary)]/20"
+          >
+            <RotateCcw size={12} className="mr-2" /> Reset
+          </Button>
+        )}
+      </div>
+      
+      <div className="p-3 space-y-1">
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function SettingsRow({
   label,
@@ -15,17 +66,17 @@ export function SettingsRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5">
+    <div className="group/row flex items-center justify-between gap-4 p-2 rounded-lg transition-all duration-300 hover:bg-[var(--text-primary)]/[0.03]">
       <div className="flex flex-col gap-0.5 min-w-0">
         <Label
           htmlFor={htmlFor}
-          className="text-[13px] font-medium cursor-pointer"
-          style={{ color: "var(--text-primary)" }}
+          className="text-[12px] font-bold cursor-pointer transition-colors group-hover/row:text-[var(--text-primary)]"
+          style={{ color: "var(--text-secondary)" }}
         >
           {label}
         </Label>
         {description && (
-          <span className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+          <span className="text-[10px] leading-relaxed font-medium" style={{ color: "var(--text-secondary)", opacity: 0.8 }}>
             {description}
           </span>
         )}

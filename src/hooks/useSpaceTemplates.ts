@@ -69,9 +69,9 @@ export function useSpaceTemplates() {
     );
 
     if (isDuplicate) {
-      toast.error("Template already exists", {
+      toast.error("Template cannot be added", {
         id: `tpl-dup-${normalizedTarget}`,
-        description: "An identical configuration is already in your library."
+        description: "An identical configuration already exists in your library."
       });
       return;
     }
@@ -87,9 +87,9 @@ export function useSpaceTemplates() {
     };
 
     setTemplates(prev => [newTemplate, ...prev]);
-    toast.success("Template Captured", {
+    toast.success(`${name} captured successfully`, {
       id: `tpl-save-${normalizedTarget}`,
-      description: `"${name}" has been saved to your library.`,
+      description: "The workspace template has been saved.",
     });
   }, []);
 
@@ -98,9 +98,9 @@ export function useSpaceTemplates() {
     const name = template?.name || "Template";
     
     setTemplates(prev => prev.filter(t => t.id !== id));
-    toast.info("Template Removed", { 
+    toast.info(`${name} removed successfully`, { 
       id: `tpl-del-${id}`,
-      description: `"${name}" has been deleted from your library.`
+      description: "The template has been deleted from your library."
     });
   }, []);
 

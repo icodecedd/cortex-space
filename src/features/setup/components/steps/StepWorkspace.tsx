@@ -1,4 +1,4 @@
-import { FolderOpen, Lock, X, Save, Database, Layout } from "@/components/ui/icons";
+import { FolderOpen, Lock, X, Save, Database, Layout, Zap } from "@/components/ui/icons";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { LayoutSelector } from "../ui-parts/LayoutSelector";
 import { PresetManager } from "../ui-parts/PresetManager";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 
 import { DirectoryPreset } from "@/hooks/usePresets";
 
@@ -49,6 +50,8 @@ export function StepWorkspace({
   savedLayouts,
   addSavedLayout,
   removeSavedLayout,
+  onRestoreLayouts,
+  isInitialized
 }: StepWorkspaceProps) {
   const [layoutName, setLayoutName] = useState("");
 
@@ -205,6 +208,23 @@ export function StepWorkspace({
           savedLayouts={savedLayouts}
           onRemoveSavedLayout={removeSavedLayout}
         />
+
+        {savedLayouts.length === 0 && (
+          <div className="mt-8">
+            <EmptyState 
+              icon={Zap}
+              compact
+              title="Empty Layout Library"
+              description="Configure standard grid arrangements by installing the architectural starter pack."
+              iconColor="text-[var(--accent-primary)]"
+              action={{
+                label: "INSTALL STARTER PACK",
+                onClick: onRestoreLayouts,
+                icon: Zap
+              }}
+            />
+          </div>
+        )}
 
         {layout === 'custom' && (
           <motion.div 
