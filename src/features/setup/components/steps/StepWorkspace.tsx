@@ -1,6 +1,6 @@
-import { FolderOpen, Lock, X, Save, Database, Layout } from "@/components/ui/icons";
+import { FolderOpen, Lock, X, Save, Database, Layout, Zap } from "@/components/ui/icons";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LayoutType, LayoutConfig, SavedLayout } from "@/lib/setup-constants";
@@ -8,8 +8,9 @@ import { LayoutSelector } from "../ui-parts/LayoutSelector";
 import { PresetManager } from "../ui-parts/PresetManager";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 
-import { DirectoryPreset } from "@/hooks/usePresets";
+import { DirectoryPreset } from "@/types";
 
 interface StepWorkspaceProps {
   rootPath: string;
@@ -49,6 +50,7 @@ export function StepWorkspace({
   savedLayouts,
   addSavedLayout,
   removeSavedLayout,
+  onRestoreLayouts
 }: StepWorkspaceProps) {
   const [layoutName, setLayoutName] = useState("");
 
@@ -63,7 +65,7 @@ export function StepWorkspace({
 
   const currentPath = rootPath || defaultDir;
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -73,7 +75,7 @@ export function StepWorkspace({
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 10 },
     visible: { 
       opacity: 1, 
@@ -205,6 +207,23 @@ export function StepWorkspace({
           savedLayouts={savedLayouts}
           onRemoveSavedLayout={removeSavedLayout}
         />
+
+        {savedLayouts.length === 0 && (
+          <div className="mt-8">
+            <EmptyState 
+              icon={Zap}
+              compact
+              title="Empty Layout Library"
+              description="Configure standard grid arrangements by installing the architectural starter pack."
+              iconColor="text-[var(--accent-primary)]"
+              action={{
+                label: "INSTALL STARTER PACK",
+                onClick: onRestoreLayouts,
+                icon: Zap
+              }}
+            />
+          </div>
+        )}
 
         {layout === 'custom' && (
           <motion.div 

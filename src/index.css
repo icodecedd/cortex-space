@@ -188,7 +188,7 @@ body::after {
 [data-slot="dropdown-menu-sub-trigger"],
 [data-slot="select-item"] {
   color: var(--text-primary) !important;
-  transition: background-color 150ms var(--ease-out);
+  transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
 }
 
 [data-slot="dropdown-menu-item"]:focus,
@@ -201,10 +201,31 @@ body::after {
 [data-slot="dropdown-menu-sub-trigger"][data-highlighted],
 [data-slot="select-item"]:focus,
 [data-slot="select-item"][data-highlighted] {
-  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-color: rgba(var(--text-primary-rgb), 0.08) !important;
   color: var(--accent-primary) !important;
   outline: none;
 }
+
+/* Custom styling for destructive/red dropdown menu items to override important global styles */
+[data-slot="dropdown-menu-item"].text-red-400,
+[data-slot="dropdown-menu-item"].text-red-500,
+[data-slot="dropdown-menu-item"].text-destructive,
+[data-slot="dropdown-menu-item"][data-variant="destructive"] {
+  color: #f87171 !important;
+}
+
+[data-slot="dropdown-menu-item"].text-red-400:focus,
+[data-slot="dropdown-menu-item"].text-red-500:focus,
+[data-slot="dropdown-menu-item"].text-destructive:focus,
+[data-slot="dropdown-menu-item"][data-variant="destructive"]:focus,
+[data-slot="dropdown-menu-item"].text-red-400[data-highlighted],
+[data-slot="dropdown-menu-item"].text-red-500[data-highlighted],
+[data-slot="dropdown-menu-item"].text-destructive[data-highlighted],
+[data-slot="dropdown-menu-item"][data-variant="destructive"][data-highlighted] {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+}
+
 
 /* Typography */
 h1, h2, h3, h4 {
@@ -728,5 +749,40 @@ body, #root {
   50% {
     opacity: 0.55;
     box-shadow: 0 0 0 4px rgba(29, 158, 117, 0);
+  }
+}
+
+/* ========================================================
+   Custom Smooth Breathing Terminal Cursor State Machine
+   ======================================================== */
+
+/* Reset xterm's built-in blink helper just in case it ever gets set */
+.xterm-cursor-blink {
+  animation: none !important;
+}
+
+/* Default / Solid styling when blinking is disabled or in active output */
+.terminal-viewport .xterm-cursor {
+  transition: opacity var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+}
+
+/* Idle and Finished state breathing effect (Sine-wave opacity pulse) */
+.terminal-viewport[data-cursor-blink="true"][data-cursor-status="idle"] .xterm-cursor,
+.terminal-viewport[data-cursor-blink="true"][data-cursor-status="finished"] .xterm-cursor {
+  animation: xterm-cursor-breath 1.8s ease-in-out infinite;
+}
+
+/* Active Output (Thinking) state: completely solid */
+.terminal-viewport[data-cursor-blink="true"][data-cursor-status="thinking"] .xterm-cursor {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+@keyframes xterm-cursor-breath {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
   }
 }

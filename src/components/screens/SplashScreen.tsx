@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 interface SplashScreenProps {
   splashKey: number;
@@ -6,7 +6,7 @@ interface SplashScreenProps {
 }
 
 export function SplashScreen({ splashKey, reducedMotion = false }: SplashScreenProps) {
-  const containerVariants = {
+  const containerVariants: Variants = {
     initial: { 
       opacity: 0, 
       scale: reducedMotion ? 1 : 0.98,

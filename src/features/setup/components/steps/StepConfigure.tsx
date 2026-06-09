@@ -1,5 +1,5 @@
 import { Zap, Command } from "@/components/ui/icons";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { PaneConfig } from "@/lib/setup-constants";
 import { PaneConfigCard } from "../ui-parts/PaneConfigCard";
 import { useState } from "react";
@@ -21,7 +21,7 @@ interface StepConfigureProps {
 export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePaneName, updateAllPaneCommands, snippets, agents = [] }: StepConfigureProps) {
   const [globalValue, setGlobalValue] = useState("");
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -31,7 +31,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 10 },
     visible: { 
       opacity: 1, 
@@ -41,7 +41,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
   };
 
   const globalItems = mode === 'agents' 
-    ? agents.map(p => ({ label: p.label, value: p.command }))
+    ? agents.filter(p => p.status === 'installed').map(p => ({ label: p.label, value: p.command }))
     : snippets.map(s => ({ label: s.label, value: s.command }));
 
   return (

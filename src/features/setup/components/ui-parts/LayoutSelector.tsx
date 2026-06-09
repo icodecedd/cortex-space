@@ -103,9 +103,9 @@ export function LayoutSelector({
                   e.stopPropagation();
                   onRemoveSavedLayout?.(opt.id);
                 }}
-                className="absolute bottom-1 right-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500 hover:bg-transparent"
+                className="absolute bottom-1 right-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10"
               >
-                <Trash2 size={10} />
+                <Trash2 size={10} className="text-inherit" />
               </Button>
             )}
           </motion.div>

@@ -68,10 +68,7 @@ export function TerminalPane({
     }
   }, [isMaximized, isZenMode, isFocused]);
 
-  // Determine if this pane should be hidden (when another pane is maximized or zen-mode is active)
   const isHidden = (isMaximized || isZenMode) && !isFocused;
-
-  console.log("[TerminalPane Debug]", { isZenMode, isFocused, fixedCoords, isHidden });
 
   const paneContent = (
     <div

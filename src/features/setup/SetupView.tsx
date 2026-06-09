@@ -69,8 +69,8 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
 
   const handleNext = () => {
     if (step === 1 && isValidDir === false && rootPath !== "") {
-      toast.error("Invalid Directory", {
-        description: "The path provided does not exist or is inaccessible.",
+      toast.error("Failed to open directory", {
+        description: "The provided path does not exist or is inaccessible.",
       });
       return;
     }

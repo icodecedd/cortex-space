@@ -37,7 +37,7 @@ export function useWindowControls() {
         console.error("Failed to minimize window:", err);
       }
     } else {
-      toast.info("Simulated OS Action", { description: "Minimize window (Web Mode)" });
+      toast.info("Window minimized successfully", { description: "The minimize action is simulated in your browser." });
     }
   };
 
@@ -51,7 +51,7 @@ export function useWindowControls() {
       }
     } else {
       setIsWindowMaximized(prev => !prev);
-      toast.info("Simulated OS Action", { description: "Maximize window (Web Mode)" });
+      toast.info("Window maximized successfully", { description: "The maximize action is simulated in your browser." });
     }
   };
 
@@ -64,7 +64,7 @@ export function useWindowControls() {
         console.error("Failed to close window:", err);
       }
     } else {
-      toast.info("Simulated OS Action", { description: "Close window (Web Mode)" });
+      toast.info("Window closed successfully", { description: "The close action is simulated in your browser." });
     }
   };
 

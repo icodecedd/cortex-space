@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Workspace, SpaceTemplate, Snippet } from "@/types";
 import { ThemeDefinition } from "@/hooks/useTheme";
 import { LayoutPreviewIcon } from "@/components/ui/layout-preview-icon";
-import { Search, Folder, Terminal, Bot, Zap, Rocket, Settings, Keyboard, Maximize, Palette, ChevronRightSquare, Code, Play, Command } from "@/components/ui/icons";
+import { Search, Folder, Terminal, Bot, Zap, Rocket, Settings, Keyboard, Maximize, Palette, ChevronRightSquare, Code, Play, Command, X } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -173,8 +173,18 @@ export function WorkspaceSwitcherDialog({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
-            <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] px-1.5 py-0.5 text-[10px] font-mono font-bold">ESC</Kbd>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="w-5 h-5 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-full transition-all"
+              >
+                <X size={12} strokeWidth={3} />
+              </button>
+            )}
+            <div className="flex items-center gap-1.5 pointer-events-none">
+              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] px-1.5 py-0.5 text-[10px] font-mono font-bold">ESC</Kbd>
+            </div>
           </div>
         </div>
 
@@ -186,7 +196,6 @@ export function WorkspaceSwitcherDialog({
                 title="No Results Found"
                 description={`We couldn't find any workspaces, snippets, or actions matching "${searchQuery}".`}
                 iconColor="text-[var(--text-secondary)]/40"
-                className="py-20"
               />
             ) : (
               filteredItems.map((item, index) => {

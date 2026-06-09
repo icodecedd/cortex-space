@@ -109,10 +109,10 @@ function TemplateCard({ template, onLaunch, onDelete }: { template: SpaceTemplat
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-6 w-6 text-[var(--text-secondary)]/60 hover:bg-red-500/10 hover:text-red-400 group-hover:text-[var(--text-secondary)] transition-all active:scale-95"
+                  className="h-6 w-6 text-[var(--text-secondary)]/60 hover:bg-red-500/10 hover:text-red-400 transition-all active:scale-95"
                   onClick={(e) => { e.stopPropagation(); onDelete(); }}
                 >
-                  <Trash2 size={13} />
+                  <Trash2 size={13} className="text-inherit" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">

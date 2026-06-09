@@ -71,8 +71,8 @@ export function useSetupPanes(agents: Agent[] = []) {
     // Validation: Check for duplicate configuration
     const isDuplicate = savedLayouts.some(l => l.rows === config.rows && l.cols === config.cols);
     if (isDuplicate) {
-      toast.error("Layout already exists", {
-        description: `A ${config.rows}X${config.cols} configuration is already in your library.`
+      toast.error("Layout cannot be added", {
+        description: "This grid configuration already exists in your library."
       });
       return;
     }
@@ -85,7 +85,7 @@ export function useSetupPanes(agents: Agent[] = []) {
     };
     setSavedLayouts(prev => [...prev, newLayout]);
     setLayoutType(newLayout.id);
-    toast.success("Layout Registered", { description: `${name} has been added to your presets.` });
+    toast.success(`${name} registered successfully`, { description: "The layout has been added to your presets." });
   };
 
   const removeSavedLayout = (id: string) => {

@@ -1,4 +1,5 @@
 import { load } from '@tauri-apps/plugin-store';
+import defaults from "@/data/defaults.json";
 
 // We load the store lazily. In Tauri v2, load() returns a promise.
 // 'settings.json' will be stored in the app's config directory.
@@ -6,10 +7,12 @@ const storePromise = load('settings.json', { autoSave: true, defaults: {} });
 
 export const getStore = () => storePromise;
 
-let cachedStore: Record<string, any> | null = null;
-let cachePromise: Promise<Record<string, any>> | null = null;
+// Typed cache to avoid 'any'
+type SettingsCache = Record<string, unknown>;
+let cachedStore: SettingsCache | null = null;
+let cachePromise: Promise<SettingsCache> | null = null;
 
-async function ensureCache(): Promise<Record<string, any>> {
+async function ensureCache(): Promise<SettingsCache> {
   if (cachedStore) return cachedStore;
   if (cachePromise) return cachePromise;
 
@@ -17,7 +20,7 @@ async function ensureCache(): Promise<Record<string, any>> {
     try {
       const store = await getStore();
       const entries = await store.entries();
-      const cache: Record<string, any> = {};
+      const cache: SettingsCache = {};
       for (const [key, value] of entries) {
         cache[key] = value;
       }
@@ -36,7 +39,6 @@ async function ensureCache(): Promise<Record<string, any>> {
 export async function setSetting<T>(key: string, value: T) {
   const store = await getStore();
   await store.set(key, value);
-  await store.save();
   
   // Update cache
   if (cachedStore) {
@@ -50,13 +52,12 @@ export async function setSetting<T>(key: string, value: T) {
 export async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
   const cache = await ensureCache();
   const val = cache[key];
-  return val !== null && val !== undefined ? val : defaultValue;
+  return val !== null && val !== undefined ? (val as T) : defaultValue;
 }
 
 export async function clearAllSettings() {
   const store = await getStore();
   await store.clear();
-  await store.save();
   cachedStore = {};
 }
 
@@ -133,64 +134,17 @@ export interface DemoSettings {
   enableBrowserRefresh: boolean;
 }
 
-export const TERMINAL_DEFAULTS: TerminalSettings = {
-  fontSize: 12,
-  fontFamily: 'JetBrains Mono',
-  scrollbackLines: 1000,
-  cursorStyle: 'block',
-  cursorBlink: true,
-  lineHeight: 1.2,
-  letterSpacing: 0,
-};
+export const TERMINAL_DEFAULTS: TerminalSettings = defaults.terminal as TerminalSettings;
 
-export const STARTUP_DEFAULTS: StartupSettings = {
-  showSplashAnimation: true,
-  rememberLastMode: false,
-  openOnLaunch: 'modeSelector',
-  checkForUpdatesOnStartup: true,
-  confirmModeChange: true,
-  defaultShell: '',
-};
+export const STARTUP_DEFAULTS: StartupSettings = defaults.startup as StartupSettings;
 
-export const APPEARANCE_DEFAULTS: AppearanceSettings = {
-  colorScheme: 'dark',
-  uiFontScale: 100,
-  zenPadding: 32,
-  reducedMotion: false,
-};
+export const APPEARANCE_DEFAULTS: AppearanceSettings = defaults.appearance as AppearanceSettings;
 
-export const FOCUS_DEFAULTS: FocusSettings = {
-  isZenMode: false,
-  showTabs: false,
-  showStatusBar: false,
-};
+export const FOCUS_DEFAULTS: FocusSettings = defaults.focus as FocusSettings;
 
-export const DEMO_DEFAULTS: DemoSettings = {
-  showWorkspacesTab: true,
-  showTemplatesButton: true,
-  showShortcutsButton: true,
-  showModeShortcutHints: true,
-  showTerminalShortcutHints: true,
-  showFloatingTerminalHeader: true,
-  terminalHeaderVisibility: 'hover',
-  enableBrowserRefresh: true,
-};
+export const DEMO_DEFAULTS: DemoSettings = defaults.demo as DemoSettings;
 
-export const SHORTCUT_DEFAULTS: ShortcutSettings = {
-  toggleZenMode: 'Ctrl+Shift+Z',
-  newWorkspace: 'Ctrl+T',
-  closeWorkspace: 'Ctrl+W',
-  cycleNextWorkspace: 'Ctrl+Tab',
-  cyclePrevWorkspace: 'Ctrl+Shift+Tab',
-  openShortcuts: 'Ctrl+/',
-  openTemplates: 'Ctrl+Shift+T',
-  openSettings: 'Ctrl+,',
-  quickSwitcher: 'Ctrl+K',
-  splitHorizontal: 'Ctrl+Alt+H',
-  splitVertical: 'Ctrl+Alt+V',
-  resetPane: 'Ctrl+Alt+R',
-  closePane: 'Ctrl+Alt+W',
-};
+export const SHORTCUT_DEFAULTS: ShortcutSettings = defaults.shortcuts as ShortcutSettings;
 
 // ---------------------------------------------------------------------------
 // Group helpers — batch read/write flat dot-separated keys for a settings group

@@ -40,8 +40,8 @@ export function useSnippets() {
     const trimmedCommand = command?.trim();
     
     if (!trimmedCommand) {
-      toast.error("Empty Command", {
-        description: "Please enter a valid command to save as a snippet."
+      toast.error("Failed to save snippet", {
+        description: "Enter a valid command to save as a snippet."
       });
       return;
     }
@@ -50,14 +50,14 @@ export function useSnippets() {
     const isDuplicate = currentSnippets.some(s => s.command.trim() === trimmedCommand);
     
     if (isDuplicate) {
-      toast.error("Duplicate Snippet", {
+      toast.error("Snippet cannot be added", {
         id: `dup-${trimmedCommand}`,
-        description: "This command is already in your library."
+        description: "This command already exists in your library."
       });
       return;
     }
 
-    const finalLabel = label?.trim() || trimmedCommand.split(' ')[0] || "Untitled Snippet";
+    const finalLabel = label?.trim() || trimmedCommand.split(' ')[0] || "Untitled snippet";
     const newSnippet: Snippet = {
       id: crypto.randomUUID(),
       label: finalLabel,
@@ -65,9 +65,9 @@ export function useSnippets() {
     };
 
     setSnippets(prev => [newSnippet, ...prev]);
-    toast.success("Snippet Saved", {
+    toast.success(`${finalLabel} saved successfully`, {
       id: `save-${trimmedCommand}`,
-      description: `"${finalLabel}" is now available in your library.`
+      description: "The snippet is now available in your library."
     });
   }, []);
 
@@ -83,9 +83,9 @@ export function useSnippets() {
     
     setSnippets(prev => prev.filter(s => s.id !== id));
     
-    toast.info("Snippet Removed", {
+    toast.info(`${snippet?.label || 'Snippet'} removed successfully`, {
       id: `del-${id}`,
-      description: snippet ? `"${snippet.label}" has been deleted from your library.` : "The selected snippet has been deleted."
+      description: "The snippet has been deleted from your library."
     });
   }, []);
 
@@ -97,7 +97,7 @@ export function useSnippets() {
     const count = ids.length;
     setSnippets(prev => prev.filter(s => !ids.includes(s.id)));
     
-    toast.info("Bulk Deletion Complete", {
+    toast.info(`${count} snippets deleted successfully`, {
       id: `del-bulk-${ids.join('-').substring(0, 50)}`,
       description: `Successfully removed ${count} snippets from your library.`
     });

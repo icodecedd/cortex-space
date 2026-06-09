@@ -169,10 +169,10 @@ function SnippetRow({ snippet, isSelected, onToggleSelection, onDelete, onExecut
           <div className="w-px h-4 bg-[var(--border-color)] mx-1" />
           <Button 
             variant="ghost" size="icon" 
-            className="h-7 w-7 text-[var(--text-secondary)]/60 hover:bg-ansi-red/10 hover:text-ansi-red"
+            className="h-7 w-7 text-[var(--text-secondary)]/60 hover:bg-red-500/10 hover:text-red-400"
             onClick={onDelete}
           >
-            <Trash2 size={14} />
+            <Trash2 size={14} className="text-inherit" />
           </Button>
        </div>
     </div>
