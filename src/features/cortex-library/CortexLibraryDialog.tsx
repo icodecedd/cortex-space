@@ -41,7 +41,7 @@ interface CortexLibraryDialogProps {
   onExecuteSnippet: (snippet: Snippet, execute: boolean) => void;
 }
 
-import { DirectoryPreset } from "@/hooks/usePresets";
+import { DirectoryPreset } from "@/types";
 
 // Helper to normalize path for comparison
 const normalizePath = (p: string) => {

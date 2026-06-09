@@ -3,8 +3,8 @@ import { SettingsCard, SettingsRow } from "../shared/SettingsUI";
 import { Switch } from "@/components/ui/switch";
 import { DemoSettings, setSetting } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { FlaskConical, AlertTriangle, Layout, Keyboard, RefreshCcw } from "@/components/ui/icons";
-import { motion } from "framer-motion";
+import { AlertTriangle, Layout, Keyboard, RefreshCcw } from "@/components/ui/icons";
+import { motion, Variants } from "framer-motion";
 import { ConfirmActionDialog } from "@/components/dialogs/ConfirmActionDialog";
 
 interface DemoTabProps {
@@ -26,7 +26,7 @@ export function DemoTab({
     window.location.reload();
   };
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -36,7 +36,7 @@ export function DemoTab({
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 15 },
     show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
   };

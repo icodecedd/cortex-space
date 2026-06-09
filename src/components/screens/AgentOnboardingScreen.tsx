@@ -1,7 +1,8 @@
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, Variants } from "framer-motion";
 import { Cpu, CheckCircle2, Loader2, AlertCircle, Download, RefreshCw, ArrowRight } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Agent } from "@/types";
+import { ONBOARDING_CONTENT } from "@/lib/content";
 
 interface AgentOnboardingScreenProps {
   onComplete: () => void;
@@ -44,19 +45,22 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
           className="relative z-10 flex flex-col items-center gap-1.5"
         >
           <span className="text-[11px] font-mono font-bold tracking-[0.25em] text-[var(--text-secondary)] uppercase flex items-center select-none">
-            AWAKENING SYSTEM
+            {ONBOARDING_CONTENT.AWAKENING}
             <span className="flex ml-0.5">
               <motion.span variants={dotVariants} animate="animate">.</motion.span>
               <motion.span variants={dotVariants} animate="animate" transition={{ delay: 0.2 }}>.</motion.span>
               <motion.span variants={dotVariants} animate="animate" transition={{ delay: 0.4 }}>.</motion.span>
             </span>
           </span>
+          <span className="text-[9px] font-mono text-[var(--text-secondary)]/50 uppercase tracking-widest select-none">
+            Scanning for active system paths
+          </span>
         </motion.div>
       </div>
     );
   }
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1, 
@@ -83,7 +87,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { 
       opacity: 0, 
       y: shouldReduceMotion ? 0 : 12,
@@ -119,10 +123,10 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] uppercase mb-2">
-              AI Agent Protocols
+              {ONBOARDING_CONTENT.TITLE}
             </h1>
             <p className="text-sm text-[var(--text-secondary)]">
-              Scan and configure your AI agentic coding CLI tools.
+              {ONBOARDING_CONTENT.SUBTITLE}
             </p>
           </div>
         </motion.div>
@@ -163,7 +167,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                       transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                       className="flex items-center gap-1.5"
                     >
-                      <span className="text-[10px] font-bold text-ansi-green uppercase tracking-tighter">Detected</span>
+                      <span className="text-[10px] font-bold text-ansi-green uppercase tracking-tighter">{ONBOARDING_CONTENT.DETECTED}</span>
                       <CheckCircle2 size={16} className="text-ansi-green" />
                     </motion.div>
                   )}
@@ -176,7 +180,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                       transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                       className="flex items-center gap-1.5"
                     >
-                      <span className="text-[10px] font-bold text-ansi-blue uppercase tracking-tighter">Installing</span>
+                      <span className="text-[10px] font-bold text-ansi-blue uppercase tracking-tighter">{ONBOARDING_CONTENT.INSTALLING}</span>
                       <Loader2 size={16} className="text-ansi-blue animate-spin" />
                     </motion.div>
                   )}
@@ -195,7 +199,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                         className="h-7 text-[10px] px-3 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all uppercase tracking-widest font-bold bg-[var(--surface-color)] active:scale-[0.97] active:translate-y-0 duration-150 flex items-center gap-1.5"
                       >
                         <Download size={11} />
-                        Install
+                        {ONBOARDING_CONTENT.INSTALL}
                       </Button>
                     </motion.div>
                   )}
@@ -208,7 +212,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                       transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                       className="flex items-center gap-1.5"
                     >
-                      <span className="text-[10px] font-bold text-ansi-red uppercase tracking-tighter">Failed</span>
+                      <span className="text-[10px] font-bold text-ansi-red uppercase tracking-tighter">{ONBOARDING_CONTENT.FAILED}</span>
                       <AlertCircle size={16} className="text-ansi-red" />
                       <Button 
                         size="sm" 
@@ -217,7 +221,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                         className="h-7 text-[10px] px-3 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all uppercase tracking-widest font-bold ml-1 bg-[var(--surface-color)] active:scale-[0.97] active:translate-y-0 duration-150 flex items-center gap-1.5"
                       >
                         <RefreshCw size={11} />
-                        Retry
+                        {ONBOARDING_CONTENT.RETRY}
                       </Button>
                     </motion.div>
                   )}
@@ -253,11 +257,11 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
             <p className="text-[11px] font-medium leading-normal">
               {activeCount > 0 ? (
                 <span className="text-ansi-green font-bold uppercase tracking-wider">
-                  ✓ {activeCount} active protocol{activeCount > 1 ? 's' : ''} ready
+                  {ONBOARDING_CONTENT.ACTIVE_PROTOCOLS(activeCount)}
                 </span>
               ) : (
                 <span className="text-ansi-yellow font-bold uppercase tracking-wider">
-                  ⚠ No active AI protocols configured
+                  {ONBOARDING_CONTENT.NO_PROTOCOLS}
                 </span>
               )}
             </p>
@@ -281,11 +285,11 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                 {isAnyInstalling ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Configuring Matrix & Launching...
+                    {ONBOARDING_CONTENT.CONFIGURING}
                   </>
                 ) : (
                   <>
-                    Continue to Workspace
+                    {ONBOARDING_CONTENT.CONTINUE}
                     <ArrowRight size={12} />
                   </>
                 )}

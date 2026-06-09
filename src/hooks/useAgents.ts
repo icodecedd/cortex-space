@@ -19,22 +19,36 @@ export function useAgents() {
     async function loadAgents() {
       const saved = await getSetting<Agent[]>("cortex_agents", DEFAULT_AGENTS);
       
-      // 1. Immediately set the loaded state from memory/store and initialize to avoid blocking the UI
+      // 1. Sync default properties from constants (now from JSON) to ensure updates reach users
       const initial = saved.map(agent => {
         const defaultAgent = DEFAULT_AGENTS.find(da => da.id === agent.id);
-        return {
-          ...agent,
-          installCommand: defaultAgent?.installCommand ?? agent.installCommand,
-          downloadUrl: defaultAgent?.downloadUrl ?? agent.downloadUrl,
-        } as Agent;
+        
+        // If it's a default agent, prioritize the latest installCommand and downloadUrl from the app bundle
+        if (defaultAgent) {
+          return {
+            ...agent,
+            installCommand: defaultAgent.installCommand,
+            downloadUrl: defaultAgent.downloadUrl,
+            // Also ensure label and command are synced if they were changed in the app bundle
+            label: agent.label || defaultAgent.label,
+            command: agent.command || defaultAgent.command,
+          } as Agent;
+        }
+        return agent;
       });
-      
-      setAgents(initial);
-      agentsRef.current = initial;
-      setIsInitialized(true);
 
-      // 2. Perform verification check asynchronously in the background
-      const updated = await Promise.all(initial.map(async (agent) => {
+      // 2. Add any NEW default agents that aren't in the saved list yet
+      const missingDefaults = DEFAULT_AGENTS.filter(
+        da => !initial.some(ia => ia.id === da.id)
+      );
+      
+      const finalInitial = [...initial, ...missingDefaults];
+      
+      setAgents(finalInitial);
+      agentsRef.current = finalInitial;
+
+      // 3. Perform verification check asynchronously in the background
+      const updated = await Promise.all(finalInitial.map(async (agent) => {
         try {
           const isInstalled = await invoke<boolean>("check_command", { command: agent.command });
           return {
@@ -49,6 +63,7 @@ export function useAgents() {
 
       setAgents(updated);
       agentsRef.current = updated;
+      setIsInitialized(true);
     }
     loadAgents();
   }, []);

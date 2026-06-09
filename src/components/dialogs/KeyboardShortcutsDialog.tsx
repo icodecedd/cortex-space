@@ -28,7 +28,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, onCustomize }: Key
     }
   }, [open]);
 
-  const groups = [
+  const groups: { title: string, items: { label: string, value: string, critical?: boolean, static?: boolean }[] }[] = [
     {
       title: "Workspace & Navigation",
       items: [

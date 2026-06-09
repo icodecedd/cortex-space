@@ -1,10 +1,10 @@
 import { SettingsCard } from "../shared/SettingsUI";
 import { Button } from "@/components/ui/button";
 import { Info, Book, RefreshCcw, Github, Globe } from "@/components/ui/icons";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 export function AboutTab() {
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -14,7 +14,7 @@ export function AboutTab() {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 15 },
     show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
   };
@@ -35,7 +35,7 @@ export function AboutTab() {
           <div className="flex flex-col items-center py-6 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-[var(--border-color)]/40 flex items-center justify-center shadow-inner border border-[var(--border-color)] p-2.5 group hover:border-[var(--accent-primary)]/40 transition-colors duration-500">
               <img
-                src="/cortex-logo (2).png"
+                src="/cortex-logo.png"
                 alt="Cortex Logo"
                 className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-700"
               />

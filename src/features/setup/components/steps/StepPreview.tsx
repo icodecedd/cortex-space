@@ -1,5 +1,5 @@
 import { Layout, Database, Terminal, Check, Info, Layers, Cpu, ShieldCheck } from "@/components/ui/icons";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { LayoutConfig, PaneConfig } from "@/lib/setup-constants";
 import { getGridCols, getGridRows } from "@/lib/setup-utils";
@@ -15,7 +15,7 @@ interface StepPreviewProps {
 export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepPreviewProps) {
   const layoutString = `${layout.rows}x${layout.cols}`;
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -23,7 +23,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 10 },
     visible: { 
       opacity: 1, 

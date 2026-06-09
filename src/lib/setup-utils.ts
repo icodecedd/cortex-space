@@ -1,5 +1,6 @@
 import { LayoutConfig, PaneConfig } from "./setup-constants";
 import { LayoutNode, SplitNode, PaneNode, Agent } from "@/types";
+import { PANE_SEMANTICS } from "./content";
 
 export function getPaneCount(layout: LayoutConfig) {
   return layout.rows * layout.cols;
@@ -25,7 +26,7 @@ export function gridToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): Lay
     return {
       type: 'pane',
       id: panes[0]?.id.toString() || '1',
-      name: panes[0]?.name || 'Pane 1',
+      name: panes[0]?.name || `${PANE_SEMANTICS.NEW_PANE} 1`,
       command: panes[0]?.command || ''
     };
   }
@@ -87,7 +88,7 @@ export function splitNode(root: LayoutNode, targetId: string, direction: 'horizo
       const newPane: LayoutNode = {
         type: 'pane',
         id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        name: 'New Pane',
+        name: PANE_SEMANTICS.NEW_PANE,
         command: ''
       };
       return {
@@ -314,39 +315,39 @@ export function derivePaneName(command: string, defaultName: string, agents: Age
   }
 
   if (base === 'docker-compose' || base === 'docker') {
-    if (parts.includes('up')) return 'Docker Up';
-    if (parts.includes('build')) return 'Docker Build';
-    return 'Docker';
+    if (parts.includes('up')) return PANE_SEMANTICS.DOCKER_UP;
+    if (parts.includes('build')) return PANE_SEMANTICS.DOCKER_BUILD;
+    return PANE_SEMANTICS.DOCKER;
   }
 
   if (base === 'git') {
-    if (parts[1] === 'status') return 'Git Status';
-    if (parts[1] === 'log') return 'Git Log';
+    if (parts[1] === 'status') return PANE_SEMANTICS.GIT_STATUS;
+    if (parts[1] === 'log') return PANE_SEMANTICS.GIT_LOG;
     if (parts[1] === 'pull' || parts[1] === 'push') return `Git ${parts[1].charAt(0).toUpperCase() + parts[1].slice(1)}`;
-    return 'Git';
+    return PANE_SEMANTICS.GIT;
   }
 
   if (base === 'python' || base === 'python3') {
     const file = parts.find(p => p.endsWith('.py'));
-    if (file) return file.split(/[\\/]/).pop()?.replace('.py', '') || 'Python';
-    return 'Python';
+    if (file) return file.split(/[\\/]/).pop()?.replace('.py', '') || PANE_SEMANTICS.PYTHON;
+    return PANE_SEMANTICS.PYTHON;
   }
 
   if (base === 'node') {
     const file = parts.find(p => p.endsWith('.js') || p.endsWith('.ts'));
-    if (file) return file.split(/[\\/]/).pop()?.replace(/\.(js|ts)$/, '') || 'Node';
-    return 'Node';
+    if (file) return file.split(/[\\/]/).pop()?.replace(/\.(js|ts)$/, '') || PANE_SEMANTICS.NODE;
+    return PANE_SEMANTICS.NODE;
   }
 
   // 2. Dynamic Agent Mapping
   const matchedAgent = agents.find(a => a.command.toLowerCase() === base);
   if (matchedAgent) {
-    return `${matchedAgent.label.charAt(0).toUpperCase() + matchedAgent.label.slice(1).toLowerCase()} Agent`;
+    return `${matchedAgent.label.charAt(0).toUpperCase() + matchedAgent.label.slice(1).toLowerCase()} ${PANE_SEMANTICS.AGENT_SUFFIX}`;
   }
 
   // 3. Fallback for hardcoded common agents
   if (base === 'gemini' || base === 'claude' || base === 'gpt' || base === 'codex') {
-    return `${base.charAt(0).toUpperCase() + base.slice(1)} Agent`;
+    return `${base.charAt(0).toUpperCase() + base.slice(1)} ${PANE_SEMANTICS.AGENT_SUFFIX}`;
   }
 
   // 4. Generic Fallback: Use the command itself if short, or the base command

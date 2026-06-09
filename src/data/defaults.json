@@ -1,0 +1,107 @@
+{
+  "agents": [
+    {
+      "id": "agent-gemini",
+      "label": "GEMINI",
+      "command": "gemini",
+      "isDefault": true,
+      "status": "not-installed",
+      "downloadUrl": "https://github.com/google/gemini-cli/releases/latest",
+      "installCommand": "npm install -g @google/gemini-cli"
+    },
+    {
+      "id": "agent-claude",
+      "label": "CLAUDE",
+      "command": "claude",
+      "isDefault": true,
+      "status": "not-installed",
+      "downloadUrl": "https://github.com/anthropic/claude-cli/releases/latest",
+      "installCommand": "irm https://claude.ai/install.ps1 | iex"
+    },
+    {
+      "id": "agent-antigravity",
+      "label": "ANTIGRAVITY",
+      "command": "agy",
+      "isDefault": true,
+      "status": "not-installed",
+      "downloadUrl": "https://github.com/antigravity/agy-cli/releases/latest",
+      "installCommand": "irm https://antigravity.google/cli/install.ps1 | iex"
+    },
+    {
+      "id": "agent-opencode",
+      "label": "OPENCODE",
+      "command": "opencode",
+      "isDefault": true,
+      "status": "not-installed",
+      "installCommand": "npm install -g @opencode/cli"
+    },
+    {
+      "id": "agent-codex",
+      "label": "CODEX",
+      "command": "codex",
+      "isDefault": true,
+      "status": "not-installed",
+      "installCommand": "npm install -g @openai/codex-cli"
+    }
+  ],
+  "layouts": [
+    { "id": "1x1", "name": "1X1", "rows": 1, "cols": 1 },
+    { "id": "1x2", "name": "1X2", "rows": 1, "cols": 2 },
+    { "id": "2x1", "name": "2X1", "rows": 2, "cols": 1 },
+    { "id": "2x2", "name": "2X2", "rows": 2, "cols": 2 },
+    { "id": "3x3", "name": "3X3", "rows": 3, "cols": 3 }
+  ],
+  "terminal": {
+    "fontSize": 12,
+    "fontFamily": "JetBrains Mono",
+    "scrollbackLines": 1000,
+    "cursorStyle": "block",
+    "cursorBlink": true,
+    "lineHeight": 1.2,
+    "letterSpacing": 0
+  },
+  "startup": {
+    "showSplashAnimation": true,
+    "rememberLastMode": false,
+    "openOnLaunch": "modeSelector",
+    "checkForUpdatesOnStartup": true,
+    "confirmModeChange": true,
+    "defaultShell": ""
+  },
+  "appearance": {
+    "colorScheme": "dark",
+    "uiFontScale": 100,
+    "zenPadding": 32,
+    "reducedMotion": false
+  },
+  "focus": {
+    "isZenMode": false,
+    "showTabs": false,
+    "showStatusBar": false
+  },
+  "demo": {
+    "showWorkspacesTab": true,
+    "showTemplatesButton": true,
+    "showShortcutsButton": true,
+    "showModeShortcutHints": true,
+    "showTerminalShortcutHints": true,
+    "showFloatingTerminalHeader": true,
+    "terminalHeaderVisibility": "hover",
+    "enableBrowserRefresh": true
+  },
+  "shortcuts": {
+    "toggleZenMode": "Ctrl+Shift+Z",
+    "newWorkspace": "Ctrl+T",
+    "closeWorkspace": "Ctrl+W",
+    "cycleNextWorkspace": "Ctrl+Tab",
+    "cyclePrevWorkspace": "Ctrl+Shift+Tab",
+    "openShortcuts": "Ctrl+/",
+    "openTemplates": "Ctrl+Shift+T",
+    "openSettings": "Ctrl+,",
+    "quickSwitcher": "Ctrl+K",
+    "splitHorizontal": "Ctrl+Alt+H",
+    "splitVertical": "Ctrl+Alt+V",
+    "resetPane": "Ctrl+Alt+R",
+    "closePane": "Ctrl+Alt+W"
+  }
+}

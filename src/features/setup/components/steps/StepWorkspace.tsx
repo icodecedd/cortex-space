@@ -1,6 +1,6 @@
 import { FolderOpen, Lock, X, Save, Database, Layout, Zap } from "@/components/ui/icons";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LayoutType, LayoutConfig, SavedLayout } from "@/lib/setup-constants";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 
-import { DirectoryPreset } from "@/hooks/usePresets";
+import { DirectoryPreset } from "@/types";
 
 interface StepWorkspaceProps {
   rootPath: string;
@@ -50,8 +50,7 @@ export function StepWorkspace({
   savedLayouts,
   addSavedLayout,
   removeSavedLayout,
-  onRestoreLayouts,
-  isInitialized
+  onRestoreLayouts
 }: StepWorkspaceProps) {
   const [layoutName, setLayoutName] = useState("");
 
@@ -66,7 +65,7 @@ export function StepWorkspace({
 
   const currentPath = rootPath || defaultDir;
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -76,7 +75,7 @@ export function StepWorkspace({
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 10 },
     visible: { 
       opacity: 1, 

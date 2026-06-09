@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { TerminalSettings, DemoSettings } from "@/lib/store";
 import { Layout, Type, MousePointer2, History } from "@/components/ui/icons";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 interface TerminalTabProps {
   ts: TerminalSettings;
@@ -57,7 +57,7 @@ export function TerminalTab({
 }: TerminalTabProps) {
   if (!isLoaded) return null;
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -67,7 +67,7 @@ export function TerminalTab({
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 15 },
     show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
   };

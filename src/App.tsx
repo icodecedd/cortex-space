@@ -25,6 +25,7 @@ import { useSpaceTemplates } from "./hooks/useSpaceTemplates";
 import { useSnippets } from "./hooks/useSnippets";
 import { splitNode, removeNode, updatePaneNode, repositionNode } from "./lib/setup-utils";
 import { formatWorkspaceName } from "./lib/utils";
+import { APP_CONTENT } from "./lib/content";
 
 declare global {
   interface Window {
@@ -122,7 +123,7 @@ function App() {
         const newLayout = removeNode(w.config.layout, paneId);
         if (!newLayout) {
           // If no layout left, close workspace or reset
-          toast.success("Workspace reset successfully", { description: "The workspace has reverted to an empty state." });
+          toast.success(APP_CONTENT.WORKSPACE_RESET, { description: APP_CONTENT.WORKSPACE_RESET_DESC });
           return {
             ...w,
             status: 'mode-select',
@@ -278,7 +279,7 @@ function App() {
       }
     }
 
-    const rawName = finalPath.split(/[/\\]/).filter(Boolean).pop() || finalPath || "Workspace";
+    const rawName = finalPath.split(/[/\\]/).filter(Boolean).pop() || finalPath || APP_CONTENT.WORKSPACE_DEFAULT_NAME;
     const rootName = formatWorkspaceName(rawName);
     const updatedConfig = {
       ...newConfig,
@@ -300,7 +301,7 @@ function App() {
     const currentWs = workspaces.find(w => w.id === activeWorkspaceId);
     const m = currentWs ? currentWs.mode : 'normal';
 
-    toast.success(`${rootName} activated successfully`, {
+    toast.success(APP_CONTENT.WORKSPACE_ACTIVATED(rootName), {
       description: `Workspace is now active in ${m} mode.`,
     });
   };

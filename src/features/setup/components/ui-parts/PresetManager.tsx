@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 
-import { DirectoryPreset } from "@/hooks/usePresets";
+import { DirectoryPreset } from "@/types";
 
 interface PresetManagerProps {
   presets: DirectoryPreset[];

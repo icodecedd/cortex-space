@@ -78,6 +78,14 @@ export function PaneElevator({
     setTempName(name || `Pane ${index + 1}`);
   }, [name, index]);
 
+  // Reset UI states when dragging ends to ensure cursor and visibility reset correctly
+  useEffect(() => {
+    if (!isDragging) {
+      setIsPressed(false);
+      setIsHovered(false);
+    }
+  }, [isDragging]);
+
   const handleRenameSubmit = () => {
     const trimmed = tempName.trim();
     if (onRename && trimmed) {
@@ -158,6 +166,9 @@ export function PaneElevator({
           setIsPressed(false);
           listeners?.onPointerUp(e);
         }}
+        onPointerCancel={() => {
+          setIsPressed(false);
+        }}
         className={`pane-elevator-toolbar transition-all duration-300 ease-out flex items-center justify-between px-3 py-1 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
         }`}
@@ -172,7 +183,7 @@ export function PaneElevator({
           height: '32px',
           width: '100%',
           pointerEvents: isVisible ? 'auto' : 'none',
-          cursor: isDragging || isPressed ? 'grabbing' : 'default',
+          cursor: isDragging || isPressed ? 'pointer' : 'default',
           ...style
         }}
       >

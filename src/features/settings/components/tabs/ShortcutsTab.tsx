@@ -3,9 +3,9 @@ import { ShortcutSettings, SHORTCUT_DEFAULTS } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { getShortcutString } from "@/lib/shortcut-utils";
-import { RotateCcw, Trash2, Keyboard, Monitor, Terminal as TerminalIcon, Zap, Command } from "@/components/ui/icons";
+import { RotateCcw, Trash2, Monitor, Terminal as TerminalIcon, Zap, Command } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { SettingsCard } from "../shared/SettingsUI";
 import { ConfirmActionDialog } from "@/components/dialogs/ConfirmActionDialog";
 
@@ -22,7 +22,7 @@ export function ShortcutsTab({
 }: ShortcutsTabProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -32,7 +32,7 @@ export function ShortcutsTab({
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 15 },
     show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
   };

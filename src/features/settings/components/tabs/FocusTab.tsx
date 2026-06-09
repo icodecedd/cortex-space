@@ -2,7 +2,7 @@ import { SettingsCard, SettingsRow } from "../shared/SettingsUI";
 import { Switch } from "@/components/ui/switch";
 import { Target, Layout, Activity } from "@/components/ui/icons";
 import { FocusSettings } from "@/lib/store";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 interface FocusTabProps {
   focusSettings: FocusSettings;
@@ -15,7 +15,7 @@ export function FocusTab({
   setFocusSetting,
   onResetFocus,
 }: FocusTabProps) {
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -25,7 +25,7 @@ export function FocusTab({
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 15 },
     show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
   };

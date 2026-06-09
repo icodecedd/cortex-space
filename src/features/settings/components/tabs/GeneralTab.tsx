@@ -17,7 +17,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { ColorScheme, OpenOnLaunch } from "@/lib/store";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { ConfirmActionDialog } from "@/components/dialogs/ConfirmActionDialog";
 
 interface GeneralTabProps {
@@ -76,7 +76,7 @@ export function GeneralTab({
   const [isAppearanceResetOpen, setIsAppearanceResetOpen] = useState(false);
   const [isStartupResetOpen, setIsStartupResetOpen] = useState(false);
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -86,7 +86,7 @@ export function GeneralTab({
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 15 },
     show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
   };

@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { Folder, Trash2, Layout, Database, Plus, X, FolderOpen, Zap } from "@/components/ui/icons";
+import { Folder, Trash2, Layout, Database, Plus, FolderOpen, Zap } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SavedLayout, LayoutConfig } from "@/lib/setup-constants";
 import { getGridCols, getGridRows, getPaneCount } from "@/lib/setup-utils";
-import { cn, truncatePath } from "@/lib/utils";
+import { truncatePath } from "@/lib/utils";
 import { open } from "@tauri-apps/plugin-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 
-import { DirectoryPreset } from "@/hooks/usePresets";
+import { DirectoryPreset } from "@/types";
 
 interface AssetsTabProps {
   presets: DirectoryPreset[];

@@ -43,7 +43,7 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
             transition: 'all 0.4s ease'
           }}>
             <img
-              src="/cortex-logo (2).png"
+              src="/cortex-logo.png"
               alt="Cortex"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => {

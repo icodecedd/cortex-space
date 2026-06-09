@@ -1,5 +1,5 @@
 import { Cpu, Download, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, Cpu as CpuIcon } from "@/components/ui/icons";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useAgents } from "@/hooks/useAgents";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -34,7 +34,7 @@ export function AgentsTab() {
     setShowAddForm(false);
   };
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -44,7 +44,7 @@ export function AgentsTab() {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 15 },
     show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
   };

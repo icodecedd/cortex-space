@@ -1,5 +1,5 @@
 import { Terminal, Users, Cpu } from "@/components/ui/icons";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, Variants } from "framer-motion";
 import { Mode } from "@/types";
 import { setSetting } from "@/lib/store";
 import { useEffect } from "react";
@@ -41,7 +41,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -52,7 +52,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: {
       opacity: 0,
       y: shouldReduceMotion ? 0 : 8,
@@ -118,7 +118,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
             }}
           >
             <img
-              src="/cortex-logo (2).png"
+              src="/cortex-logo.png"
               alt="Cortex Logo"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
               onError={(e) => {

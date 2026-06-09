@@ -2,7 +2,6 @@ import * as React from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "@/components/ui/icons";
-import { cn } from "@/lib/utils";
 
 export function SettingsCard({
   title,
