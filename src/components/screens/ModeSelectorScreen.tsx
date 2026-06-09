@@ -1,9 +1,11 @@
+import * as React from "react";
+import { useState, useEffect } from "react";
 import { Terminal, Users, Cpu } from "@/components/ui/icons";
 import { motion, useReducedMotion, Variants } from "framer-motion";
 import { Mode } from "@/types";
-import { setSetting } from "@/lib/store";
-import { useEffect } from "react";
+import { setSetting, getSetting } from "@/lib/store";
 import { Kbd } from "@/components/ui/kbd";
+import { MODE_SELECTOR_CONTENT, ASSETS } from "@/lib/content";
 
 interface ModeSelectorScreenProps {
   onSelectMode: (mode: Mode) => void;
@@ -11,35 +13,18 @@ interface ModeSelectorScreenProps {
   showTemplatesHint?: boolean;
 }
 
-export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, showTemplatesHint = true }: ModeSelectorScreenProps) {
+export const ModeSelectorScreen = React.memo(({ onSelectMode, showShortcutHints = true, showTemplatesHint = true }: ModeSelectorScreenProps) => {
   const shouldReduceMotion = useReducedMotion();
+  const [lastMode, setLastMode] = useState<Mode | null>(null);
+
+  useEffect(() => {
+    getSetting<Mode>("startup.lastMode", "normal").then(setLastMode);
+  }, []);
 
   const handleSelectMode = async (mode: Mode) => {
     await setSetting("startup.lastMode", mode);
     onSelectMode(mode);
   };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      )
-        return;
-
-      const key = e.key.toLowerCase();
-      if (e.ctrlKey && key === "n") {
-        e.preventDefault();
-        handleSelectMode("normal");
-      } else if (e.ctrlKey && key === "a") {
-        e.preventDefault();
-        handleSelectMode("agents");
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -118,11 +103,11 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
             }}
           >
             <img
-              src="/cortex-logo.png"
+              src={ASSETS.LOGO}
               alt="Cortex Logo"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
               onError={(e) => {
-                e.currentTarget.src = "/tauri.svg";
+                e.currentTarget.src = ASSETS.LOGO_FALLBACK;
               }}
             />
           </motion.div>
@@ -136,7 +121,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                 color: "var(--text-primary)",
               }}
             >
-              CORTEX<span style={{ color: "var(--accent-primary)" }}> SPACE</span>
+              {MODE_SELECTOR_CONTENT.TITLE}<span style={{ color: "var(--accent-primary)" }}> {MODE_SELECTOR_CONTENT.SUBTITLE}</span>
             </h1>
             <p
               style={{
@@ -148,7 +133,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                 lineHeight: "1.4",
               }}
             >
-              THE COMMAND CENTER FOR YOUR AGENTS AND TERMINAL WORKFLOWS
+              {MODE_SELECTOR_CONTENT.DESCRIPTION}
             </p>
           </motion.div>
 
@@ -170,7 +155,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
               letterSpacing: "0.02em",
             }}
           >
-            Select your operational workflow.
+            {MODE_SELECTOR_CONTENT.PROMPT}
           </motion.p>
         </div>
 
@@ -194,9 +179,22 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
               gap: "1.5rem",
               borderRadius: "var(--radius-md)",
               cursor: "pointer",
+              borderColor: lastMode === "normal" ? "var(--accent-primary)" : "var(--border-color)",
+              boxShadow: lastMode === "normal" ? "0 0 12px rgba(var(--accent-primary-rgb), 0.05)" : undefined,
             }}
           >
-            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">Ctrl + N</Kbd>}
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              {lastMode === "normal" && (
+                <span className="text-[9px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Last Used
+                </span>
+              )}
+              {showShortcutHints && (
+                <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">
+                  {MODE_SELECTOR_CONTENT.NORMAL_MODE.SHORTCUT_LABEL}
+                </Kbd>
+              )}
+            </div>
             <Terminal size={32} color="var(--text-secondary)" />
             <div style={{ textAlign: "left", flex: 1 }}>
               <h3
@@ -209,7 +207,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                   color: "var(--text-primary)",
                 }}
               >
-                <span>NORMAL MODE</span>
+                <span>{MODE_SELECTOR_CONTENT.NORMAL_MODE.TITLE}</span>
               </h3>
               <p
                 style={{
@@ -219,7 +217,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                   fontFamily: "JetBrains Mono",
                 }}
               >
-                MANUAL CONTROL OVER MULTIPLE TERMINAL PANES
+                {MODE_SELECTOR_CONTENT.NORMAL_MODE.DESCRIPTION}
               </p>
             </div>
           </motion.div>
@@ -236,9 +234,22 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
               gap: "1.5rem",
               borderRadius: "var(--radius-md)",
               cursor: "pointer",
+              borderColor: lastMode === "agents" ? "var(--accent-primary)" : "var(--border-color)",
+              boxShadow: lastMode === "agents" ? "0 0 12px rgba(var(--accent-primary-rgb), 0.05)" : undefined,
             }}
           >
-            {showShortcutHints && <Kbd className="absolute top-4 right-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">Ctrl + A</Kbd>}
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              {lastMode === "agents" && (
+                <span className="text-[9px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Last Used
+                </span>
+              )}
+              {showShortcutHints && (
+                <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">
+                  {MODE_SELECTOR_CONTENT.AGENTS_MODE.SHORTCUT_LABEL}
+                </Kbd>
+              )}
+            </div>
             <div style={{ position: "relative" }}>
               <Users size={32} color="var(--text-secondary)" />
               <Cpu
@@ -265,7 +276,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                   color: "var(--text-primary)",
                 }}
               >
-                <span>AGENTS MODE</span>
+                <span>{MODE_SELECTOR_CONTENT.AGENTS_MODE.TITLE}</span>
               </h3>
               <p
                 style={{
@@ -275,7 +286,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                   fontFamily: "JetBrains Mono",
                 }}
               >
-                AI AGENTS ASSISTING AND COORDINATING YOUR WORKSPACE
+                {MODE_SELECTOR_CONTENT.AGENTS_MODE.DESCRIPTION}
               </p>
             </div>
           </motion.div>
@@ -305,7 +316,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
                 <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
                   Ctrl + Shift + T
                 </Kbd>
-                <span>Templates</span>
+                <span>{MODE_SELECTOR_CONTENT.HINTS.TEMPLATES}</span>
               </div>
             )}
             <div
@@ -320,7 +331,7 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
               <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
                 Ctrl + T
               </Kbd>
-              <span>New Space</span>
+              <span>{MODE_SELECTOR_CONTENT.HINTS.NEW_SPACE}</span>
             </div>
             <div
               style={{
@@ -334,11 +345,11 @@ export function ModeSelectorScreen({ onSelectMode, showShortcutHints = true, sho
               <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
                 Ctrl + ,
               </Kbd>
-              <span>Settings</span>
+              <span>{MODE_SELECTOR_CONTENT.HINTS.SETTINGS}</span>
             </div>
           </motion.div>
         )}
       </div>
     </motion.div>
   );
-}
+});

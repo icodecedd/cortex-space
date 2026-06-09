@@ -6,6 +6,7 @@ import { getGridCols, getGridRows, getPaneCount } from "@/lib/setup-utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface LayoutSelectorProps {
   currentLayout: LayoutType;
@@ -96,17 +97,24 @@ export function LayoutSelector({
             </AnimatePresence>
 
             {!opt.isSystem && (
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveSavedLayout?.(opt.id);
-                }}
-                className="absolute bottom-1 right-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10"
-              >
-                <Trash2 size={10} className="text-inherit" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveSavedLayout?.(opt.id);
+                    }}
+                    className="absolute bottom-1 right-1 h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 active:scale-95"
+                  >
+                    <Trash2 size={10} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={4} className="text-[10px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+                  Delete Layout
+                </TooltipContent>
+              </Tooltip>
             )}
           </motion.div>
         ))}

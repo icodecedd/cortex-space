@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   SettingsCard, 
   SettingsRow, 
@@ -8,7 +8,17 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FolderOpen, Palette, Rocket, Database } from "@/components/ui/icons";
+import { 
+  FolderOpen, 
+  Palette, 
+  Rocket, 
+  Database, 
+  Target, 
+  Cpu, 
+  Layout,
+  Terminal,
+  Monitor
+} from "@/components/ui/icons";
 import { 
   Select, 
   SelectContent, 
@@ -16,11 +26,13 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { ColorScheme, OpenOnLaunch } from "@/lib/store";
+import { ColorScheme, StartupBehavior, FocusSettings } from "@/lib/store";
 import { motion, Variants } from "framer-motion";
 import { ConfirmActionDialog } from "@/components/dialogs/ConfirmActionDialog";
+import { invoke } from "@tauri-apps/api/core";
 
 interface GeneralTabProps {
+  // Appearance
   colorScheme: ColorScheme;
   setColorScheme: (scheme: ColorScheme) => void;
   uiFontScale: number;
@@ -30,21 +42,29 @@ interface GeneralTabProps {
   reducedMotion: boolean;
   setReducedMotion: (reduced: boolean) => void;
   onResetAppearance: () => void;
+  
+  // Startup
   showSplash: boolean;
   setShowSplash: (v: boolean) => void;
-  rememberMode: boolean;
-  setRememberMode: (v: boolean) => void;
-  openOnLaunch: OpenOnLaunch;
-  setOpenOnLaunch: (v: OpenOnLaunch) => void;
+  startupBehavior: StartupBehavior;
+  setStartupBehavior: (v: StartupBehavior) => void;
+  lastMode: string | null;
   checkUpdates: boolean;
   setCheckUpdates: (v: boolean) => void;
   confirmModeChange: boolean;
   setConfirmModeChange: (v: boolean) => void;
+  onResetStartup: () => void;
+
+  // Focus (Merged)
+  focusSettings: FocusSettings;
+  setFocusSetting: <K extends keyof FocusSettings>(key: K, value: FocusSettings[K]) => Promise<void>;
+  onResetFocus: () => Promise<void>;
+
+  // Environment
   defaultShell: string;
   setDefaultShell: (v: string) => void;
   defaultPath: string;
   onSetPath: () => void;
-  onResetStartup: () => void;
 }
 
 export function GeneralTab({
@@ -59,29 +79,39 @@ export function GeneralTab({
   onResetAppearance,
   showSplash,
   setShowSplash,
-  rememberMode,
-  setRememberMode,
-  openOnLaunch,
-  setOpenOnLaunch,
+  startupBehavior,
+  setStartupBehavior,
+  lastMode,
   checkUpdates,
   setCheckUpdates,
   confirmModeChange,
   setConfirmModeChange,
+  onResetStartup,
+  focusSettings,
+  setFocusSetting,
+  onResetFocus,
   defaultShell,
   setDefaultShell,
   defaultPath,
   onSetPath,
-  onResetStartup,
 }: GeneralTabProps) {
   const [isAppearanceResetOpen, setIsAppearanceResetOpen] = useState(false);
   const [isStartupResetOpen, setIsStartupResetOpen] = useState(false);
+  const [isFocusResetOpen, setIsFocusResetOpen] = useState(false);
+  const [systemShell, setSystemShell] = useState<string>("detecting...");
+
+  useEffect(() => {
+    invoke<string>("get_default_shell")
+      .then(setSystemShell)
+      .catch(() => setSystemShell("unknown"));
+  }, []);
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.05
       }
     }
   };
@@ -96,7 +126,7 @@ export function GeneralTab({
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-0 pb-10 pr-2"
+      className="space-y-6 pb-10 pr-2"
     >
       <ConfirmActionDialog
         open={isAppearanceResetOpen}
@@ -112,23 +142,100 @@ export function GeneralTab({
         open={isStartupResetOpen}
         onOpenChange={setIsStartupResetOpen}
         title="Reset Runtime & Startup"
-        description="This will reset all boot sequence preferences (like splash screen, default shell, and update checks) back to their factory defaults. Are you sure?"
+        description="This will reset all boot sequence preferences (like splash screen and update checks) back to their factory defaults. Are you sure?"
         confirmLabel="Reset Startup"
         variant="destructive"
         onConfirm={onResetStartup}
       />
 
-      {/* Appearance */}
+      <ConfirmActionDialog
+        open={isFocusResetOpen}
+        onOpenChange={setIsFocusResetOpen}
+        title="Reset Focus Settings"
+        description="This will reset all Zen Mode and layout visibility preferences. Are you sure?"
+        confirmLabel="Reset Focus"
+        variant="destructive"
+        onConfirm={onResetFocus}
+      />
+
+      {/* 1. Application & Startup */}
       <motion.div variants={itemVariants}>
         <SettingsCard 
-          title="Interface Appearance" 
+          title="Application" 
+          icon={<Rocket size={16} />}
+          description="Manage how the application boots and updates."
+          onReset={() => setIsStartupResetOpen(true)}
+        >
+          <SettingsRow
+            label="Startup Behavior"
+            description="Choose the entry point when the application starts."
+            htmlFor="startup-behavior"
+          >
+            <Select
+              value={startupBehavior}
+              onValueChange={(v) => setStartupBehavior(v as StartupBehavior)}
+            >
+              <SelectTrigger
+                id="startup-behavior"
+                className="h-8 w-[160px] text-[11px] font-bold border-[var(--border-color)]/20 bg-[var(--surface-color)]/50"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value="modeSelector">Mode Selector</SelectItem>
+                <SelectItem value="lastMode">Resume Last Session</SelectItem>
+                <SelectItem value="newTerminal">Always Terminal</SelectItem>
+                <SelectItem value="newAgents">Always AI Assisted</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingsRow>
+          <SettingsRow
+            label="Show Splash Animation"
+            description="Display the intro animation on every app launch."
+            htmlFor="splash-toggle"
+          >
+            <Switch
+              id="splash-toggle"
+              checked={showSplash}
+              onCheckedChange={setShowSplash}
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Check for Updates"
+            description="Automatically check for Cortex Space updates on startup."
+            htmlFor="check-updates-toggle"
+          >
+            <Switch
+              id="check-updates-toggle"
+              checked={checkUpdates}
+              onCheckedChange={setCheckUpdates}
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Confirm Mode Change"
+            description="Warning before switching back to the selector screen."
+            htmlFor="confirm-mode-change-toggle"
+          >
+            <Switch
+              id="confirm-mode-change-toggle"
+              checked={confirmModeChange}
+              onCheckedChange={setConfirmModeChange}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </motion.div>
+
+      {/* 2. Interface Appearance */}
+      <motion.div variants={itemVariants}>
+        <SettingsCard 
+          title="Interface" 
           icon={<Palette size={16} />}
-          description="Customize the visual fidelity and scale of the interface."
+          description="Visual fidelity and scaling options."
           onReset={() => setIsAppearanceResetOpen(true)}
         >
           <SettingsRow
             label="Color Scheme"
-            description="Controls the light/dark mode independently of the selected theme."
+            description="System sync or forced Light/Dark mode."
           >
             <SegmentedControl<ColorScheme>
               value={colorScheme}
@@ -141,8 +248,8 @@ export function GeneralTab({
             />
           </SettingsRow>
           <SettingsRow
-            label="UI Font Scale"
-            description="Scales global interface text. Does not affect the terminal."
+            label="UI Scaling"
+            description="Scale all interface text and icons globally."
             htmlFor="font-scale-slider"
           >
             <div className="flex items-center gap-3 w-[180px]">
@@ -161,8 +268,30 @@ export function GeneralTab({
             </div>
           </SettingsRow>
           <SettingsRow
+            label="Reduced Motion"
+            description="Simplify or disable interface animations."
+            htmlFor="reduced-motion-toggle"
+          >
+            <Switch
+              id="reduced-motion-toggle"
+              checked={reducedMotion}
+              onCheckedChange={setReducedMotion}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </motion.div>
+
+      {/* 3. Focus & Zen Mode */}
+      <motion.div variants={itemVariants}>
+        <SettingsCard 
+          title="Focus Mode" 
+          icon={<Target size={16} />}
+          description="Customize the deep-focus experience (Zen Mode)."
+          onReset={() => setIsFocusResetOpen(true)}
+        >
+          <SettingsRow
             label="Zen Mode Padding"
-            description="Padding around the terminal in Zen Mode (0–100px)."
+            description="Empty space around the terminal during focus."
             htmlFor="zen-padding-slider"
           >
             <div className="flex items-center gap-3 w-[180px]">
@@ -181,131 +310,96 @@ export function GeneralTab({
             </div>
           </SettingsRow>
           <SettingsRow
-            label="Reduced Motion"
-            description="Disable or simplify animations across the interface."
-            htmlFor="reduced-motion-toggle"
+            label="Persist Zen State"
+            description="Remember if Zen Mode was active on restart."
+            htmlFor="zen-persist-toggle"
           >
             <Switch
-              id="reduced-motion-toggle"
-              checked={reducedMotion}
-              onCheckedChange={setReducedMotion}
+              id="zen-persist-toggle"
+              checked={focusSettings.isZenMode}
+              onCheckedChange={(v) => setFocusSetting("isZenMode", v)}
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Show Tabs"
+            description="Keep workspace tabs visible in Zen Mode."
+            htmlFor="zen-tabs-toggle"
+          >
+            <Switch
+              id="zen-tabs-toggle"
+              checked={focusSettings.showTabs}
+              onCheckedChange={(v) => setFocusSetting("showTabs", v)}
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Show Status Bar"
+            description="Keep the bottom status bar visible in Zen Mode."
+            htmlFor="zen-status-toggle"
+          >
+            <Switch
+              id="zen-status-toggle"
+              checked={focusSettings.showStatusBar}
+              onCheckedChange={(v) => setFocusSetting("showStatusBar", v)}
+            />
+          </SettingsRow>
+          <SettingsRow
+            label="Pane Headers"
+            description="Display control bars on terminal panes."
+            htmlFor="pane-headers-toggle"
+          >
+            <Switch
+              id="pane-headers-toggle"
+              checked={focusSettings.showPaneHeaders as boolean}
+              onCheckedChange={(v) => setFocusSetting("showPaneHeaders", v)}
             />
           </SettingsRow>
         </SettingsCard>
       </motion.div>
 
-      {/* Startup Behavior */}
+      {/* 4. Environment & Shell */}
       <motion.div variants={itemVariants}>
         <SettingsCard 
-          title="Runtime & Startup" 
-          icon={<Rocket size={16} />}
-          description="Configure the application lifecycle and boot sequence."
-          onReset={() => setIsStartupResetOpen(true)}
+          title="Environment" 
+          icon={<Monitor size={16} />}
+          description="System-level paths and shell configurations."
         >
-          <SettingsRow
-            label="Show Splash Animation"
-            description="Display the intro animation on every app launch."
-            htmlFor="splash-toggle"
-          >
-            <Switch
-              id="splash-toggle"
-              checked={showSplash}
-              onCheckedChange={setShowSplash}
-            />
-          </SettingsRow>
-          <SettingsRow
-            label="Remember Last Mode"
-            description="Skip mode selector and resume the previously used mode."
-            htmlFor="remember-mode-toggle"
-          >
-            <Switch
-              id="remember-mode-toggle"
-              checked={rememberMode}
-              onCheckedChange={setRememberMode}
-            />
-          </SettingsRow>
-          <SettingsRow
-            label="Open on Launch"
-            description="What screen to open after the splash. Ignored when Remember Last Mode is on."
-            htmlFor="open-on-launch"
-          >
-            <Select
-              value={openOnLaunch}
-              onValueChange={(v) => setOpenOnLaunch(v as OpenOnLaunch)}
-            >
-              <SelectTrigger
-                id="open-on-launch"
-                className="h-8 w-[160px] text-[11px] font-bold border-[var(--border-color)]/20 bg-[var(--surface-color)]/50"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectItem value="modeSelector">Mode Selector</SelectItem>
-                <SelectItem value="newTerminal">New Terminal</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingsRow>
           <SettingsRow
             label="Default Shell"
-            description="Specific shell path (e.g. /bin/zsh). Leave empty for system default."
+            description="Override the system's default shell executable."
             htmlFor="default-shell-input"
           >
-            <Input
-              id="default-shell-input"
-              value={defaultShell}
-              placeholder="Auto"
-              onChange={(e) => setDefaultShell(e.target.value)}
-              className="w-[160px] h-8 text-[11px] font-mono bg-[var(--bg-color)]/50 border-[var(--border-color)]/20 text-right"
-            />
+            <div className="flex flex-col items-end gap-1.5">
+              <Input
+                id="default-shell-input"
+                value={defaultShell}
+                placeholder={`Auto (${systemShell})`}
+                onChange={(e) => setDefaultShell(e.target.value)}
+                className="w-[180px] h-8 text-[11px] font-mono bg-[var(--bg-color)]/50 border-[var(--border-color)]/20 text-right"
+              />
+              {!defaultShell && (
+                <span className="text-[9px] font-mono text-[var(--text-secondary)]/60 uppercase tracking-tighter">
+                  Detected: {systemShell}
+                </span>
+              )}
+            </div>
           </SettingsRow>
-          <SettingsRow
-            label="Check for Updates"
-            description="Automatically check for Cortex Space updates when the app opens."
-            htmlFor="check-updates-toggle"
-          >
-            <Switch
-              id="check-updates-toggle"
-              checked={checkUpdates}
-              onCheckedChange={setCheckUpdates}
-            />
-          </SettingsRow>
-          <SettingsRow
-            label="Confirm Mode Change"
-            description="Show a warning before switching back to the mode selection screen."
-            htmlFor="confirm-mode-change-toggle"
-          >
-            <Switch
-              id="confirm-mode-change-toggle"
-              checked={confirmModeChange}
-              onCheckedChange={setConfirmModeChange}
-            />
-          </SettingsRow>
-        </SettingsCard>
-      </motion.div>
-
-      {/* Paths */}
-      <motion.div variants={itemVariants}>
-        <SettingsCard 
-          title="Storage & Paths" 
-          icon={<Database size={16} />}
-          description="Manage directory mappings and default project roots."
-        >
-          <div className="px-2 py-3">
-            <label className="text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase mb-2 block">
-              Default Workspace Directory
+          
+          <div className="px-2 py-3 mt-2 border-t border-[var(--border-color)]/10">
+            <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)]/60 uppercase mb-3 block">
+              Default Workspace Path
             </label>
             <div className="flex items-center gap-2">
               <Input
                 readOnly
                 value={defaultPath || "System Default (Home Dir)"}
-                className="font-mono text-[12px] bg-[var(--bg-color)]/30 text-[var(--text-secondary)] border-[var(--border-color)]/20 flex-1 h-9"
+                className="font-mono text-[11px] bg-[var(--bg-color)]/30 text-[var(--text-secondary)] border-[var(--border-color)]/20 flex-1 h-8"
               />
               <Button
                 variant="outline"
                 onClick={onSetPath}
-                className="shrink-0 h-9 px-4 bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] text-[11px] font-bold uppercase tracking-wider transition-all"
+                className="shrink-0 h-8 px-3 bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] text-[10px] font-bold uppercase tracking-wider transition-all"
               >
-                <FolderOpen size={14} className="mr-2" />
+                <FolderOpen size={12} className="mr-1.5" />
                 Browse
               </Button>
             </div>

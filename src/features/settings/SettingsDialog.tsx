@@ -29,7 +29,7 @@ import {
   FocusSettings,
   DemoSettings,
   ColorScheme,
-  OpenOnLaunch
+  StartupBehavior
 } from "@/lib/store";
 
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
@@ -39,7 +39,6 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 
 // Tab Components
 import { GeneralTab } from "./components/tabs/GeneralTab";
-import { FocusTab } from "./components/tabs/FocusTab";
 import { ShortcutsTab } from "./components/tabs/ShortcutsTab";
 import { TerminalTab } from "./components/tabs/TerminalTab";
 import { ThemesTab } from "./components/tabs/ThemesTab";
@@ -115,11 +114,11 @@ export function SettingsDialog({
 
   // Startup settings (local state, persisted on change)
   const [showSplash, setShowSplash] = useState(true);
-  const [rememberMode, setRememberMode] = useState(false);
-  const [openOnLaunch, setOpenOnLaunch] = useState<OpenOnLaunch>("modeSelector");
+  const [startupBehavior, setStartupBehavior] = useState<StartupBehavior>("modeSelector");
   const [checkUpdates, setCheckUpdates] = useState(true);
   const [confirmModeChange, setConfirmModeChange] = useState(true);
   const [defaultShell, setDefaultShell] = useState("");
+  const [lastMode, setLastMode] = useState<string | null>(null);
 
   // Shortcut settings
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
@@ -145,33 +144,33 @@ export function SettingsDialog({
         const [
           path,
           splash,
-          remember,
-          launch,
+          behavior,
           updates,
           confirmMode,
           shell,
-          savedShortcuts
+          savedShortcuts,
+          savedLastMode
         ] = await Promise.all([
           getSetting("cortex_default_path", ""),
           getSetting("startup.showSplashAnimation", true),
-          getSetting("startup.rememberLastMode", false),
-          getSetting<OpenOnLaunch>("startup.openOnLaunch", "modeSelector"),
+          getSetting<StartupBehavior>("startup.behavior", "modeSelector"),
           getSetting("startup.checkForUpdatesOnStartup", true),
           getSetting("startup.confirmModeChange", true),
           getSetting("startup.defaultShell", ""),
-          getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS)
+          getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS),
+          getSetting("startup.lastMode", "normal")
         ]);
 
         if (!isMounted) return;
 
         setDefaultPath(path);
         setShowSplash(splash);
-        setRememberMode(remember);
-        setOpenOnLaunch(launch);
+        setStartupBehavior(behavior);
         setCheckUpdates(updates);
         setConfirmModeChange(confirmMode);
         setDefaultShell(shell);
         setShortcuts(savedShortcuts);
+        setLastMode(savedLastMode);
       } catch (err) {
         console.error("Failed to load settings:", err);
       }
@@ -180,7 +179,7 @@ export function SettingsDialog({
     return () => {
       isMounted = false;
     };
-  }, []); // Run once on mount, rely on fast caching
+  }, [isOpen]); // Run on mount and when open state changes to refresh values
 
   const handleSetPath = async () => {
     try {
@@ -205,15 +204,13 @@ export function SettingsDialog({
 
   const handleResetStartup = async () => {
     setShowSplash(true);
-    setRememberMode(false);
-    setOpenOnLaunch("modeSelector");
+    setStartupBehavior("modeSelector");
     setCheckUpdates(true);
     setConfirmModeChange(true);
     setDefaultShell("");
     await Promise.all([
       setSetting("startup.showSplashAnimation", true),
-      setSetting("startup.rememberLastMode", false),
-      setSetting("startup.openOnLaunch", "modeSelector"),
+      setSetting("startup.behavior", "modeSelector"),
       setSetting("startup.checkForUpdatesOnStartup", true),
       setSetting("startup.confirmModeChange", true),
       setSetting("startup.defaultShell", ""),
@@ -269,12 +266,9 @@ export function SettingsDialog({
           onValueChange={setActiveTab}
           className="w-full flex-1 flex flex-col overflow-hidden mt-4"
         >
-          <TabsList className="w-full grid grid-cols-8 shrink-0">
+          <TabsList className="w-full grid grid-cols-7 shrink-0">
             <TabsTrigger value="general" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Settings2 size={13} /> General
-            </TabsTrigger>
-            <TabsTrigger value="focus" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
-              <Target size={13} /> Focus
             </TabsTrigger>
             <TabsTrigger value="shortcuts" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Keyboard size={13} /> Shortcuts
@@ -309,13 +303,12 @@ export function SettingsDialog({
               onResetAppearance={onResetAppearance}
               showSplash={showSplash}
               setShowSplash={(v) => handleStartupToggle("startup.showSplashAnimation", setShowSplash, v)}
-              rememberMode={rememberMode}
-              setRememberMode={(v) => handleStartupToggle("startup.rememberLastMode", setRememberMode, v)}
-              openOnLaunch={openOnLaunch}
-              setOpenOnLaunch={async (v) => {
-                setOpenOnLaunch(v);
-                await setSetting("startup.openOnLaunch", v);
+              startupBehavior={startupBehavior}
+              setStartupBehavior={async (v) => {
+                setStartupBehavior(v);
+                await setSetting("startup.behavior", v);
               }}
+              lastMode={lastMode}
               checkUpdates={checkUpdates}
               setCheckUpdates={(v) => handleStartupToggle("startup.checkForUpdatesOnStartup", setCheckUpdates, v)}
               confirmModeChange={confirmModeChange}
@@ -331,11 +324,6 @@ export function SettingsDialog({
               defaultPath={defaultPath}
               onSetPath={handleSetPath}
               onResetStartup={handleResetStartup}
-            />
-          </TabsContent>
-
-          <TabsContent value="focus" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>
-            <FocusTab
               focusSettings={focusSettings}
               setFocusSetting={setFocusSetting}
               onResetFocus={resetFocus}

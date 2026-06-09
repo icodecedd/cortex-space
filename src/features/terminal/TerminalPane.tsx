@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { XtermTerminal } from "./components/XtermTerminal";
@@ -20,7 +21,7 @@ interface TerminalPaneProps {
   onSaveSnippet?: (command: string) => void;
 }
 
-export function TerminalPane({
+export const TerminalPane = React.memo(({
   workspaceId,
   pane,
   isFocused,
@@ -36,7 +37,7 @@ export function TerminalPane({
   onKill,
   onRename,
   onSaveSnippet
-}: TerminalPaneProps) {
+}: TerminalPaneProps) => {
   const [fixedCoords, setFixedCoords] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
 
   useEffect(() => {
@@ -158,4 +159,4 @@ export function TerminalPane({
   }
 
   return paneContent;
-}
+});

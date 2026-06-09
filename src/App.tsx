@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { SetupView } from "./features/setup/SetupView";
 import { SpaceView } from "./features/space/SpaceView";
 import { useTheme, ThemeName } from "./hooks/useTheme";
@@ -50,15 +50,16 @@ function App() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
-  const handleOpenSettings = (tab: string = "general") => {
+  const handleOpenSettings = useCallback((tab: string = "general") => {
     setSettingsInitialTab(tab);
     setSettingsOpen(true);
-  };
+  }, []);
 
-  const handleCustomizeShortcuts = () => {
+  const handleCustomizeShortcuts = useCallback(() => {
     setShortcutsOpen(false);
     handleOpenSettings("shortcuts");
-  };
+  }, [handleOpenSettings]);
+
   const [isBackgroundRecessed, setIsBackgroundRecessed] = useState(false);
   const { settings: colorSchemeSettings, resolvedScheme, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults: resetAppearance } = useColorScheme();
   const { theme, setTheme, allThemes, addCustomTheme, removeCustomTheme, previewTheme, cancelPreview } = useTheme();
@@ -94,7 +95,7 @@ function App() {
   const { templates, captureCurrent, deleteTemplate } = useSpaceTemplates();
   const { snippets, addSnippet, deleteSnippet, deleteSnippets } = useSnippets();
 
-  const handleSplitPane = (paneId: string, direction: 'horizontal' | 'vertical') => {
+  const handleSplitPane = useCallback((paneId: string, direction: 'horizontal' | 'vertical') => {
     if (!activeWorkspaceId) return;
 
     // Map user split-line action to internal stacking direction:
@@ -114,9 +115,9 @@ function App() {
       }
       return w;
     }));
-  };
+  }, [activeWorkspaceId]);
 
-  const handleKillPane = (paneId: string) => {
+  const handleKillPane = useCallback((paneId: string) => {
     if (!activeWorkspaceId) return;
     setWorkspaces(prev => prev.map(w => {
       if (w.id === activeWorkspaceId && w.config) {
@@ -140,9 +141,9 @@ function App() {
       }
       return w;
     }));
-  };
+  }, [activeWorkspaceId]);
 
-  const handleRenamePane = (paneId: string, newName: string) => {
+  const handleRenamePane = useCallback((paneId: string, newName: string) => {
     if (!activeWorkspaceId) return;
     setWorkspaces(prev => prev.map(w => {
       if (w.id === activeWorkspaceId && w.config) {
@@ -156,9 +157,9 @@ function App() {
       }
       return w;
     }));
-  };
+  }, [activeWorkspaceId]);
 
-  const handleMovePane = (dragId: string, dropId: string, direction: 'top' | 'bottom' | 'left' | 'right') => {
+  const handleMovePane = useCallback((dragId: string, dropId: string, direction: 'top' | 'bottom' | 'left' | 'right') => {
     if (!activeWorkspaceId) return;
     setWorkspaces(prev => prev.map(w => {
       if (w.id === activeWorkspaceId && w.config) {
@@ -174,7 +175,7 @@ function App() {
       return w;
     }));
     toast.success("Layout updated successfully", { description: "The pane position has been saved." });
-  };
+  }, [activeWorkspaceId]);
 
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
@@ -189,29 +190,37 @@ function App() {
       });
   }, []);
 
-  const initWorkspace = async () => {
-    const rememberMode = await getSetting('startup.rememberLastMode', false);
+  const initWorkspace = useCallback(async () => {
+    const behavior = await getSetting<StartupBehavior>('startup.behavior', 'modeSelector');
     const lastMode = await getSetting<Mode>('startup.lastMode', 'normal');
-    const openOnLaunch = await getSetting<'modeSelector' | 'newTerminal'>('startup.openOnLaunch', 'modeSelector');
     const initialId = Date.now().toString();
 
     let mode: Mode = 'normal';
     let status: 'mode-select' | 'setup' = 'mode-select';
 
-    if (rememberMode) {
-      // rememberLastMode takes full precedence
-      mode = lastMode;
-      status = 'setup';
-    } else if (openOnLaunch === 'newTerminal') {
-      // Skip mode selector, jump straight to setup with normal mode
-      mode = 'normal';
-      status = 'setup';
+    switch (behavior) {
+      case 'lastMode':
+        mode = lastMode;
+        status = 'setup';
+        break;
+      case 'newTerminal':
+        mode = 'normal';
+        status = 'setup';
+        break;
+      case 'newAgents':
+        mode = 'agents';
+        status = 'setup';
+        break;
+      case 'modeSelector':
+      default:
+        mode = 'normal';
+        status = 'mode-select';
+        break;
     }
-    // else: default mode-select
 
     setWorkspaces([{ id: initialId, name: '', mode, config: null, status }]);
     setActiveWorkspaceId(initialId);
-  };
+  }, []);
 
   useEffect(() => {
     if (appState !== 'splash') return;
@@ -241,7 +250,7 @@ function App() {
 
     return () => cleanup?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appState]);
+  }, [appState, initWorkspace]);
 
   // Handle splash transition based on state, timer, and agent path verification status
   useEffect(() => {
@@ -257,9 +266,9 @@ function App() {
       }
     }
     evaluateTransition();
-  }, [appState, splashTimerDone, isInitialized]);
+  }, [appState, splashTimerDone, isInitialized, initWorkspace]);
 
-  const handleLaunch = async (newConfig: any) => {
+  const handleLaunch = useCallback(async (newConfig: any) => {
     let finalPath = newConfig.rootPath;
     
     // If no path provided, fall back to default setting or system home
@@ -299,21 +308,21 @@ function App() {
     }));
 
     const currentWs = workspaces.find(w => w.id === activeWorkspaceId);
-    const m = currentWs ? currentWs.mode : 'normal';
+    const activeMode = currentWs ? currentWs.mode : 'normal';
 
     toast.success(APP_CONTENT.WORKSPACE_ACTIVATED(rootName), {
-      description: `Workspace is now active in ${m} mode.`,
+      description: `Workspace is now active in ${activeMode} mode.`,
     });
-  };
+  }, [activeWorkspaceId, workspaces]);
 
-  const handleSwitchWorkspace = (id: string) => {
+  const handleSwitchWorkspace = useCallback((id: string) => {
     const ws = workspaces.find(w => w.id === id);
     if (ws) {
       setActiveWorkspaceId(id);
     }
-  };
+  }, [workspaces]);
 
-  const handleCloseWorkspace = (id: string) => {
+  const handleCloseWorkspace = useCallback((id: string) => {
     const index = workspaces.findIndex(w => w.id === id);
     if (index === -1) return;
 
@@ -357,9 +366,9 @@ function App() {
     toast.warning("Workspace closed successfully", {
       description: "Process connections have been terminated.",
     });
-  };
+  }, [workspaces, activeWorkspaceId]);
 
-  const handleCloseWorkspaces = (ids: string[]) => {
+  const handleCloseWorkspaces = useCallback((ids: string[]) => {
     if (ids.length === 0) return;
     
     setWorkspaces(prev => {
@@ -388,9 +397,9 @@ function App() {
     toast.warning("Workspaces closed successfully", {
       description: `${ids.length} workspaces have been terminated.`,
     });
-  };
+  }, [activeWorkspaceId]);
 
-  const handleRenameWorkspace = (id: string, newName: string) => {
+  const handleRenameWorkspace = useCallback((id: string, newName: string) => {
     setWorkspaces(prev => prev.map(w => {
       if (w.id === id) {
         return {
@@ -400,9 +409,9 @@ function App() {
       }
       return w;
     }));
-  };
+  }, []);
 
-  const handleColorWorkspace = (id: string, color: any) => {
+  const handleColorWorkspace = useCallback((id: string, color: any) => {
     setWorkspaces(prev => prev.map(w => {
       if (w.id === id) {
         return {
@@ -412,15 +421,15 @@ function App() {
       }
       return w;
     }));
-  };
+  }, []);
 
-  const handleReorderWorkspaces = (newOrder: Workspace[]) => {
+  const handleReorderWorkspaces = useCallback((newOrder: Workspace[]) => {
     const pinned = newOrder.filter(w => w.isPinned);
     const unpinned = newOrder.filter(w => !w.isPinned);
     setWorkspaces([...pinned, ...unpinned]);
-  };
+  }, []);
 
-  const handlePinWorkspace = (id: string, isPinned: boolean) => {
+  const handlePinWorkspace = useCallback((id: string, isPinned: boolean) => {
     setWorkspaces(prev => {
       const updated = prev.map(w => w.id === id ? { ...w, isPinned } : w);
       // Sort: pinned first, then preserve relative order
@@ -430,9 +439,9 @@ function App() {
         return 0;
       });
     });
-  };
+  }, []);
 
-  const handleNewWorkspaceToRight = (targetId: string) => {
+  const handleNewWorkspaceToRight = useCallback((targetId: string) => {
     const newId = Date.now().toString();
     const newWs: Workspace = {
       id: newId,
@@ -450,9 +459,9 @@ function App() {
       return next;
     });
     setActiveWorkspaceId(newId);
-  };
+  }, []);
 
-  const handleNewWorkspaceFlow = () => {
+  const handleNewWorkspaceFlow = useCallback(() => {
     const newId = Date.now().toString();
     setWorkspaces(prev => [...prev, {
       id: newId,
@@ -462,7 +471,11 @@ function App() {
       status: 'mode-select'
     }]);
     setActiveWorkspaceId(newId);
-  };
+  }, []);
+
+  const handleSelectMode = useCallback((mode: Mode) => {
+    setWorkspaces(prev => prev.map(w => w.id === activeWorkspaceId ? { ...w, mode, status: 'setup' } : w));
+  }, [activeWorkspaceId]);
 
   useAppShortcuts({
     workspaces,
@@ -475,10 +488,11 @@ function App() {
     onToggleTemplates: () => setTemplatesOpen(prev => !prev),
     onToggleSettings: () => setSettingsOpen(prev => !prev),
     onToggleZenMode: toggleZenMode,
-    onToggleSwitcher: () => setSwitcherOpen(prev => !prev)
+    onToggleSwitcher: () => setSwitcherOpen(prev => !prev),
+    onSelectMode: handleSelectMode
   });
 
-  const handleLaunchTemplate = async (template: SpaceTemplate) => {
+  const handleLaunchTemplate = useCallback(async (template: SpaceTemplate) => {
     // Check if rootPath exists
     try {
       const exists = await invoke<boolean>('validate_directory', { path: template.rootPath });
@@ -533,9 +547,9 @@ function App() {
     toast.success(`${template.name} launched successfully`, {
       description: "The template was loaded from the library.",
     });
-  };
+  }, [activeWorkspace, activeWorkspaceId]);
 
-  const handleCaptureCurrent = () => {
+  const handleCaptureCurrent = useCallback(() => {
     if (!activeWorkspace || activeWorkspace.status !== 'active') {
       toast.error("Workspace cannot be captured", {
         description: "Select an active workspace before capturing."
@@ -554,12 +568,12 @@ function App() {
       activeWorkspace.mode,
       `Captured from active workspace on ${new Date().toLocaleDateString()}`
     );
-  };
+  }, [activeWorkspace, captureCurrent]);
 
   const showHeader = appState === 'running' && (!focusSettings.isZenMode || focusSettings.showTabs);
   const showFooter = appState === 'running' && (!focusSettings.isZenMode || focusSettings.showStatusBar);
 
-  const handleSnippetExecute = (snippet: any, execute: boolean) => {
+  const handleSnippetExecute = useCallback((snippet: any, execute: boolean) => {
     if (!activeWorkspaceId) return;
     
     // Dispatch custom event to let the focused terminal handle the injection
@@ -575,20 +589,22 @@ function App() {
     // Close modals so the user can see the injection/execution
     setTemplatesOpen(false);
     setSwitcherOpen(false);
-  };
+  }, [activeWorkspaceId]);
 
   return (
     <div id="root" className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--bg-color)]">
-      <motion.div 
+      <m.div 
         className="flex-1 flex flex-col overflow-hidden"
         animate={{
-          scale: (isBackgroundRecessed && !colorSchemeSettings.reducedMotion) ? 0.99 : 1,
-          filter: (isBackgroundRecessed && !colorSchemeSettings.reducedMotion) ? "blur(4px)" : "blur(0px)",
+          scale: (isBackgroundRecessed && !colorSchemeSettings.reducedMotion) ? 0.98 : 1,
+          opacity: (isBackgroundRecessed && !colorSchemeSettings.reducedMotion) ? 0.5 : 1,
+          // We removed the expensive blur(4px) filter to prevent frame drops on lower-end GPUs.
+          // The combination of scale + opacity provides a similar "recessed" depth effect.
         }}
         transition={colorSchemeSettings.reducedMotion ? { duration: 0.1 } : {
           type: "spring",
-          stiffness: 400,
-          damping: 30
+          stiffness: 300,
+          damping: 25
         }}
       >
         {showHeader && (
@@ -606,7 +622,7 @@ function App() {
             onColorWorkspace={handleColorWorkspace}
             onPinWorkspace={handlePinWorkspace}
             onOpenShortcuts={() => setShortcutsOpen(true)}
-            onOpenSettings={() => setSettingsOpen(true)}
+            onOpenSettings={handleOpenSettings}
             onOpenTemplates={() => setTemplatesOpen(true)}
             onMinimize={handleMinimize}
             onMaximize={handleMaximize}
@@ -643,18 +659,19 @@ function App() {
           {appState === 'running' && workspaces.map(ws => {
             const isCurrent = activeWorkspaceId === ws.id;
 
+            // Performance: Prune non-current workspaces that are not 'active'
+            // We keep 'active' ones to maintain terminal sessions, but they are now memoized.
             if (!isCurrent && ws.status !== 'active') return null;
 
             if (ws.status === 'mode-select') {
               return (
-                <div key={ws.id} style={{ display: isCurrent ? 'flex' : 'none', width: '100%', height: '100%' }}>
+                <div key={ws.id} className="w-full h-full flex">
                   <ModeSelectorScreen
-                    onSelectMode={(mode) => {
-                      setWorkspaces(prev => prev.map(w => w.id === ws.id ? { ...w, mode, status: 'setup' } : w));
-                    }}
+                    onSelectMode={handleSelectMode}
                     showShortcutHints={demoSettings.showModeShortcutHints}
                     showTemplatesHint={demoSettings.showTemplatesButton}
-                  />                </div>
+                  />
+                </div>
               );
             }
 
@@ -662,16 +679,7 @@ function App() {
               return (
                 <div 
                   key={ws.id} 
-                  style={{ 
-                    display: isCurrent ? 'flex' : 'none', 
-                    flexDirection: 'column',
-                    height: '100%',
-                    width: '100%', 
-                    maxWidth: '800px', 
-                    margin: '0 auto', 
-                    padding: '2rem 2rem 0',
-                    overflow: 'hidden'
-                  }}
+                  className="w-full h-full flex flex-col max-w-[1100px] mx-auto px-8 pt-8 overflow-hidden"
                 >
                   <SetupView
                     mode={ws.mode}
@@ -729,7 +737,7 @@ function App() {
             allThemes={allThemes}
           />
         )}
-      </motion.div>
+      </m.div>
 
       <KeyboardShortcutsDialog 
         open={shortcutsOpen} 
@@ -788,7 +796,7 @@ function App() {
         onLaunchTemplate={handleLaunchTemplate}
         onSnippetExecute={handleSnippetExecute}
         onToggleZenMode={toggleZenMode}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={handleOpenSettings}
         onOpenShortcuts={() => setShortcutsOpen(true)}
         onOpenTemplates={() => setTemplatesOpen(true)}
         onSetTheme={setTheme}
@@ -801,4 +809,3 @@ function App() {
 }
 
 export default App;
-

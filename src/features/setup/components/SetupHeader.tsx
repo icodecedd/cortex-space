@@ -1,4 +1,5 @@
 import { ConfirmModeChangeDialog } from "@/components/dialogs/ConfirmModeChangeDialog";
+import { SETUP_CONTENT, ASSETS } from "@/lib/content";
 
 interface SetupHeaderProps {
   step: number;
@@ -43,26 +44,54 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
             transition: 'all 0.4s ease'
           }}>
             <img
-              src="/cortex-logo.png"
+              src={ASSETS.LOGO}
               alt="Cortex"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => {
-                e.currentTarget.src = "/tauri.svg";
+                e.currentTarget.src = ASSETS.LOGO_FALLBACK;
               }}
             />
           </div>
-          <div style={{ transition: 'all 0.4s ease' }}>
-            <h2 style={{
-              fontSize: step > 1 ? '1rem' : '1.5rem',
-              marginBottom: step > 1 ? '0' : '0.25rem',
-              letterSpacing: '0.1em',
-              transition: 'all 0.4s ease'
+          <div style={{ 
+            transition: 'all 0.4s ease',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.75rem',
+              height: 'fit-content'
             }}>
-              CORTEX<span style={{ color: 'var(--accent-primary)' }}> SPACE</span>
-            </h2>
+              <h2 style={{
+                fontSize: step > 1 ? '1rem' : '1.5rem',
+                margin: 0,
+                letterSpacing: '0.1em',
+                transition: 'all 0.4s ease',
+                lineHeight: 1.2
+              }}>
+                {SETUP_CONTENT.TITLE}<span style={{ color: 'var(--accent-primary)' }}> {SETUP_CONTENT.SUBTITLE}</span>
+              </h2>
+              <span 
+                className="bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)]"
+                style={{
+                  fontSize: step > 1 ? '8px' : '9px',
+                  fontWeight: 700,
+                  padding: step > 1 ? '0.1rem 0.4rem' : '0.15rem 0.5rem',
+                  borderRadius: '9999px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  transition: 'all 0.4s ease',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {mode === 'agents' ? 'AI Assisted Mode' : 'Terminal Mode'}
+              </span>
+            </div>
             {step === 1 && (
-              <p className="animate-in" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.1em' }}>
-                WORKSPACE SETUP
+              <p className="animate-in" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.1em', marginTop: '0.25rem' }}>
+                {SETUP_CONTENT.WORKSPACE_SETUP}
               </p>
             )}
           </div>
@@ -93,9 +122,9 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
               fontSize: step > 1 ? '0.65rem' : 'inherit',
               transition: 'all 0.4s ease'
             }}>
-              {i === 1 && "WORKSPACE"}
-              {i === 2 && (mode === 'agents' ? "ASSIGN" : "COMMANDS")}
-              {i === 3 && "PREVIEW"}
+              {i === 1 && SETUP_CONTENT.STEPS.WORKSPACE}
+              {i === 2 && (mode === 'agents' ? SETUP_CONTENT.STEPS.ASSIGN : SETUP_CONTENT.STEPS.COMMANDS)}
+              {i === 3 && SETUP_CONTENT.STEPS.PREVIEW}
             </span>
           </div>
         ))}

@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Palette } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,7 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
+import { FOOTER_CONTENT } from "@/lib/content";
 
 interface AppFooterProps {
   theme: ThemeName;
@@ -17,7 +19,7 @@ interface AppFooterProps {
   allThemes: ThemeDefinition[];
 }
 
-export function AppFooter({ theme, setTheme, allThemes }: AppFooterProps) {
+export const AppFooter = React.memo(({ theme, setTheme, allThemes }: AppFooterProps) => {
   const activeThemeName = allThemes.find(t => t.id === theme)?.name || theme;
 
   return (
@@ -59,7 +61,7 @@ export function AppFooter({ theme, setTheme, allThemes }: AppFooterProps) {
                   opacity: 0.9
                 }}
               >
-                Interface Theme
+                {FOOTER_CONTENT.THEME_LABEL}
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[var(--border-color)] opacity-50 mx-2 mb-1" />
               {allThemes.map(t => {
@@ -97,4 +99,4 @@ export function AppFooter({ theme, setTheme, allThemes }: AppFooterProps) {
       </div>
     </footer>
   );
-}
+});

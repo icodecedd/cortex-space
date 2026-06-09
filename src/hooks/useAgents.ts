@@ -74,6 +74,12 @@ export function useAgents() {
     }
   }, [agents, isInitialized]);
 
+  const updateAgentStatus = useCallback((id: string, status: Agent['status'], errorMessage?: string) => {
+    setAgents(prev => prev.map(a =>
+      a.id === id ? { ...a, status, errorMessage: errorMessage ?? (status !== 'error' ? undefined : a.errorMessage) } : a
+    ));
+  }, []);
+
   const addAgent = useCallback((label: string, command: string, installCommand?: string, downloadUrl?: string) => {
     const trimmedLabel = label?.trim();
     const trimmedCommand = command?.trim();
@@ -109,7 +115,7 @@ export function useAgents() {
 
     setAgents(prev => [...prev, newAgent]);
     toast.success(`${newAgent.label} added successfully`, {
-      description: "The agent is now in your protocol matrix."
+      description: "The agent is now in your agent library."
     });
     
     // Check if it's already installed
@@ -118,11 +124,7 @@ export function useAgents() {
         updateAgentStatus(newAgent.id, 'installed');
       }
     });
-  }, []);
-
-  const updateAgentStatus = useCallback((id: string, status: Agent['status']) => {
-    setAgents(prev => prev.map(a => a.id === id ? { ...a, status } : a));
-  }, []);
+  }, [updateAgentStatus]);
 
   const deleteAgent = useCallback((id: string) => {
     const agent = agentsRef.current.find(a => a.id === id);
@@ -142,37 +144,43 @@ export function useAgents() {
     const agent = agentsRef.current.find(a => a.id === id);
     if (!agent) return;
 
-    updateAgentStatus(id, 'installing');
+    // Clear any previous error and mark as installing
+    updateAgentStatus(id, 'installing', undefined);
     
-    // Simulate managed setup for now
     try {
       if (agent.installCommand) {
         await invoke("install_agent_cli", { command: agent.installCommand });
-        // Add a small artificial delay so the UI progress animation is visible
-        await new Promise(resolve => setTimeout(resolve, 2500));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       } else {
-        // Fallback for agents without an install script (simulate)
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      // Check again if command is now available
-      const isInstalled = await invoke<boolean>("check_command", { command: agent.command });
+      // Invoke succeeded — optimistically mark installed. PATH refresh needs new shell.
+      updateAgentStatus(id, 'installed', undefined);
       
-      if (isInstalled) {
-        updateAgentStatus(id, 'installed');
+      try {
+        const confirmedInPath = await invoke<boolean>("check_command", { command: agent.command });
+        if (!confirmedInPath) {
+          toast.success(`${agent.label} installed successfully`, {
+            description: "Restart Cortex or open a new terminal for the command to be available in PATH.",
+            duration: 7000,
+          });
+        } else {
+          toast.success(`${agent.label} installed successfully`, {
+            description: "The agent is ready for deployment.",
+          });
+        }
+      } catch {
         toast.success(`${agent.label} installed successfully`, {
-          description: "The agent is ready for deployment."
-        });
-      } else {
-        updateAgentStatus(id, 'error');
-        toast.error(`Failed to install ${agent.label}`, {
-          description: "The installation could not be verified."
+          description: "The agent is ready for deployment.",
         });
       }
-    } catch (e) {
-      updateAgentStatus(id, 'error');
+    } catch (e: any) {
+      const detail = typeof e === 'string' ? e : (e?.message ?? "An unexpected error occurred.");
+      updateAgentStatus(id, 'error', detail);
       toast.error(`Failed to install ${agent.label}`, {
-        description: "An error occurred during the installation process."
+        description: "Click \"View Error\" on the agent card to see full details.",
+        duration: 6000,
       });
     }
   }, [updateAgentStatus]);

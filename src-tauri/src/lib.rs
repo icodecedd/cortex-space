@@ -463,16 +463,39 @@ async fn install_agent_cli(command: String) -> Result<(), String> {
     use tokio::process::Command;
 
     if cfg!(target_os = "windows") {
-        let output = Command::new("powershell")
-            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &command])
+        // Try pwsh.exe (PowerShell 7+) first — many modern CLI installers require it.
+        // Fall back to powershell.exe (Windows PowerShell 5.x) if pwsh is unavailable.
+        let ps_args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &command];
+
+        let pwsh_result = Command::new("pwsh.exe")
+            .args(&ps_args)
             .output()
-            .await
-            .map_err(|e| format!("Failed to execute powershell: {}", e))?;
+            .await;
+
+        let output = match pwsh_result {
+            Ok(o) => o,
+            Err(_) => {
+                // pwsh not found — fallback to legacy powershell.exe
+                Command::new("powershell.exe")
+                    .args(&ps_args)
+                    .output()
+                    .await
+                    .map_err(|e| format!("Failed to execute powershell: {}", e))?
+            }
+        };
 
         if output.status.success() {
             Ok(())
         } else {
-            Err(String::from_utf8_lossy(&output.stderr).to_string())
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            // Some installers write errors to stdout
+            let msg = if !stderr.is_empty() { stderr } else { stdout };
+            Err(if msg.is_empty() {
+                format!("Installation exited with code {:?}", output.status.code())
+            } else {
+                msg
+            })
         }
     } else {
         let output = Command::new("sh")
@@ -484,8 +507,31 @@ async fn install_agent_cli(command: String) -> Result<(), String> {
         if output.status.success() {
             Ok(())
         } else {
-            Err(String::from_utf8_lossy(&output.stderr).to_string())
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let msg = if !stderr.is_empty() { stderr } else { stdout };
+            Err(if msg.is_empty() {
+                format!("Installation exited with code {:?}", output.status.code())
+            } else {
+                msg
+            })
         }
+    }
+}
+
+#[tauri::command]
+fn get_default_shell() -> String {
+    if cfg!(target_os = "windows") {
+        // Check if pwsh exists by trying to run it
+        let pwsh_exists = std::process::Command::new("where")
+            .arg("pwsh.exe")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+            
+        if pwsh_exists { "pwsh.exe".to_string() } else { "powershell.exe".to_string() }
+    } else {
+        std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
     }
 }
 
@@ -503,6 +549,7 @@ pub fn run() {
             kill_pty,
             validate_directory,
             get_home_dir,
+            get_default_shell,
             check_port,
             is_port_blocked,
             check_port_lsof,

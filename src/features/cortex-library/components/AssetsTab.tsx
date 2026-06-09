@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Folder, Trash2, Layout, Database, Plus, FolderOpen, Zap } from "@/components/ui/icons";
+import { Folder, Trash2, Layout, Database, Plus, FolderOpen, Zap, Clock } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SavedLayout, LayoutConfig } from "@/lib/setup-constants";
@@ -9,6 +9,7 @@ import { getGridCols, getGridRows, getPaneCount } from "@/lib/setup-utils";
 import { truncatePath } from "@/lib/utils";
 import { open } from "@tauri-apps/plugin-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { DirectoryPreset } from "@/types";
 
@@ -222,7 +223,7 @@ export function AssetsTab({
 
       {/* SECTION: DIRECTORY PRESETS */}
       {(viewMode === 'all' || viewMode === 'presets') && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 px-2">
           {filteredPresets.length === 0 ? (
             <EmptyState
               icon={Database}
@@ -241,24 +242,50 @@ export function AssetsTab({
             />
           ) : (
             filteredPresets.map((preset) => (
-              <div key={preset.id} className="group flex items-center justify-between p-4 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.04] border rounded-lg border-[var(--border-color)] hover:border-[var(--accent-primary)]/30 transition-all cursor-default w-full min-w-0">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-10 h-10 rounded bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center shrink-0">
+              <Card 
+                key={preset.id} 
+                className="group relative flex flex-col p-0 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.04] transition-all duration-300 cursor-default overflow-hidden border border-[var(--border-color)]"
+              >
+                <CardHeader className="p-4 pb-2 border-none group/header">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-10 h-8 rounded bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10 flex items-center justify-center shrink-0 mt-0.5">
                        <Folder size={18} className="text-[var(--accent-primary)]" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors truncate uppercase tracking-tight">{preset.label}</div>
-                      <div className="text-[10px] text-[var(--text-secondary)] font-mono truncate whitespace-nowrap">{truncatePath(preset.path, 35)}</div>
+                    
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      <CardTitle className="text-[13px] font-bold truncate text-[var(--text-primary)] group-hover/header:text-[var(--accent-primary)] transition-colors leading-tight uppercase tracking-tight">
+                        {preset.label}
+                      </CardTitle>
+                      <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
+                        <FolderOpen size={10} className="shrink-0 opacity-80" /> 
+                        <span className="block flex-1 truncate whitespace-nowrap">{truncatePath(preset.path, 35)}</span>
+                      </div>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost" size="icon"
-                    className="h-7 w-7 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 shrink-0"
-                    onClick={() => onRemovePreset(preset.id)}
-                  >
-                    <Trash2 size={13} className="text-inherit" />
-                  </Button>
-              </div>
+                </CardHeader>
+
+                <CardFooter className="px-4 py-2 border-t border-[var(--border-color)] bg-[var(--bg-color)]/20 flex items-center justify-between">
+                   <span className="text-[9px] text-[var(--text-secondary)] font-medium flex items-center gap-1 leading-none uppercase tracking-wider opacity-60">Directory Preset</span>
+                   
+                   <div className="flex items-center gap-2.5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 active:scale-95"
+                            onClick={(e) => { e.stopPropagation(); onRemovePreset(preset.id); }}
+                          >
+                            <Trash2 size={13} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-[10px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+                          Delete Preset
+                        </TooltipContent>
+                      </Tooltip>
+                   </div>
+                </CardFooter>
+              </Card>
             ))
           )}
         </div>
@@ -266,14 +293,14 @@ export function AssetsTab({
 
       {/* SECTION: CUSTOM LAYOUTS */}
       {(viewMode === 'all' || viewMode === 'layouts') && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 px-2">
           {filteredLayouts.length === 0 ? (
             <EmptyState
               icon={Layout}
               title={searchQuery ? "No Layouts Found" : "No Pane Layouts Configured"}
               description={searchQuery
                 ? `No grid arrangements matching "${searchQuery}" were discovered.`
-                : "Define and save your preferred terminal grid arrangements, from simple splits to complex matrices."
+                : "Define and save your preferred terminal grid arrangements, from simple splits to complex layouts."
               }
               iconColor="text-[var(--accent-primary)]/40"
               action={!isAdding && !searchQuery && onRestoreDefaults ? {
@@ -283,38 +310,59 @@ export function AssetsTab({
               } : undefined}
               className="col-span-full"
             />
-          ) : (
+            ) : (
             filteredLayouts.map((layout) => (
-              <div key={layout.id} className="group flex flex-col bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.04] border rounded-lg border-[var(--border-color)] hover:border-[var(--accent-primary)]/30 transition-all cursor-default w-full min-w-0">
-                  <div className="p-4 pb-2 flex items-center justify-between gap-3 min-w-0">
-                     <span className="text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors tracking-tight uppercase truncate flex-1">{layout.name}</span>
-                     <Button
-                        variant="ghost" size="icon"
-                        className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 shrink-0"
-                        onClick={() => onRemoveLayout(layout.id)}
-                      >
-                        <Trash2 size={13} className="text-inherit" />
-                      </Button>
+              <Card 
+                key={layout.id} 
+                className="group relative flex flex-col p-0 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.04] transition-all duration-300 cursor-default overflow-hidden border border-[var(--border-color)]"
+              >
+                <CardHeader className="p-4 pb-2 border-none group/header">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div 
+                      className="w-10 h-8 grid gap-[1px] bg-[var(--text-primary)]/10 p-[1px] rounded-sm shrink-0 mt-0.5"
+                      style={{
+                        gridTemplateColumns: getGridCols(layout),
+                        gridTemplateRows: getGridRows(layout)
+                      }}
+                    >
+                      {Array.from({ length: getPaneCount(layout) }).map((_, i) => (
+                        <div key={i} className="bg-[var(--bg-color)]/60" />
+                      ))}
+                    </div>
+
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      <CardTitle className="text-[13px] font-bold truncate text-[var(--text-primary)] group-hover/header:text-[var(--accent-primary)] transition-colors leading-tight uppercase tracking-tight">
+                        {layout.name}
+                      </CardTitle>
+                      <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
+                         <span className="text-[var(--text-primary)] font-bold">{layout.rows}X{layout.cols}</span> LAYOUT
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-4 pt-2">
-                   <div className="flex items-center gap-3">
-                      <div
-                        className="w-12 h-10 grid gap-[1px] bg-[var(--text-primary)]/10 p-[1px] rounded-[2px] opacity-80 group-hover:opacity-100 transition-opacity shrink-0"
-                        style={{
-                          gridTemplateColumns: getGridCols(layout),
-                          gridTemplateRows: getGridRows(layout)
-                        }}
-                      >
-                        {Array.from({ length: getPaneCount(layout) }).map((_, i) => (
-                          <div key={i} className="bg-[var(--bg-color)]/60" />
-                        ))}
-                      </div>
-                      <div className="font-mono text-[10px] text-[var(--text-secondary)]">
-                        <span className="text-[var(--text-primary)] font-bold">{layout.rows}X{layout.cols}</span> MATRIX
-                      </div>
+                </CardHeader>
+
+                <CardFooter className="px-4 py-2 border-t border-[var(--border-color)] bg-[var(--bg-color)]/20 flex items-center justify-between">
+                   <span className="text-[9px] text-[var(--text-secondary)] font-medium flex items-center gap-1 leading-none uppercase tracking-wider opacity-60">Grid Arrangement</span>
+                   
+                   <div className="flex items-center gap-2.5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 active:scale-95"
+                            onClick={(e) => { e.stopPropagation(); onRemoveLayout(layout.id); }}
+                          >
+                            <Trash2 size={13} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-[10px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+                          Delete Layout
+                        </TooltipContent>
+                      </Tooltip>
                    </div>
-                  </div>
-              </div>
+                </CardFooter>
+              </Card>
             ))
           )}
         </div>

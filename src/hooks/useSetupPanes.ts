@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { LayoutType, LayoutConfig, SavedLayout, INITIAL_LAYOUTS, PaneConfig } from "@/lib/setup-constants";
 import { getPaneCount, derivePaneName } from "@/lib/setup-utils";
-import { getSetting, setSetting } from "@/lib/store";
+import { getSetting, setSetting, SemanticsSettings, SEMANTICS_DEFAULTS } from "@/lib/store";
 import { toast } from "sonner";
 import { Agent } from "@/types";
 
@@ -9,6 +9,7 @@ export function useSetupPanes(agents: Agent[] = []) {
   const [layoutType, setLayoutType] = useState<LayoutType>("2x2");
   const [customLayout, setCustomLayout] = useState<LayoutConfig>({ rows: 2, cols: 2 });
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>(INITIAL_LAYOUTS);
+  const [semantics, setSemantics] = useState<SemanticsSettings>(SEMANTICS_DEFAULTS);
   const [isInitialized, setIsInitialized] = useState(false);
   
   const currentLayout = useMemo(() => {
@@ -25,17 +26,25 @@ export function useSetupPanes(agents: Agent[] = []) {
       const savedCustom = await getSetting<LayoutConfig>("cortex_layout_custom", { rows: 2, cols: 2 });
       const savedList = await getSetting<SavedLayout[]>("cortex_saved_layouts", INITIAL_LAYOUTS);
       
+      const savedTools = await getSetting<Record<string, string>>("semantics.tools", SEMANTICS_DEFAULTS.tools);
+      const savedPatterns = await getSetting<any[]>("semantics.patterns", SEMANTICS_DEFAULTS.patterns);
+
       setLayoutType(savedType);
       setCustomLayout(savedCustom);
       setSavedLayouts(savedList);
+      setSemantics({ tools: savedTools, patterns: savedPatterns });
       setIsInitialized(true);
     }
     init();
 
-    // Listen for updates from other components (e.g. Cortex Library)
+    // Listen for updates from other components
     const handleSync = () => init();
     window.addEventListener('cortex:assets-updated', handleSync);
-    return () => window.removeEventListener('cortex:assets-updated', handleSync);
+    window.addEventListener('cortex-settings-changed', handleSync);
+    return () => {
+      window.removeEventListener('cortex:assets-updated', handleSync);
+      window.removeEventListener('cortex-settings-changed', handleSync);
+    };
   }, []);
 
   useEffect(() => {
@@ -111,7 +120,7 @@ export function useSetupPanes(agents: Agent[] = []) {
       const newIsCustom = isCustom !== undefined ? isCustom : p.isCustom;
       // Auto-derive name if it's currently a default one or empty
       const isDefaultName = p.name === `Pane ${p.id}` || p.name === `New Pane` || p.name.trim() === "";
-      const name = isDefaultName ? derivePaneName(command, `Pane ${id}`, agents) : p.name;
+      const name = isDefaultName ? derivePaneName(command, `Pane ${id}`, agents, semantics) : p.name;
       
       return { ...p, command, name, isCustom: newIsCustom };
     }));
@@ -127,10 +136,10 @@ export function useSetupPanes(agents: Agent[] = []) {
     setPanes(prev => prev.map(p => {
       const newIsCustom = isCustom !== undefined ? isCustom : p.isCustom;
       const isDefaultName = p.name === `Pane ${p.id}` || p.name === `New Pane` || p.name.trim() === "";
-      const name = isDefaultName ? derivePaneName(command, `Pane ${p.id}`, agents) : p.name;
+      const name = isDefaultName ? derivePaneName(command, `Pane ${p.id}`, agents, semantics) : p.name;
       return { ...p, command, name, isCustom: newIsCustom };
     }));
-  }, [agents]);
+  }, [agents, semantics]);
 
   return {
     layoutType,

@@ -39,12 +39,12 @@ export function WorkspacesTab({ templates, searchQuery, onLaunch, onDelete, onCa
         icon={Rocket}
         title={searchQuery ? "No Workspaces Found" : "Your Library is Empty"}
         description={searchQuery 
-          ? `No templates matching "${searchQuery}" were discovered in your central repository.`
+          ? `No templates matching "${searchQuery}" were found in your library.`
           : "Capture your active workspace configurations to create reusable templates for different projects."
         }
         iconColor="text-purple-500/40"
         action={onCapture ? {
-          label: "Capture Current Space",
+          label: "Capture Current Workspace",
           onClick: onCapture,
           icon: Plus
         } : undefined}
@@ -72,12 +72,12 @@ function TemplateCard({ template, onLaunch, onDelete }: { template: SpaceTemplat
       className="group relative flex flex-col p-0 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.04] transition-all duration-300 cursor-pointer overflow-hidden border border-[var(--border-color)]"
       onClick={onLaunch}
     >
-      <CardHeader className="p-4 pb-2 border-none">
+      <CardHeader className="p-4 pb-2 border-none group/header">
         <div className="flex items-start gap-3 min-w-0">
           <LayoutPreviewIcon layout={template.layout} className="w-10 h-8 border bg-[var(--bg-color)] shrink-0 rounded-sm border-[var(--border-color)] mt-0.5" />
           
           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-            <CardTitle className="text-[13px] font-bold truncate text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors leading-tight">
+            <CardTitle className="text-[13px] font-bold truncate text-[var(--text-primary)] group-hover/header:text-[var(--accent-primary)] transition-colors leading-tight">
               {template.name}
             </CardTitle>
             <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
@@ -100,7 +100,7 @@ function TemplateCard({ template, onLaunch, onDelete }: { template: SpaceTemplat
         )}
       </CardContent>
 
-      <CardFooter className="px-4 py-2 border-t border-[var(--border-color)] bg-[var(--bg-color)]/20 flex items-center justify-between">
+      <CardFooter className="px-4 py-2 border-t border-[var(--border-color)] bg-[var(--bg-color)]/20 flex items-center justify-between group/footer">
          <span className="text-[9px] text-[var(--text-secondary)] font-medium flex items-center gap-1 leading-none"><Clock size={10} /> {formatTimeAgo(template.createdAt)}</span>
          
          <div className="flex items-center gap-2.5">
@@ -109,17 +109,17 @@ function TemplateCard({ template, onLaunch, onDelete }: { template: SpaceTemplat
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-6 w-6 text-[var(--text-secondary)]/60 hover:bg-red-500/10 hover:text-red-400 transition-all active:scale-95"
+                  className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 active:scale-95"
                   onClick={(e) => { e.stopPropagation(); onDelete(); }}
                 >
-                  <Trash2 size={13} className="text-inherit" />
+                  <Trash2 size={13} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-[10px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
                 Delete Template
               </TooltipContent>
             </Tooltip>
-            <ExternalLink size={11} className="text-[var(--text-secondary)]/60 group-hover:text-[var(--accent-primary)] transition-colors" />
+            <ExternalLink size={11} className="text-[var(--text-secondary)]/60 group-hover/footer:text-[var(--accent-primary)] transition-colors" />
          </div>
       </CardFooter>
     </Card>

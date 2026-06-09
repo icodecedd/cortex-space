@@ -24,8 +24,7 @@
       "command": "agy",
       "isDefault": true,
       "status": "not-installed",
-      "downloadUrl": "https://github.com/antigravity/agy-cli/releases/latest",
-      "installCommand": "irm https://antigravity.google/cli/install.ps1 | iex"
+      "downloadUrl": "https://github.com/google-gemini/gemini-cli"
     },
     {
       "id": "agent-opencode",
@@ -33,7 +32,7 @@
       "command": "opencode",
       "isDefault": true,
       "status": "not-installed",
-      "installCommand": "npm install -g @opencode/cli"
+      "installCommand": "npm install -g opencode-ai"
     },
     {
       "id": "agent-codex",
@@ -41,7 +40,7 @@
       "command": "codex",
       "isDefault": true,
       "status": "not-installed",
-      "installCommand": "npm install -g @openai/codex-cli"
+      "installCommand": "npm install -g @openai/codex"
     }
   ],
   "layouts": [
@@ -62,8 +61,7 @@
   },
   "startup": {
     "showSplashAnimation": true,
-    "rememberLastMode": false,
-    "openOnLaunch": "modeSelector",
+    "behavior": "modeSelector",
     "checkForUpdatesOnStartup": true,
     "confirmModeChange": true,
     "defaultShell": ""
@@ -102,6 +100,39 @@
     "splitHorizontal": "Ctrl+Alt+H",
     "splitVertical": "Ctrl+Alt+V",
     "resetPane": "Ctrl+Alt+R",
-    "closePane": "Ctrl+Alt+W"
+    "closePane": "Ctrl+Alt+W",
+    "switchNormalMode": "Ctrl+N",
+    "switchAgentsMode": "Ctrl+A"
+  },
+  "semantics": {
+    "tools": {
+      "npm": "NPM",
+      "pnpm": "PNPM",
+      "yarn": "YARN",
+      "bun": "BUN",
+      "docker": "Docker",
+      "docker-compose": "Docker Compose",
+      "git": "Git",
+      "python": "Python",
+      "python3": "Python",
+      "node": "Node",
+      "go": "Go",
+      "cargo": "Cargo",
+      "rustc": "Rust",
+      "gradle": "Gradle",
+      "mvn": "Maven",
+      "make": "Make",
+      "cmake": "CMake",
+      "gcc": "GCC",
+      "g++": "G++",
+      "kubectl": "Kubernetes",
+      "terraform": "Terraform",
+      "agy": "Antigravity"
+    },
+    "patterns": [
+      { "bin": ["npm", "pnpm", "yarn", "bun"], "sub": ["run", "exec"], "fallback": "JS Tool" },
+      { "bin": ["cargo", "go", "mix", "composer", "artisan", "pip", "poetry"], "sub": ["run", "test", "build", "dev"], "fallback": "Build Tool" },
+      { "bin": ["git", "docker", "kubectl", "terraform"], "sub": ["status", "up", "apply", "plan", "logs"], "fallback": "DevOps Tool" }
+    ]
   }
 }

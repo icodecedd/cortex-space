@@ -104,7 +104,9 @@ export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDi
             gap: '0.75rem',
             margin: '1.5rem -1.5rem -1.5rem -1.5rem',
             padding: '1.25rem 1.5rem',
-            borderTop: '1px solid var(--border-color)'
+            borderTop: '1px solid var(--border-color)/30',
+            marginTop: '1rem',
+            backgroundColor: 'var(--text-primary)/[0.02]'
           }}
         >
           <DialogClose asChild>
@@ -119,7 +121,7 @@ export function ConfirmModeChangeDialog({ step, onConfirm }: ConfirmModeChangeDi
                 color: 'var(--text-secondary)'
               }}
             >
-              Stay Here
+              Cancel
             </Button>
           </DialogClose>
           <Button

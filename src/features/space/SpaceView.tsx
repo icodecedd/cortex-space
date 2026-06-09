@@ -49,7 +49,7 @@ interface DropData {
   direction: 'top' | 'bottom' | 'left' | 'right';
 }
 
-export function SpaceView({
+export const SpaceView = React.memo(({
   workspaceId,
   config,
   isZenMode,
@@ -59,8 +59,9 @@ export function SpaceView({
   onKillPane,
   onRenamePane,
   onSaveSnippet
-}: SpaceViewProps) {
+}: SpaceViewProps) => {
   // Normalize layout to LayoutNode tree
+  // Only re-calculate if the layout string/structure changes
   const layoutTree = useMemo(() => {
     if (typeof config.layout === 'string') {
       const configObj: LayoutConfig = { rows: 2, cols: 2 };
@@ -71,7 +72,7 @@ export function SpaceView({
       return gridToLayoutNode(configObj, config.panes || []);
     }
     return config.layout;
-  }, [config.layout, config.panes]);
+  }, [config.layout, config.panes]); // config.panes is still needed if layout is a string
 
   const [focusedPaneId, setFocusedPaneId] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -176,7 +177,7 @@ export function SpaceView({
     }
   };
 
-  const renderTerminalPane = (pane: PaneNode, isForcedFocus = false) => {
+  const renderTerminalPane = useCallback((pane: PaneNode, isForcedFocus = false) => {
     const pIndex = allPanes.findIndex(p => p.id === pane.id);
     return (
       <DropZone id={pane.id} activeDragId={activeDragId}>
@@ -208,7 +209,7 @@ export function SpaceView({
         />
       </DropZone>
     );
-  };
+  }, [workspaceId, activeDragId, allPanes, focusedPaneId, config.rootPath, isZenMode, zenPadding, isMaximized, onSplitPane, onKillPane, onRenamePane, onSaveSnippet]);
 
   // Recursive Layout Renderer
   const renderLayout = (node: LayoutNode): React.ReactNode => {
@@ -285,4 +286,4 @@ export function SpaceView({
       </div>
     </div>
   );
-}
+});

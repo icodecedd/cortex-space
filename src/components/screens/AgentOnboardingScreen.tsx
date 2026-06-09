@@ -1,4 +1,5 @@
-import { motion, AnimatePresence, useReducedMotion, Variants } from "framer-motion";
+import * as React from "react";
+import { m, AnimatePresence, useReducedMotion, Variants } from "framer-motion";
 import { Cpu, CheckCircle2, Loader2, AlertCircle, Download, RefreshCw, ArrowRight } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Agent } from "@/types";
@@ -11,7 +12,29 @@ interface AgentOnboardingScreenProps {
   isInitialized: boolean;
 }
 
-export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInitialized }: AgentOnboardingScreenProps) {
+const dotVariants = {
+  animate: {
+    opacity: [0, 1, 0],
+    transition: {
+      duration: 1.5,
+      repeat: Infinity,
+      ease: "easeInOut" as any
+    }
+  }
+};
+
+const innerContainerVariants = {
+  hidden: { opacity: 1 },
+  visible: { 
+    opacity: 1, 
+    transition: { 
+      staggerChildren: 0.06, 
+      delayChildren: 0.05 
+    } 
+  }
+};
+
+export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAgent, isInitialized }: AgentOnboardingScreenProps) => {
   const shouldReduceMotion = useReducedMotion();
 
   // Count active agents and check if any are currently installing
@@ -19,17 +42,6 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
   const isAnyInstalling = agents.filter(a => a.isDefault).some(a => a.status === 'installing');
 
   if (!isInitialized) {
-    const dotVariants = {
-      animate: {
-        opacity: [0, 1, 0],
-        transition: {
-          duration: 1.5,
-          repeat: Infinity,
-          ease: "easeInOut" as any
-        }
-      }
-    };
-
     return (
       <div className="w-full h-full relative flex flex-col items-center justify-center overflow-hidden bg-[var(--bg-color)]">
         {/* Subtle glow aligned with the theme accent */}
@@ -38,7 +50,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
           style={{ backgroundColor: "var(--accent-primary)", opacity: 0.1 }}
         />
         
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
@@ -47,15 +59,15 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
           <span className="text-[11px] font-mono font-bold tracking-[0.25em] text-[var(--text-secondary)] uppercase flex items-center select-none">
             {ONBOARDING_CONTENT.AWAKENING}
             <span className="flex ml-0.5">
-              <motion.span variants={dotVariants} animate="animate">.</motion.span>
-              <motion.span variants={dotVariants} animate="animate" transition={{ delay: 0.2 }}>.</motion.span>
-              <motion.span variants={dotVariants} animate="animate" transition={{ delay: 0.4 }}>.</motion.span>
+              <m.span variants={dotVariants} animate="animate">.</m.span>
+              <m.span variants={dotVariants} animate="animate" transition={{ delay: 0.2 }}>.</m.span>
+              <m.span variants={dotVariants} animate="animate" transition={{ delay: 0.4 }}>.</m.span>
             </span>
           </span>
           <span className="text-[9px] font-mono text-[var(--text-secondary)]/50 uppercase tracking-widest select-none">
             Scanning for active system paths
           </span>
-        </motion.div>
+        </m.div>
       </div>
     );
   }
@@ -73,17 +85,6 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
       opacity: 0,
       scale: shouldReduceMotion ? 1 : 0.98,
       transition: { duration: 0.3 }
-    }
-  };
-
-  const innerContainerVariants = {
-    hidden: { opacity: 1 },
-    visible: { 
-      opacity: 1, 
-      transition: { 
-        staggerChildren: 0.06, 
-        delayChildren: 0.05 
-      } 
     }
   };
 
@@ -106,18 +107,18 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
   };
 
   return (
-    <motion.div 
+    <m.div 
       variants={containerVariants}
       initial="hidden"
       animate="visible"
       exit="exit"
       className="w-full h-full flex flex-col items-center justify-center p-8 bg-[var(--bg-color)]"
     >
-      <motion.div 
+      <m.div 
         variants={innerContainerVariants}
         className="max-w-md w-full flex flex-col items-center gap-8"
       >
-        <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 text-center">
+        <m.div variants={itemVariants} className="flex flex-col items-center gap-4 text-center">
           <div className="w-16 h-16 rounded-2xl bg-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)]">
             <Cpu size={32} />
           </div>
@@ -129,11 +130,11 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
               {ONBOARDING_CONTENT.SUBTITLE}
             </p>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Individual agent items as direct children of the staggered container for fluid motion */}
         {agents.filter(a => a.isDefault).map(agent => (
-          <motion.div 
+          <m.div 
             key={agent.id} 
             variants={itemVariants}
             className="w-full flex flex-col p-4 rounded-lg border border-[var(--border-color)] bg-[var(--surface-color)]/50 gap-2 overflow-hidden"
@@ -159,7 +160,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
               <div className="flex items-center gap-2 h-7 relative">
                 <AnimatePresence mode="wait">
                   {agent.status === 'installed' && (
-                    <motion.div
+                    <m.div
                       key="installed"
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -169,10 +170,10 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                     >
                       <span className="text-[10px] font-bold text-ansi-green uppercase tracking-tighter">{ONBOARDING_CONTENT.DETECTED}</span>
                       <CheckCircle2 size={16} className="text-ansi-green" />
-                    </motion.div>
+                    </m.div>
                   )}
                   {agent.status === 'installing' && (
-                    <motion.div
+                    <m.div
                       key="installing"
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -182,10 +183,10 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                     >
                       <span className="text-[10px] font-bold text-ansi-blue uppercase tracking-tighter">{ONBOARDING_CONTENT.INSTALLING}</span>
                       <Loader2 size={16} className="text-ansi-blue animate-spin" />
-                    </motion.div>
+                    </m.div>
                   )}
                   {agent.status === 'not-installed' && (
-                    <motion.div
+                    <m.div
                       key="not-installed"
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -201,10 +202,10 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                         <Download size={11} />
                         {ONBOARDING_CONTENT.INSTALL}
                       </Button>
-                    </motion.div>
+                    </m.div>
                   )}
                   {agent.status === 'error' && (
-                    <motion.div
+                    <m.div
                       key="error"
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -223,7 +224,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                         <RefreshCw size={11} />
                         {ONBOARDING_CONTENT.RETRY}
                       </Button>
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
               </div>
@@ -231,7 +232,7 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
             
             <AnimatePresence>
               {agent.status === 'installing' && (
-                <motion.div 
+                <m.div 
                   initial={{ height: 0, opacity: 0, marginTop: 0 }}
                   animate={{ height: 'auto', opacity: 1, marginTop: 4 }}
                   exit={{ height: 0, opacity: 0, marginTop: 0 }}
@@ -239,42 +240,42 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                   className="overflow-hidden"
                 >
                   <div className="w-full bg-[var(--bg-color)] border border-[var(--border-color)] h-1.5 rounded-full overflow-hidden relative">
-                    <motion.div 
+                    <m.div 
                       className="absolute top-0 left-0 h-full bg-ansi-blue w-1/3"
                       initial={{ x: "-100%" }}
                       animate={{ x: "300%" }}
                       transition={{ duration: 1.5, ease: "linear", repeat: Infinity }}
                     />
                   </div>
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </m.div>
         ))}
 
-        <motion.div variants={itemVariants} className="w-full text-center px-2">
+        <m.div variants={itemVariants} className="w-full text-center px-2">
           {isInitialized && (
             <p className="text-[11px] font-medium leading-normal">
               {activeCount > 0 ? (
                 <span className="text-ansi-green font-bold uppercase tracking-wider">
-                  {ONBOARDING_CONTENT.ACTIVE_PROTOCOLS(activeCount)}
+                  {ONBOARDING_CONTENT.ACTIVE_AGENTS(activeCount)}
                 </span>
               ) : (
                 <span className="text-ansi-yellow font-bold uppercase tracking-wider">
-                  {ONBOARDING_CONTENT.NO_PROTOCOLS}
+                  {ONBOARDING_CONTENT.NO_AGENTS}
                 </span>
               )}
             </p>
           )}
-        </motion.div>
+        </m.div>
 
-        <motion.div variants={itemVariants} className="w-full flex flex-col gap-3">
+        <m.div variants={itemVariants} className="w-full flex flex-col gap-3">
           <Button 
             onClick={onComplete}
             className="w-full h-12 text-xs font-bold uppercase tracking-widest bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 transition-all flex items-center justify-center gap-2 overflow-hidden active:scale-[0.97] active:translate-y-0 duration-150"
           >
             <AnimatePresence mode="wait" initial={false}>
-              <motion.span
+              <m.span
                 key={isAnyInstalling ? "installing" : "ready"}
                 initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -293,11 +294,11 @@ export function AgentOnboardingScreen({ onComplete, agents, installAgent, isInit
                     <ArrowRight size={12} />
                   </>
                 )}
-              </motion.span>
+              </m.span>
             </AnimatePresence>
           </Button>
-        </motion.div>
-      </motion.div>
-    </motion.div>
+        </m.div>
+      </m.div>
+    </m.div>
   );
-}
+});

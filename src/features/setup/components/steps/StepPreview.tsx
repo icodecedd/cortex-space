@@ -43,16 +43,16 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
         <div className="flex items-center gap-2 mb-1">
           <ShieldCheck size={16} className="text-[var(--accent-primary)]" />
           <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
-            Protocol Manifest
+            Setup Summary
           </h3>
         </div>
         <p className="text-sm text-[var(--text-secondary)] font-medium">
-          Ensure your environment parameters are correct before initializing the space.
+          Ensure your workspace settings are correct before launching.
         </p>
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-        {/* LEFT: MANIFEST DETAILS */}
+        {/* LEFT: SETUP DETAILS */}
         <div className="md:col-span-7 space-y-8">
           
           <motion.section variants={itemVariants} className="space-y-4">
@@ -64,15 +64,15 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
             </div>
             
             <div className="grid gap-4">
-              <ManifestItem 
-                label="Target Directory" 
+              <SummaryItem 
+                label="Workspace Directory" 
                 value={rootPath || defaultDir} 
                 status="valid"
                 icon={<Info size={12} />}
               />
-              <ManifestItem 
-                label="Process Count" 
-                value={`${activePanes.length} Terminal Session${activePanes.length === 1 ? '' : 's'}`} 
+              <SummaryItem 
+                label="Terminal Panes" 
+                value={`${activePanes.length} Pane${activePanes.length === 1 ? '' : 's'}`} 
                 status="valid"
                 icon={<Cpu size={12} />}
               />
@@ -83,14 +83,14 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
             <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-color)]">
               <Layers size={14} className="text-[var(--text-secondary)]" />
               <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                Architecture
+                Layout
               </h4>
             </div>
             
             <div className="grid gap-4">
-              <ManifestItem 
-                label="Grid Topology" 
-                value={`${layoutString} Matrix`} 
+              <SummaryItem 
+                label="Grid Structure" 
+                value={`${layoutString} Layout`} 
                 status="valid"
                 icon={<Layout size={12} />}
               />
@@ -99,7 +99,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
                   <div key={pane.id} className="flex items-center justify-between group">
                     <div className="flex items-center gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] opacity-40 group-hover:opacity-80 transition-opacity" />
-                      <span className="text-[11px] font-mono text-[var(--text-secondary)] font-bold">P0{pane.id}</span>
+                      <span className="text-[11px] font-mono text-[var(--text-secondary)] font-bold">Pane {pane.id}</span>
                       <span className="text-xs font-mono text-[var(--text-primary)] truncate max-w-[200px] font-medium">
                         {pane.command || "default shell"}
                       </span>
@@ -111,7 +111,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
                 ))}
                 {activePanes.length > 4 && (
                   <div className="text-[10px] text-[var(--text-secondary)] font-bold italic pl-4.5">
-                    + {activePanes.length - 4} additional processes
+                    + {activePanes.length - 4} additional panes
                   </div>
                 )}
               </div>
@@ -120,12 +120,12 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
 
         </div>
 
-        {/* RIGHT: VISUAL PROOF */}
+        {/* RIGHT: VISUAL PROXY */}
         <motion.div variants={itemVariants} className="md:col-span-5">
           <Card className="p-1 border-[var(--border-color)] bg-[var(--text-primary)]/5 shadow-2xl overflow-hidden group rounded-md">
             <div className="p-4 flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--text-primary)]/5">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-                Viewport Preview
+                Workspace Preview
               </span>
               <div className="flex gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-[var(--text-primary)]/10" />
@@ -160,7 +160,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
                     <Check size={12} />
                   </div>
                   <p className="text-[11px] font-bold leading-tight">
-                    Protocol validated. All system requirements for this configuration are satisfied.
+                    Everything is configured correctly. Your workspace is ready to launch.
                   </p>
                 </div>
               </div>
@@ -172,7 +172,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
   );
 }
 
-function ManifestItem({ label, value, status, icon }: { 
+function SummaryItem({ label, value, status, icon }: { 
   label: string; 
   value: string; 
   status: 'valid' | 'missing' | 'warning';

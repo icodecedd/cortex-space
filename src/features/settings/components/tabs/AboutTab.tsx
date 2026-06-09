@@ -66,9 +66,9 @@ export function AboutTab() {
 
       <motion.div variants={itemVariants}>
         <SettingsCard 
-          title="Neural Network" 
+          title="Community & Links" 
           icon={<Globe size={16} />}
-          description="Connect with the Cortex community and development team."
+          description="Connect with the Cortex team and development resources."
         >
           <div className="grid grid-cols-2 gap-3 p-1">
             <Button variant="ghost" className="h-10 justify-start px-4 text-[11px] font-bold uppercase tracking-wider hover:bg-[var(--text-primary)]/[0.03] group">

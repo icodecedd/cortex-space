@@ -1,6 +1,7 @@
 import { LayoutConfig, PaneConfig } from "./setup-constants";
 import { LayoutNode, SplitNode, PaneNode, Agent } from "@/types";
 import { PANE_SEMANTICS } from "./content";
+import { SemanticsSettings, SEMANTICS_DEFAULTS } from "./store";
 
 export function getPaneCount(layout: LayoutConfig) {
   return layout.rows * layout.cols;
@@ -294,49 +295,46 @@ function findDeepestPane(node: LayoutNode, fromDirection: 'up' | 'down' | 'left'
 
 /**
  * Derives a semantic name for a terminal pane based on its command.
+ * Uses a tiered matching system:
+ * 1. User/Default Tool Mapping (e.g. 'npm' -> 'NPM')
+ * 2. Active Agent Mapping (e.g. 'gemini' -> 'Gemini Agent')
+ * 3. Pattern Matching (e.g. 'cargo run' -> 'Run')
+ * 4. Fallback (e.g. 'command' -> 'COMMAND')
  */
-export function derivePaneName(command: string, defaultName: string, agents: Agent[] = []): string {
+export function derivePaneName(
+  command: string, 
+  defaultName: string, 
+  agents: Agent[] = [],
+  settings: SemanticsSettings = SEMANTICS_DEFAULTS
+): string {
   if (!command || command.trim() === "") return defaultName;
 
-  const cmd = command.trim().toLowerCase();
+  const cmd = command.trim();
   const parts = cmd.split(/\s+/);
-  const base = parts[0];
+  const base = parts[0].toLowerCase();
 
-  // 1. Specific Tool Mapping
-  if (base === 'npm' || base === 'pnpm' || base === 'yarn' || base === 'bun') {
-    if (parts.includes('run')) {
-      const script = parts[parts.indexOf('run') + 1];
-      if (script) return script.charAt(0).toUpperCase() + script.slice(1);
+  // 1. Tool Mapping (User defined or Defaults)
+  const mappedTool = settings.tools[base];
+  if (mappedTool) {
+    // Check for common sub-command patterns within this tool
+    const pattern = settings.patterns.find(p => p.bin.includes(base));
+    if (pattern) {
+      // Find the first part that matches a sub-command (excluding flags)
+      const sub = parts.find(p => !p.startsWith('-') && pattern.sub.includes(p.toLowerCase()));
+      if (sub) {
+        return `${mappedTool} ${sub.charAt(0).toUpperCase() + sub.slice(1)}`;
+      }
     }
-    if (parts[1] === 'start' || parts[1] === 'dev' || parts[1] === 'build' || parts[1] === 'test') {
-      return parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+    
+    // File extraction for script runners (node script.js -> Script)
+    if (base === 'node' || base === 'python' || base === 'python3') {
+      const file = parts.find(p => p.includes('.') && !p.startsWith('-'));
+      if (file) {
+        return file.split(/[\\/]/).pop()?.split('.')[0] || mappedTool;
+      }
     }
-    return base.toUpperCase();
-  }
 
-  if (base === 'docker-compose' || base === 'docker') {
-    if (parts.includes('up')) return PANE_SEMANTICS.DOCKER_UP;
-    if (parts.includes('build')) return PANE_SEMANTICS.DOCKER_BUILD;
-    return PANE_SEMANTICS.DOCKER;
-  }
-
-  if (base === 'git') {
-    if (parts[1] === 'status') return PANE_SEMANTICS.GIT_STATUS;
-    if (parts[1] === 'log') return PANE_SEMANTICS.GIT_LOG;
-    if (parts[1] === 'pull' || parts[1] === 'push') return `Git ${parts[1].charAt(0).toUpperCase() + parts[1].slice(1)}`;
-    return PANE_SEMANTICS.GIT;
-  }
-
-  if (base === 'python' || base === 'python3') {
-    const file = parts.find(p => p.endsWith('.py'));
-    if (file) return file.split(/[\\/]/).pop()?.replace('.py', '') || PANE_SEMANTICS.PYTHON;
-    return PANE_SEMANTICS.PYTHON;
-  }
-
-  if (base === 'node') {
-    const file = parts.find(p => p.endsWith('.js') || p.endsWith('.ts'));
-    if (file) return file.split(/[\\/]/).pop()?.replace(/\.(js|ts)$/, '') || PANE_SEMANTICS.NODE;
-    return PANE_SEMANTICS.NODE;
+    return mappedTool;
   }
 
   // 2. Dynamic Agent Mapping
@@ -345,12 +343,20 @@ export function derivePaneName(command: string, defaultName: string, agents: Age
     return `${matchedAgent.label.charAt(0).toUpperCase() + matchedAgent.label.slice(1).toLowerCase()} ${PANE_SEMANTICS.AGENT_SUFFIX}`;
   }
 
-  // 3. Fallback for hardcoded common agents
-  if (base === 'gemini' || base === 'claude' || base === 'gpt' || base === 'codex') {
-    return `${base.charAt(0).toUpperCase() + base.slice(1)} ${PANE_SEMANTICS.AGENT_SUFFIX}`;
+  // 3. Pattern Matching for Generic Tools (bin run -> Run)
+  for (const pattern of settings.patterns) {
+    if (pattern.bin.includes(base)) {
+      const sub = parts.find(p => !p.startsWith('-') && pattern.sub.includes(p.toLowerCase()));
+      if (sub) return sub.charAt(0).toUpperCase() + sub.slice(1);
+    }
   }
 
-  // 4. Generic Fallback: Use the command itself if short, or the base command
-  if (cmd.length < 12) return cmd.toUpperCase();
-  return base.toUpperCase();
+  // 4. Generic Fallback
+  // If the command is just a single short word, use it
+  if (parts.length === 1 && cmd.length < 12) return cmd.toUpperCase();
+  
+  // Use base command if short
+  if (base.length < 10) return base.toUpperCase();
+
+  return defaultName;
 }

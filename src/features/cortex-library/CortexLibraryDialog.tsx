@@ -428,9 +428,9 @@ export function CortexLibraryDialog({
                     variant="destructive" 
                     size="sm" 
                     onClick={handleBulkDelete}
-                    className="h-8 px-6 text-[10px] font-bold rounded-full transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20"
+                    className="h-8 px-6 text-[10px] font-bold rounded-full transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 active:scale-95"
                   >
-                    <Trash2 size={12} className="mr-2" />
+                    <Trash2 size={12} className="mr-2 text-inherit hover:text-red-300 transition-colors" />
                     Delete Permanent
                   </Button>
                 </div>
