@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { 
   Dialog, 
   DialogContent,
@@ -106,13 +106,13 @@ export function WorkspaceSwitcherDialog({
     setSelectedIndex(0);
   }, [searchQuery]);
 
-  const handleExecuteItem = (item: PaletteItem, isShiftPressed: boolean = false) => {
+  const handleExecuteItem = useCallback((item: PaletteItem, isShiftPressed: boolean = false) => {
     if (item.type === 'workspace') onSwitchWorkspace(item.data.id);
     else if (item.type === 'template') onLaunchTemplate(item.data);
     else if (item.type === 'snippet') onSnippetExecute(item.data, isShiftPressed);
     else if (item.type === 'action') item.action();
     onOpenChange(false);
-  };
+  }, [onSwitchWorkspace, onLaunchTemplate, onSnippetExecute, onOpenChange]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -136,7 +136,7 @@ export function WorkspaceSwitcherDialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, filteredItems, selectedIndex]);
+  }, [isOpen, filteredItems, selectedIndex, handleExecuteItem]);
 
   // Scroll active item into view
   useEffect(() => {

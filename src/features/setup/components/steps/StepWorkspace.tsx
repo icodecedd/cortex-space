@@ -97,11 +97,11 @@ export function StepWorkspace({
           <div className="flex items-center gap-2 mb-1">
             <Database size={16} className="text-[var(--accent-primary)]" />
             <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
-              Workspace Context
+              Workspace Directory
             </h3>
           </div>
           <p className="text-sm text-[var(--text-secondary)] font-medium">
-            Define the physical mounting point for your terminal operations.
+            Select the main folder for your terminal sessions.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export function StepWorkspace({
           
           <div className="flex-1 flex flex-col">
             <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-0.5 ml-0.5">
-              Mounting Path
+              Selected Path
             </label>
             <Input
               type="text"
@@ -191,11 +191,11 @@ export function StepWorkspace({
           <div className="flex items-center gap-2 mb-1">
             <Layout size={16} className="text-[var(--accent-primary)]" />
             <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
-              Architectural Layout
+              Grid Layout
             </h3>
           </div>
           <p className="text-sm text-[var(--text-secondary)] font-medium">
-            Configure the physical grid topology for your process matrix.
+            Configure the grid structure for your terminal panes.
           </p>
         </div>
 
@@ -214,7 +214,7 @@ export function StepWorkspace({
               icon={Zap}
               compact
               title="Empty Layout Library"
-              description="Configure standard grid arrangements by installing the architectural starter pack."
+              description="Configure standard grid arrangements by installing the layout starter pack."
               iconColor="text-[var(--accent-primary)]"
               action={{
                 label: "INSTALL STARTER PACK",
@@ -240,7 +240,7 @@ export function StepWorkspace({
                 </div>
                 <div className="flex-1 flex flex-col">
                   <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-0.5 ml-0.5">
-                    Layout Registry Name
+                    Layout Name
                   </label>
                   <Input
                     type="text"
@@ -254,7 +254,7 @@ export function StepWorkspace({
               
               <div className="flex items-center gap-4 pl-14 md:pl-0">
                 <div className="hidden md:flex flex-col items-end gap-0.5 mr-2">
-                  <span className="text-[8px] font-mono font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-80 text-right">Topology ID</span>
+                  <span className="text-[8px] font-mono font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-80 text-right">Layout ID</span>
                   <span className="text-[10px] font-mono font-bold text-[var(--accent-primary)] text-right">
                     {layoutName.trim() ? layoutName : `${customLayout.rows}X${customLayout.cols}`}
                   </span>
@@ -266,7 +266,7 @@ export function StepWorkspace({
                   disabled={customLayout.rows < 1 || customLayout.cols < 1}
                   className="h-9 px-6 bg-[var(--accent-primary)] text-[var(--accent-contrast)] border-[var(--accent-primary)] hover:brightness-110 font-bold text-[10px] tracking-widest rounded-md transition-all"
                 >
-                  REGISTER LAYOUT
+                  SAVE LAYOUT
                 </Button>
               </div>
             </div>

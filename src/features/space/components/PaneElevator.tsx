@@ -370,7 +370,7 @@ export function PaneElevator({
                     className="cursor-pointer"
                     onClick={onKill}
                   >
-                    <Trash2 className="mr-2 h-3 w-3" />
+                    <Trash2 className="mr-2 h-3 w-3 text-inherit hover:text-red-400 transition-colors" />
                     <span className="text-xs">Close Pane</span>
                     <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+W</DropdownMenuShortcut>
                   </DropdownMenuItem>

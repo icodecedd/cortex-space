@@ -1,4 +1,5 @@
 import { motion, Variants } from "framer-motion";
+import { SPLASH_CONTENT } from "@/lib/content";
 
 interface SplashScreenProps {
   splashKey: number;
@@ -73,14 +74,14 @@ export function SplashScreen({ splashKey, reducedMotion = false }: SplashScreenP
         className="relative z-10 flex flex-col items-center justify-center"
       >
         <motion.div variants={textVariants} className="splash-text">
-          CORTEX<span style={{ color: "var(--accent-primary)" }}> SPACE</span>
+          {SPLASH_CONTENT.TITLE}<span style={{ color: "var(--accent-primary)" }}> {SPLASH_CONTENT.SUBTITLE}</span>
         </motion.div>
         
         <motion.div 
           variants={textVariants} 
           className="splash-subtext flex items-center gap-[2px]"
         >
-          AWAKENING SYSTEM
+          {SPLASH_CONTENT.AWAKENING}
           {!reducedMotion && (
             <div className="flex ml-1">
               <motion.span variants={dotVariants} animate="animate">.</motion.span>

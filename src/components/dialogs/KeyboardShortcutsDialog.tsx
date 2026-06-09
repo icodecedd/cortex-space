@@ -41,6 +41,13 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, onCustomize }: Key
       ]
     },
     {
+      title: "Workflows",
+      items: [
+        { label: "Terminal Mode", value: shortcuts.switchNormalMode },
+        { label: "AI Assisted Mode", value: shortcuts.switchAgentsMode },
+      ]
+    },
+    {
       title: "Active Terminal Sessions",
       items: [
         { label: "Split Horizontal", value: shortcuts.splitHorizontal },

@@ -62,5 +62,5 @@ export function getShortcutString(e: KeyboardEvent | React.KeyboardEvent): strin
     return "";
   }
   
-  return parts.join(' + ');
+  return parts.join('+');
 }

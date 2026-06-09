@@ -16,6 +16,12 @@ interface Session {
   isTerminated: boolean;
 }
 
+interface PortCheck {
+  port: number;
+  url: string;
+  onGone: () => void;
+}
+
 class SessionManager {
   private sessions = new Map<string, Session>();
   private initialized = false;
@@ -24,6 +30,12 @@ class SessionManager {
   private writeDelegates = new Map<string, (data: string) => void>();
   private resizeDelegates = new Map<string, (rows: number, cols: number) => void>();
   private keyEventHandlerDelegates = new Map<string, (e: KeyboardEvent) => boolean>();
+
+  // Port Monitoring state
+  private activePortChecks = new Map<string, Set<PortCheck>>();
+  private portCheckInterval: any | null = null;
+  private isCheckingPorts = false;
+  private portFailures = new Map<string, number>();
 
   setWriteDelegate(id: string, cb: ((data: string) => void) | undefined) {
     if (cb === undefined) {
@@ -89,6 +101,7 @@ class SessionManager {
     this.writeDelegates.delete(id);
     this.resizeDelegates.delete(id);
     this.keyEventHandlerDelegates.delete(id);
+    this.activePortChecks.delete(id);
   }
 
   async init() {
@@ -145,6 +158,90 @@ class SessionManager {
     };
     this.sessions.set(id, session);
     return session;
+  }
+
+  // Port Monitoring System
+  registerPortCheck(terminalId: string, port: number, url: string, onGone: () => void) {
+    let checks = this.activePortChecks.get(terminalId);
+    if (!checks) {
+      checks = new Set();
+      this.activePortChecks.set(terminalId, checks);
+    }
+    // Remove existing check for same port if any
+    for (const c of checks) { if (c.port === port) checks.delete(c); }
+    checks.add({ port, url, onGone });
+    this.startGlobalPortCheck();
+  }
+
+  unregisterPortCheck(terminalId: string, port: number) {
+    const checks = this.activePortChecks.get(terminalId);
+    if (checks) {
+      for (const c of checks) {
+        if (c.port === port) {
+          checks.delete(c);
+          this.portFailures.delete(`${terminalId}:${port}`);
+        }
+      }
+      if (checks.size === 0) this.activePortChecks.delete(terminalId);
+    }
+    if (this.activePortChecks.size === 0) this.stopGlobalPortCheck();
+  }
+
+  private startGlobalPortCheck() {
+    if (this.portCheckInterval) return;
+    console.log('[SessionManager] Starting global port liveness monitor');
+    this.portCheckInterval = setInterval(() => this.pollActivePorts(), 5000);
+  }
+
+  private stopGlobalPortCheck() {
+    if (this.portCheckInterval) {
+      console.log('[SessionManager] Stopping global port liveness monitor');
+      clearInterval(this.portCheckInterval);
+      this.portCheckInterval = null;
+    }
+  }
+
+  private async pollActivePorts() {
+    if (this.isCheckingPorts || this.activePortChecks.size === 0) return;
+    this.isCheckingPorts = true;
+
+    const allChecks: { terminalId: string, check: PortCheck }[] = [];
+    this.activePortChecks.forEach((checks, tid) => {
+      checks.forEach(c => allChecks.push({ terminalId: tid, check: c }));
+    });
+
+    const maxFailures = 3;
+    await Promise.all(allChecks.map(async ({ terminalId, check }) => {
+      const key = `${terminalId}:${check.port}`;
+      try {
+        const status = await invoke<string>('check_port', { port: check.check.port });
+        if (status === 'open') {
+          this.portFailures.set(key, 0);
+        } else if (status === 'refused') {
+          // Port definitively closed
+          this.handlePortGone(terminalId, check.check);
+        } else {
+          // Timeout / error
+          const failures = (this.portFailures.get(key) || 0) + 1;
+          if (failures >= maxFailures) {
+            this.handlePortGone(terminalId, check.check);
+          } else {
+            this.portFailures.set(key, failures);
+          }
+        }
+      } catch {
+        const failures = (this.portFailures.get(key) || 0) + 1;
+        if (failures >= maxFailures) this.handlePortGone(terminalId, check.check);
+        else this.portFailures.set(key, failures);
+      }
+    }));
+
+    this.isCheckingPorts = false;
+  }
+
+  private handlePortGone(terminalId: string, check: PortCheck) {
+    this.unregisterPortCheck(terminalId, check.port);
+    check.onGone();
   }
 
   // Get session history buffer

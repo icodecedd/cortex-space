@@ -67,7 +67,7 @@ export async function clearAllSettings() {
 
 export type CursorStyle = 'block' | 'underline' | 'bar';
 export type ColorScheme = 'system' | 'light' | 'dark';
-export type OpenOnLaunch = 'modeSelector' | 'newTerminal';
+export type StartupBehavior = 'modeSelector' | 'lastMode' | 'newTerminal' | 'newAgents';
 
 export interface TerminalSettings {
   [key: string]: unknown;
@@ -83,8 +83,7 @@ export interface TerminalSettings {
 export interface StartupSettings {
   [key: string]: unknown;
   showSplashAnimation: boolean;
-  rememberLastMode: boolean;
-  openOnLaunch: OpenOnLaunch;
+  behavior: StartupBehavior;
   checkForUpdatesOnStartup: boolean;
   confirmModeChange: boolean;
   defaultShell: string;
@@ -113,6 +112,8 @@ export interface ShortcutSettings {
   splitVertical: string;
   resetPane: string;
   closePane: string;
+  switchNormalMode: string;
+  switchAgentsMode: string;
 }
 
 export interface FocusSettings {
@@ -134,6 +135,18 @@ export interface DemoSettings {
   enableBrowserRefresh: boolean;
 }
 
+export interface SemanticsPattern {
+  bin: string[];
+  sub: string[];
+  fallback: string;
+}
+
+export interface SemanticsSettings {
+  [key: string]: unknown;
+  tools: Record<string, string>;
+  patterns: SemanticsPattern[];
+}
+
 export const TERMINAL_DEFAULTS: TerminalSettings = defaults.terminal as TerminalSettings;
 
 export const STARTUP_DEFAULTS: StartupSettings = defaults.startup as StartupSettings;
@@ -145,6 +158,8 @@ export const FOCUS_DEFAULTS: FocusSettings = defaults.focus as FocusSettings;
 export const DEMO_DEFAULTS: DemoSettings = defaults.demo as DemoSettings;
 
 export const SHORTCUT_DEFAULTS: ShortcutSettings = defaults.shortcuts as ShortcutSettings;
+
+export const SEMANTICS_DEFAULTS: SemanticsSettings = defaults.semantics as SemanticsSettings;
 
 // ---------------------------------------------------------------------------
 // Group helpers — batch read/write flat dot-separated keys for a settings group

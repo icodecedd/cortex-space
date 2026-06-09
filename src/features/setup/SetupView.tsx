@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,7 +24,7 @@ interface SetupViewProps {
   onBack: () => void;
 }
 
-export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
+export const SetupView = React.memo(({ mode, onLaunch, onBack }: SetupViewProps) => {
   const [step, setStep] = useState(INITIAL_STEP);
   
   const {
@@ -91,13 +92,20 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
   // Keyboard navigation shortcuts for the setup process
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 1. Next / Launch (Enter)
+      // 1. Next / Launch (Enter / Ctrl+Enter)
       if (e.key === 'Enter') {
+        // Ctrl+Shift+Enter: Skip directly to launch if valid
+        if (e.ctrlKey && e.shiftKey) {
+          if (isStepValid) handleLaunch();
+          return;
+        }
+
         if (e.ctrlKey || e.metaKey || step === MAX_STEP) {
           if (isStepValid) handleLaunch();
           return;
         }
         if (isStepValid) handleNext();
+        return;
       }
 
       // 2. Previous / Cancel (Esc)
@@ -186,4 +194,4 @@ export function SetupView({ mode, onLaunch, onBack }: SetupViewProps) {
       />
     </div>
   );
-}
+});

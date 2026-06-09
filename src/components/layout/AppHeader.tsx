@@ -7,6 +7,7 @@ import { InteractiveTab } from "@/components/ui/interactive-tab";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { countPanes } from "@/lib/setup-utils";
 import { getWorkspacePlaceholder } from "@/lib/utils";
+import { HEADER_CONTENT } from "@/lib/content";
 
 interface AppHeaderProps {
   workspaces: Workspace[];
@@ -32,7 +33,7 @@ interface AppHeaderProps {
   showShortcutsButton?: boolean;
 }
 
-export function AppHeader({
+export const AppHeader = React.memo(({
   workspaces,
   activeWorkspaceId,
   isWindowMaximized,
@@ -54,7 +55,7 @@ export function AppHeader({
   showWorkspacesTab = true,
   showTemplatesButton = true,
   showShortcutsButton = true
-}: AppHeaderProps) {
+}: AppHeaderProps) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = React.useState(false);
 
@@ -186,7 +187,7 @@ export function AppHeader({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-                    New Workspace (Ctrl+T)
+                    {HEADER_CONTENT.NEW_WORKSPACE} {HEADER_CONTENT.NEW_WORKSPACE_SHORTCUT}
                   </TooltipContent>
                 </Tooltip>
             </Reorder.Group>
@@ -214,7 +215,7 @@ export function AppHeader({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-              Space Templates (Ctrl+Shift+T)
+              {HEADER_CONTENT.TEMPLATES} {HEADER_CONTENT.TEMPLATES_SHORTCUT}
             </TooltipContent>
           </Tooltip>
         )}
@@ -233,7 +234,7 @@ export function AppHeader({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-              Keyboard Shortcuts (Ctrl+/)
+              {HEADER_CONTENT.SHORTCUTS} {HEADER_CONTENT.SHORTCUTS_SHORTCUT}
             </TooltipContent>
           </Tooltip>
         )}
@@ -251,7 +252,7 @@ export function AppHeader({
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-            Preferences
+            {HEADER_CONTENT.PREFERENCES}
           </TooltipContent>
         </Tooltip>
 
@@ -270,7 +271,7 @@ export function AppHeader({
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-              Minimize
+              {HEADER_CONTENT.MINIMIZE}
             </TooltipContent>
           </Tooltip>
 
@@ -288,7 +289,7 @@ export function AppHeader({
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-              {isWindowMaximized ? "Restore" : "Maximize"}
+              {isWindowMaximized ? HEADER_CONTENT.RESTORE : HEADER_CONTENT.MAXIMIZE}
             </TooltipContent>
           </Tooltip>
 
@@ -302,7 +303,7 @@ export function AppHeader({
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-              Close
+              {HEADER_CONTENT.CLOSE}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -311,4 +312,4 @@ export function AppHeader({
 
     </div>
   );
-}
+});

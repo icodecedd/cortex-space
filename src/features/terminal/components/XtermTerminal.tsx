@@ -125,17 +125,24 @@ export function XtermTerminal({
     });
   }, []);
 
-
+  // Centralized Settings Fetching
   useEffect(() => {
-    getSettingsGroup<TerminalSettings>('startup', { defaultShell: '' } as any).then((saved: any) => {
-      setDefaultShell(saved.defaultShell || '');
-    });
-    getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
-    getSetting('demo.showFloatingTerminalHeader', true).then(setShowFloatingHeader);
-    getSetting<'hover' | 'always'>('demo.terminalHeaderVisibility', 'hover').then(setHeaderVisibility);
-    getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS).then((saved) => {
-      setCursorBlinkSetting(saved.cursorBlink);
-    });
+    const loadSettings = async () => {
+      const [startup, sh, showHeader, visibility, terminal] = await Promise.all([
+        getSettingsGroup<TerminalSettings>('startup', { defaultShell: '' } as any),
+        getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS),
+        getSetting('demo.showFloatingTerminalHeader', true),
+        getSetting<'hover' | 'always'>('demo.terminalHeaderVisibility', 'hover'),
+        getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS)
+      ]);
+
+      setDefaultShell(startup.defaultShell || '');
+      setShortcuts(sh);
+      setShowFloatingHeader(showHeader);
+      setHeaderVisibility(visibility);
+      setCursorBlinkSetting(terminal.cursorBlink);
+    };
+    loadSettings();
   }, []);
 
   const getThemePalette = useCallback((themeName: string, scheme: 'light' | 'dark') => {
@@ -215,6 +222,31 @@ export function XtermTerminal({
     promotingRef.current.delete(port);
   }, [firePortToast]);
 
+  const lastPortCheckRef = useRef<number>(0);
+  const portDetectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const runPortDetection = useCallback((text: string) => {
+    // Spec regex: covers Vite, Next.js, Express, Remix, Astro, Nuxt, Rails, Django, etc.
+    const portRegex =
+      /(?:https?:\/\/localhost:(\d+)|listening on[:\s]+(\d+)|ready on[:\s]+(\d+)|Local:\s+https?:\/\/localhost:(\d+)|server running.*:(\d+)|started on.*:(\d+)|running at.*:(\d+)|available at.*:(\d+)|((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{2,5})))/gi;
+
+    let match: RegExpExecArray | null;
+    while ((match = portRegex.exec(text)) !== null) {
+      // Find first non-undefined capture group that is a pure port number
+      const portStr = match.slice(1).find(g => g && /^\d+$/.test(g));
+      if (!portStr) continue;
+      const port = parseInt(portStr, 10);
+      // Ignore ports < 1024 (system ports) and blocklisted ones
+      if (port < 1024 || PORT_BLOCKLIST.has(port)) continue;
+      // Build a canonical URL key for dedup
+      const urlKey = `http://localhost:${port}`;
+      if (!seenUrlsRef.current.has(urlKey)) {
+        seenUrlsRef.current.add(urlKey);
+        promotePort(port, urlKey);
+      }
+    }
+  }, [promotePort]);
+
   // CHECKLIST ITEM 3: Single-Source Rendering — string data from backend
   const handlePtyData = useCallback((data: string) => {
     if (xtermRef.current) {
@@ -223,31 +255,32 @@ export function XtermTerminal({
       // Maintain rolling context buffer (last 600 chars)
       outputBufferRef.current = (outputBufferRef.current + data).slice(-600);
 
-      // Strip ANSI escape codes before regex matching
-      const cleanText = outputBufferRef.current
-        .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
-
-      // Spec regex: covers Vite, Next.js, Express, Remix, Astro, Nuxt, Rails, Django, etc.
-      const portRegex =
-        /(?:https?:\/\/localhost:(\d+)|listening on[:\s]+(\d+)|ready on[:\s]+(\d+)|Local:\s+https?:\/\/localhost:(\d+)|server running.*:(\d+)|started on.*:(\d+)|running at.*:(\d+)|available at.*:(\d+)|((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{2,5})))/gi;
-
-      let match: RegExpExecArray | null;
-      while ((match = portRegex.exec(cleanText)) !== null) {
-        // Find first non-undefined capture group that is a pure port number
-        const portStr = match.slice(1).find(g => g && /^\d+$/.test(g));
-        if (!portStr) continue;
-        const port = parseInt(portStr, 10);
-        // Ignore ports < 1024 (system ports) and blocklisted ones
-        if (port < 1024 || PORT_BLOCKLIST.has(port)) continue;
-        // Build a canonical URL key for dedup
-        const urlKey = `http://localhost:${port}`;
-        if (!seenUrlsRef.current.has(urlKey)) {
-          seenUrlsRef.current.add(urlKey);
-          promotePort(port, urlKey);
+      // Throttled port detection: run at most once every 200ms
+      const now = Date.now();
+      if (now - lastPortCheckRef.current > 200) {
+        lastPortCheckRef.current = now;
+        if (portDetectionTimeoutRef.current) {
+          clearTimeout(portDetectionTimeoutRef.current);
+          portDetectionTimeoutRef.current = null;
         }
+
+        // Strip ANSI escape codes before regex matching
+        const cleanText = outputBufferRef.current
+          .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+
+        runPortDetection(cleanText);
+      } else if (!portDetectionTimeoutRef.current) {
+        // Ensure the last few characters are eventually checked
+        portDetectionTimeoutRef.current = setTimeout(() => {
+          lastPortCheckRef.current = Date.now();
+          portDetectionTimeoutRef.current = null;
+          const cleanText = outputBufferRef.current
+            .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+          runPortDetection(cleanText);
+        }, 200);
       }
     }
-  }, [promotePort]);
+  }, [runPortDetection]);
 
 
   const ptyConfig = useMemo(() => ({
@@ -363,69 +396,21 @@ export function XtermTerminal({
 
   // Port Liveness Polling — periodically verify detected ports are still listening
   useEffect(() => {
-    if (detectedPorts.filter(p => p.state === 'detected').length === 0) {
-      failuresMapRef.current.clear();
-      return;
-    }
-
-    const maxFailures = 3;
-    let isChecking = false;
-
-    const checkAll = async () => {
-      if (isChecking) return;
-      isChecking = true;
-
-      const activePorts = detectedPorts.filter(p => p.state === 'detected');
-      const results = await Promise.all(activePorts.map(async (dp) => {
-        try {
-          const status = await invoke<string>('check_port', { port: dp.port });
-          return { port: dp.port, status };
-        } catch {
-          return { port: dp.port, status: 'error' };
-        }
-      }));
-
-      let changed = false;
-      setDetectedPorts(prev => {
-        const next = prev.filter(dp => {
-          if (dp.state === 'gone') return false; // already gone, prune
-          const res = results.find(r => r.port === dp.port);
-          if (!res) return true;
-          if (res.status === 'open') {
-            failuresMapRef.current.set(dp.port, 0);
-            return true;
-          }
-          // Connection refused — remove immediately
-          if (res.status === 'refused') {
-            failuresMapRef.current.delete(dp.port);
-            seenUrlsRef.current.delete(dp.url);
-            changed = true;
-            return false;
-          }
-          // Timeout / error — increment failure count
-          const failures = (failuresMapRef.current.get(dp.port) || 0) + 1;
-          failuresMapRef.current.set(dp.port, failures);
-          if (failures >= maxFailures) {
-            failuresMapRef.current.delete(dp.port);
-            seenUrlsRef.current.delete(dp.url);
-            changed = true;
-            return false;
-          }
-          return true;
-        });
-        return changed ? next : prev;
+    const activePorts = detectedPorts.filter(p => p.state === 'detected');
+    
+    activePorts.forEach(dp => {
+      terminalSessionManager.registerPortCheck(id, dp.port, dp.url, () => {
+        setDetectedPorts(prev => prev.filter(p => p.port !== dp.port));
+        seenUrlsRef.current.delete(dp.url);
       });
+    });
 
-      isChecking = false;
-    };
-
-    checkPortRef.current = checkAll;
-    const checkInterval = setInterval(checkAll, 5000);
     return () => {
-      clearInterval(checkInterval);
-      checkPortRef.current = null;
+      activePorts.forEach(dp => {
+        terminalSessionManager.unregisterPortCheck(id, dp.port);
+      });
     };
-  }, [detectedPorts.length, id]);
+  }, [detectedPorts, id]);
 
   // Synchronize dynamic callbacks (write, resize, shortcuts) with session manager
   useEffect(() => {
@@ -961,7 +946,7 @@ export function XtermTerminal({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse" />
-                    <span className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-widest">Variable Prompt</span>
+                    <span className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-widest">Fill Snippet Variables</span>
                   </div>
                   <button 
                     onClick={handleVariableCancel}
@@ -1038,14 +1023,14 @@ export function XtermTerminal({
         display: isTerminated ? 'flex' : 'none'
       }}>
         <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em' }}>
-          SESSION TERMINATED
+          TERMINAL STOPPED
         </span>
         <Button
           onClick={() => relaunch()}
           className="primary btn-tactile"
           style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', letterSpacing: '0.05em', borderRadius: 'var(--radius-sm)' }}
         >
-          RELAUNCH SESSION
+          RESTART SESSION
         </Button>
       </div>
     </div>

@@ -147,7 +147,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
         <div className="flex items-center justify-between px-1">
           <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em]">
             {mode === 'agents' 
-              ? (pane.isCustom ? 'Custom Command' : 'Selection Matrix') 
+              ? (pane.isCustom ? 'Custom Command' : 'Agent Selection') 
               : 'Input Command'}
           </label>
           <div className="flex items-center gap-1">
@@ -224,7 +224,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
             }}
             placeholder="Select AI agent..."
             triggerClassName="font-mono h-9 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/30 text-[11px] transition-all rounded-md placeholder:text-[var(--text-secondary)]/40 shadow-none"
-            emptyText="No matching protocol."
+            emptyText="No results found."
           />
         ) : (
           <div className="relative group/input">

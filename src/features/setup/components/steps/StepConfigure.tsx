@@ -55,13 +55,13 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
         <div className="flex items-center gap-2 mb-1">
           <Command size={16} className="text-[var(--accent-primary)]" />
           <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
-            {mode === 'agents' ? 'Assign AI Agents' : 'Define Command Matrix'}
+            {mode === 'agents' ? 'Configure AI Agents' : 'Configure Terminal Commands'}
           </h3>
         </div>
         <p className="text-sm text-[var(--text-secondary)] font-medium">
           {mode === 'agents' 
-            ? 'Select specialized agents for each terminal pane or apply a global template.' 
-            : 'Specify the initialization commands for each pane in your workspace grid.'}
+            ? 'Select AI agents for each terminal pane or apply a standard setting to all.' 
+            : 'Specify the starting commands for each pane in your workspace.'}
         </p>
       </motion.div>
 
@@ -78,11 +78,11 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
               <div className="flex items-center gap-2">
                 <Zap size={14} className="text-[var(--accent-primary)]" />
                 <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--accent-primary)]">
-                  Global Agent Protocol
+                  Apply to All Panes
                 </h4>
               </div>
               <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold">
-                Applying a global agent will initialize all {activePanes.length} workspace panes with the same identity. This can be overridden per pane.
+                Applying a standard agent will initialize all {activePanes.length} workspace panes with the same agent. You can still customize individual panes below.
               </p>
             </div>
             
@@ -97,12 +97,12 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
                     : snippets.some(s => s.command === val);
                   updateAllPaneCommands(val, !isPreset);
                 }}
-                placeholder="Select global identity..."
+                placeholder="Select an agent for all panes..."
                 triggerClassName="font-mono h-10 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/30 text-xs transition-all rounded-md placeholder:text-[var(--text-secondary)]/40 shadow-none"
-                emptyText="Protocol matrix not found."
+                emptyText="No results found."
               />
               <div className="flex items-center gap-2 opacity-80">
-                <span className="text-[9px] font-mono text-[var(--text-secondary)] font-bold uppercase tracking-tighter">Overrides enabled per pane</span>
+                <span className="text-[9px] font-mono text-[var(--text-secondary)] font-bold uppercase tracking-tighter">Individual overrides enabled</span>
               </div>
             </div>
           </div>

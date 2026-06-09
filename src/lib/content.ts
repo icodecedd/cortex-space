@@ -1,28 +1,83 @@
+export const ASSETS = {
+  LOGO: "/cortex-logo.png",
+  LOGO_FALLBACK: "/tauri.svg"
+};
+
+export const SPLASH_CONTENT = {
+  TITLE: "CORTEX",
+  SUBTITLE: "SPACE",
+  AWAKENING: "INITIALIZING SYSTEM"
+};
+
+export const MODE_SELECTOR_CONTENT = {
+  TITLE: "CORTEX",
+  SUBTITLE: "SPACE",
+  DESCRIPTION: "The unified workspace for your terminal and AI-assisted workflows",
+  PROMPT: "Choose how you want to work today.",
+  NORMAL_MODE: {
+    TITLE: "TERMINAL MODE",
+    DESCRIPTION: "Classic terminal experience with multi-pane support",
+    SHORTCUT_LABEL: "Ctrl + N"
+  },
+  AGENTS_MODE: {
+    TITLE: "AI ASSISTED MODE",
+    DESCRIPTION: "AI-powered environment for collaborative development",
+    SHORTCUT_LABEL: "Ctrl + A"
+  },
+  HINTS: {
+    TEMPLATES: "Templates",
+    NEW_SPACE: "New Space",
+    SETTINGS: "Settings"
+  }
+};
+
+export const HEADER_CONTENT = {
+  NEW_WORKSPACE: "New Workspace",
+  NEW_WORKSPACE_SHORTCUT: "(Ctrl+T)",
+  TEMPLATES: "Workspace Templates",
+  TEMPLATES_SHORTCUT: "(Ctrl+Shift+T)",
+  SHORTCUTS: "Keyboard Shortcuts",
+  SHORTCUTS_SHORTCUT: "(Ctrl+/)",
+  PREFERENCES: "Preferences",
+  MINIMIZE: "Minimize",
+  MAXIMIZE: "Maximize",
+  RESTORE: "Restore",
+  CLOSE: "Close"
+};
+
+export const FOOTER_CONTENT = {
+  THEME_LABEL: "Interface Theme"
+};
+
+export const SETUP_CONTENT = {
+  TITLE: "CORTEX",
+  SUBTITLE: "SPACE",
+  WORKSPACE_SETUP: "SET UP YOUR WORKSPACE",
+  STEPS: {
+    WORKSPACE: "WORKSPACE",
+    ASSIGN: "ASSIGN",
+    COMMANDS: "COMMANDS",
+    PREVIEW: "PREVIEW"
+  }
+};
+
 export const ONBOARDING_CONTENT = {
-  AWAKENING: "AWAKENING SYSTEM",
-  TITLE: "AI Agent Protocols",
-  SUBTITLE: "Scan and configure your AI agentic coding CLI tools.",
+  AWAKENING: "PREPARING SYSTEM",
+  TITLE: "AI Agent Setup",
+  SUBTITLE: "Configure your AI-powered development tools.",
   DETECTED: "Detected",
   INSTALLING: "Installing",
   INSTALL: "Install",
   FAILED: "Failed",
   RETRY: "Retry",
-  ACTIVE_PROTOCOLS: (count: number) => `✓ ${count} active protocol${count > 1 ? 's' : ''} ready`,
-  NO_PROTOCOLS: "⚠ No active AI protocols configured",
-  CONTINUE: "Continue to Workspace",
-  CONFIGURING: "Configuring Matrix & Launching..."
+  ACTIVE_AGENTS: (count: number) => `✓ ${count} AI agent${count > 1 ? 's' : ''} ready`,
+  NO_AGENTS: "⚠ No AI agents detected",
+  CONTINUE: "Enter Workspace",
+  CONFIGURING: "Finalizing setup & launching..."
 };
 
 export const PANE_SEMANTICS = {
   NEW_PANE: "New Pane",
-  DOCKER: "Docker",
-  DOCKER_UP: "Docker Up",
-  DOCKER_BUILD: "Docker Build",
-  GIT: "Git",
-  GIT_STATUS: "Git Status",
-  GIT_LOG: "Git Log",
-  PYTHON: "Python",
-  NODE: "Node",
   AGENT_SUFFIX: "Agent"
 };
 

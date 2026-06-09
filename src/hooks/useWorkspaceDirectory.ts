@@ -14,12 +14,12 @@ export function useWorkspaceDirectory() {
       const savedPath = await getSetting("cortex_default_path", "");
       if (savedPath) {
         setDefaultDir(savedPath);
-        if (!rootPath) setRootPath(savedPath);
+        setRootPath(prev => !prev ? savedPath : prev);
       } else {
         const home = await invoke<string | null>("get_home_dir");
         if (home) {
           setDefaultDir(home);
-          if (!rootPath) setRootPath(home);
+          setRootPath(prev => !prev ? home : prev);
         }
       }
     };

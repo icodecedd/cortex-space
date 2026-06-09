@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getSetting, setSetting } from "@/lib/store";
-import { SpaceTemplate, LayoutNode, PaneNode, Mode } from "@/types";
+import { SpaceTemplate, LayoutNode, Mode } from "@/types";
 import { toast } from "sonner";
 import { LayoutType, PaneConfig, INITIAL_LAYOUTS } from "@/lib/setup-constants";
 import { gridToLayoutNode } from "@/lib/setup-utils";

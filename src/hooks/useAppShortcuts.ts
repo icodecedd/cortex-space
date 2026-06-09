@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Workspace } from "../types";
+import { Workspace, Mode } from "../types";
 import { getSettingsGroup, SHORTCUT_DEFAULTS, ShortcutSettings } from "@/lib/store";
 import { matchesShortcut } from "@/lib/shortcut-utils";
 
@@ -16,6 +16,7 @@ interface UseAppShortcutsProps {
   onToggleSettings: () => void;
   onToggleZenMode: () => void;
   onToggleSwitcher: () => void;
+  onSelectMode: (mode: Mode) => void;
 }
 
 export function useAppShortcuts({
@@ -29,7 +30,8 @@ export function useAppShortcuts({
   onToggleTemplates,
   onToggleSettings,
   onToggleZenMode,
-  onToggleSwitcher
+  onToggleSwitcher,
+  onSelectMode
 }: UseAppShortcutsProps) {
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
 
@@ -127,9 +129,28 @@ export function useAppShortcuts({
         onToggleSwitcher();
         return;
       }
+
+      // 8. Mode Selection (Ctrl+N, Ctrl+A)
+      if (matchesShortcut(e, shortcuts.switchNormalMode)) {
+        const active = workspaces.find(w => w.id === activeWorkspaceId);
+        if (active && active.status === 'mode-select') {
+          e.preventDefault();
+          onSelectMode('normal');
+        }
+        return;
+      }
+
+      if (matchesShortcut(e, shortcuts.switchAgentsMode)) {
+        const active = workspaces.find(w => w.id === activeWorkspaceId);
+        if (active && active.status === 'mode-select') {
+          e.preventDefault();
+          onSelectMode('agents');
+        }
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [shortcuts, workspaces, activeWorkspaceId, isZenMode, onNewWorkspaceFlow, onCloseWorkspace, onSwitchWorkspace, onToggleShortcuts, onToggleTemplates, onToggleSettings, onToggleZenMode, onToggleSwitcher]);
+  }, [shortcuts, workspaces, activeWorkspaceId, isZenMode, onNewWorkspaceFlow, onCloseWorkspace, onSwitchWorkspace, onToggleShortcuts, onToggleTemplates, onToggleSettings, onToggleZenMode, onToggleSwitcher, onSelectMode]);
 }

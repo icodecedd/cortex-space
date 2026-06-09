@@ -69,6 +69,7 @@ export interface Agent {
   downloadUrl?: string;
   installCommand?: string;
   version?: string;
+  errorMessage?: string;
 }
 
 export type PaletteItem = 

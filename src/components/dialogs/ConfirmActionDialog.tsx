@@ -44,7 +44,7 @@ export function ConfirmActionDialog({
         open={open}
         onInteractOutside={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
-        className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-[0_30px_60px_rgba(0,0,0,0.6),0_0_20px_rgba(var(--accent-primary-rgb),0.1)] !z-[9999]"
+        className="bg-[var(--surface-color)] border-[var(--border-color)] shadow-2xl"
         style={{
           padding: '2rem 1.5rem 1.5rem',
           maxWidth: '400px',
