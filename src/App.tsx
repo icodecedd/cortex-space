@@ -18,7 +18,7 @@ import { SplashScreen } from "./components/screens/SplashScreen";
 import { ModeSelectorScreen } from "./components/screens/ModeSelectorScreen";
 import { AgentOnboardingScreen } from "./components/screens/AgentOnboardingScreen";
 import { useAgents } from "./hooks/useAgents";
-import { getSetting, setSetting } from "./lib/store";
+import { getSetting, setSetting, StartupBehavior } from "./lib/store";
 import { CortexLibraryDialog } from "./features/cortex-library/CortexLibraryDialog";
 import { WorkspaceSwitcherDialog } from "./components/dialogs/WorkspaceSwitcherDialog";
 import { useSpaceTemplates } from "./hooks/useSpaceTemplates";
@@ -92,8 +92,8 @@ function App() {
   }, [demoSettings.enableBrowserRefresh]);
 
   const { isWindowMaximized, handleMinimize, handleMaximize, handleClose } = useWindowControls();
-  const { templates, captureCurrent, deleteTemplate } = useSpaceTemplates();
-  const { snippets, addSnippet, deleteSnippet, deleteSnippets } = useSnippets();
+  const { templates, captureCurrent, deleteTemplate, deleteTemplates, archiveTemplate, archiveTemplates, unarchiveTemplate, unarchiveTemplates } = useSpaceTemplates();
+  const { snippets, addSnippet, deleteSnippet, deleteSnippets, archiveSnippet, archiveSnippets, unarchiveSnippet, unarchiveSnippets } = useSnippets();
 
   const handleSplitPane = useCallback((paneId: string, direction: 'horizontal' | 'vertical') => {
     if (!activeWorkspaceId) return;
@@ -721,6 +721,7 @@ function App() {
                     onKillPane={handleKillPane}
                     onRenamePane={handleRenamePane}
                     onSaveSnippet={(command) => addSnippet("", command)}
+                    isCurrent={isCurrent}
                   />
                 </div>
               );
@@ -778,20 +779,29 @@ function App() {
         snippets={snippets}
         onLaunchTemplate={handleLaunchTemplate}
         onDeleteTemplate={deleteTemplate}
+        onDeleteTemplates={deleteTemplates}
         onCaptureCurrent={handleCaptureCurrent}
         onAddSnippet={addSnippet}
         onDeleteSnippet={deleteSnippet}
         onDeleteSnippets={deleteSnippets}
         onExecuteSnippet={handleSnippetExecute}
+        onArchiveSnippet={archiveSnippet}
+        onArchiveSnippets={archiveSnippets}
+        onUnarchiveSnippet={unarchiveSnippet}
+        onUnarchiveSnippets={unarchiveSnippets}
+        onArchiveTemplate={archiveTemplate}
+        onArchiveTemplates={archiveTemplates}
+        onUnarchiveTemplate={unarchiveTemplate}
+        onUnarchiveTemplates={unarchiveTemplates}
       />
 
       <WorkspaceSwitcherDialog
         isOpen={switcherOpen}
         onOpenChange={setSwitcherOpen}
+        templates={templates.filter(t => !t.isArchived)}
         workspaces={workspaces}
         activeWorkspaceId={activeWorkspaceId}
-        templates={templates}
-        snippets={snippets}
+        snippets={snippets.filter(s => !s.isArchived)}
         onSwitchWorkspace={handleSwitchWorkspace}
         onLaunchTemplate={handleLaunchTemplate}
         onSnippetExecute={handleSnippetExecute}

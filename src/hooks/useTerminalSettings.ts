@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  getSetting,
   setSettingsGroup,
   getSettingsGroup,
   TERMINAL_DEFAULTS,
@@ -9,7 +8,13 @@ import {
 
 const PREFIX = 'terminal';
 
+// Shared global state to keep all hook instances in sync
+let globalSettings: TerminalSettings = TERMINAL_DEFAULTS;
+let isInitialLoaded = false;
+const listeners = new Set<(settings: TerminalSettings) => void>();
+
 function applyTerminalCSSVars(settings: TerminalSettings) {
+  if (typeof document === 'undefined') return;
   const root = document.documentElement;
   root.style.setProperty('--terminal-font-size', String(settings.fontSize));
   // Construct full CSS font-family string from plain name
@@ -25,34 +30,49 @@ function dispatchSettingsEvent(settings: TerminalSettings) {
   );
 }
 
-export function useTerminalSettings() {
-  const [settings, setSettings] = useState<TerminalSettings>(TERMINAL_DEFAULTS);
-  const [isLoaded, setIsLoaded] = useState(false);
+function notifyListeners() {
+  listeners.forEach(listener => listener(globalSettings));
+}
 
-  // Load from store on mount
+export function useTerminalSettings() {
+  const [settings, setSettings] = useState<TerminalSettings>(globalSettings);
+  const [isLoaded, setIsLoaded] = useState(isInitialLoaded);
+
+  // Register listener and handle initial load
   useEffect(() => {
-    getSettingsGroup<TerminalSettings>(PREFIX, TERMINAL_DEFAULTS).then((saved) => {
-      setSettings(saved);
-      applyTerminalCSSVars(saved);
+    const listener = (newSettings: TerminalSettings) => {
+      setSettings(newSettings);
       setIsLoaded(true);
-    });
+    };
+
+    listeners.add(listener);
+
+    if (!isInitialLoaded) {
+      getSettingsGroup<TerminalSettings>(PREFIX, TERMINAL_DEFAULTS).then((saved) => {
+        globalSettings = saved;
+        applyTerminalCSSVars(saved);
+        isInitialLoaded = true;
+        setIsLoaded(true);
+        notifyListeners();
+      });
+    } else {
+        setIsLoaded(true);
+    }
+
+    return () => {
+      listeners.delete(listener);
+    };
   }, []);
 
   /**
    * Update a single field — applies CSS vars + dispatches event + saves to store.
-   * Safe to call on every slider drag (CSS + event dispatch is cheap),
-   * but store.set is also called here. For high-frequency sliders, use
-   * updateSettingLive() for intermediate changes and commitSetting() on release.
    */
   const updateSetting = useCallback(
     async <K extends keyof TerminalSettings>(key: K, value: TerminalSettings[K]) => {
-      setSettings((prev) => {
-        const next = { ...prev, [key]: value };
-        applyTerminalCSSVars(next);
-        dispatchSettingsEvent(next);
-        return next;
-      });
-      await getSetting(`${PREFIX}.${String(key)}`, value); // ensure store is init
+      globalSettings = { ...globalSettings, [key]: value };
+      applyTerminalCSSVars(globalSettings);
+      dispatchSettingsEvent(globalSettings);
+      notifyListeners();
       await setSettingsGroup<TerminalSettings>(PREFIX, { [key]: value } as Partial<TerminalSettings>);
     },
     []
@@ -63,12 +83,10 @@ export function useTerminalSettings() {
    */
   const updateSettingLive = useCallback(
     <K extends keyof TerminalSettings>(key: K, value: TerminalSettings[K]) => {
-      setSettings((prev) => {
-        const next = { ...prev, [key]: value };
-        applyTerminalCSSVars(next);
-        dispatchSettingsEvent(next);
-        return next;
-      });
+      globalSettings = { ...globalSettings, [key]: value };
+      applyTerminalCSSVars(globalSettings);
+      dispatchSettingsEvent(globalSettings);
+      notifyListeners();
     },
     []
   );
@@ -77,17 +95,20 @@ export function useTerminalSettings() {
    * Commit the current in-memory state to the store (call on slider commit/blur).
    */
   const commitSettings = useCallback(async (patch?: Partial<TerminalSettings>) => {
-    setSettings((prev) => {
-      const next = patch ? { ...prev, ...patch } : prev;
-      setSettingsGroup<TerminalSettings>(PREFIX, next);
-      return next;
-    });
+    if (patch) {
+      globalSettings = { ...globalSettings, ...patch };
+      applyTerminalCSSVars(globalSettings);
+      dispatchSettingsEvent(globalSettings);
+      notifyListeners();
+    }
+    await setSettingsGroup<TerminalSettings>(PREFIX, globalSettings);
   }, []);
 
   const resetToDefaults = useCallback(async () => {
-    setSettings(TERMINAL_DEFAULTS);
+    globalSettings = TERMINAL_DEFAULTS;
     applyTerminalCSSVars(TERMINAL_DEFAULTS);
     dispatchSettingsEvent(TERMINAL_DEFAULTS);
+    notifyListeners();
     await setSettingsGroup<TerminalSettings>(PREFIX, TERMINAL_DEFAULTS);
   }, []);
 

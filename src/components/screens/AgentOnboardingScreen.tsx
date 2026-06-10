@@ -56,7 +56,7 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
           transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
           className="relative z-10 flex flex-col items-center gap-1.5"
         >
-          <span className="text-[11px] font-mono font-bold tracking-[0.25em] text-[var(--text-secondary)] uppercase flex items-center select-none">
+          <span className="text-[11px] font-mono font-bold text-[var(--text-secondary)] flex items-center select-none">
             {ONBOARDING_CONTENT.AWAKENING}
             <span className="flex ml-0.5">
               <m.span variants={dotVariants} animate="animate">.</m.span>
@@ -64,7 +64,7 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
               <m.span variants={dotVariants} animate="animate" transition={{ delay: 0.4 }}>.</m.span>
             </span>
           </span>
-          <span className="text-[9px] font-mono text-[var(--text-secondary)]/50 uppercase tracking-widest select-none">
+          <span className="text-[9px] font-mono text-[var(--text-secondary)]/50 select-none">
             Scanning for active system paths
           </span>
         </m.div>
@@ -123,7 +123,7 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
             <Cpu size={32} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] uppercase mb-2">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
               {ONBOARDING_CONTENT.TITLE}
             </h1>
             <p className="text-sm text-[var(--text-secondary)]">
@@ -149,7 +149,7 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
                   <Cpu size={14} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold tracking-tight text-[var(--text-primary)] uppercase">
+                  <span className="text-sm font-bold text-[var(--text-primary)]">
                     {agent.label}
                   </span>
                   <span className="text-[10px] font-mono text-[var(--text-secondary)] opacity-60">
@@ -168,7 +168,7 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
                       transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                       className="flex items-center gap-1.5"
                     >
-                      <span className="text-[10px] font-bold text-ansi-green uppercase tracking-tighter">{ONBOARDING_CONTENT.DETECTED}</span>
+                      <span className="text-[10px] font-bold text-ansi-green">{ONBOARDING_CONTENT.DETECTED}</span>
                       <CheckCircle2 size={16} className="text-ansi-green" />
                     </m.div>
                   )}
@@ -181,7 +181,7 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
                       transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                       className="flex items-center gap-1.5"
                     >
-                      <span className="text-[10px] font-bold text-ansi-blue uppercase tracking-tighter">{ONBOARDING_CONTENT.INSTALLING}</span>
+                      <span className="text-[10px] font-bold text-ansi-blue">{ONBOARDING_CONTENT.INSTALLING}</span>
                       <Loader2 size={16} className="text-ansi-blue animate-spin" />
                     </m.div>
                   )}
@@ -197,7 +197,7 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
                         size="sm" 
                         variant="outline"
                         onClick={() => installAgent(agent.id)}
-                        className="h-7 text-[10px] px-3 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all uppercase tracking-widest font-bold bg-[var(--surface-color)] active:scale-[0.97] active:translate-y-0 duration-150 flex items-center gap-1.5"
+                        className="h-7 text-[10px] px-3 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all font-bold bg-[var(--surface-color)] active:scale-[0.97] active:translate-y-0 duration-150 flex items-center gap-1.5"
                       >
                         <Download size={11} />
                         {ONBOARDING_CONTENT.INSTALL}
@@ -213,13 +213,13 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
                       transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                       className="flex items-center gap-1.5"
                     >
-                      <span className="text-[10px] font-bold text-ansi-red uppercase tracking-tighter">{ONBOARDING_CONTENT.FAILED}</span>
+                      <span className="text-[10px] font-bold text-ansi-red">{ONBOARDING_CONTENT.FAILED}</span>
                       <AlertCircle size={16} className="text-ansi-red" />
                       <Button 
                         size="sm" 
                         variant="outline"
                         onClick={() => installAgent(agent.id)}
-                        className="h-7 text-[10px] px-3 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all uppercase tracking-widest font-bold ml-1 bg-[var(--surface-color)] active:scale-[0.97] active:translate-y-0 duration-150 flex items-center gap-1.5"
+                        className="h-7 text-[10px] px-3 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-all font-bold ml-1 bg-[var(--surface-color)] active:scale-[0.97] active:translate-y-0 duration-150 flex items-center gap-1.5"
                       >
                         <RefreshCw size={11} />
                         {ONBOARDING_CONTENT.RETRY}
@@ -257,11 +257,11 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
           {isInitialized && (
             <p className="text-[11px] font-medium leading-normal">
               {activeCount > 0 ? (
-                <span className="text-ansi-green font-bold uppercase tracking-wider">
+                <span className="text-ansi-green font-bold">
                   {ONBOARDING_CONTENT.ACTIVE_AGENTS(activeCount)}
                 </span>
               ) : (
-                <span className="text-ansi-yellow font-bold uppercase tracking-wider">
+                <span className="text-ansi-yellow font-bold">
                   {ONBOARDING_CONTENT.NO_AGENTS}
                 </span>
               )}
@@ -272,7 +272,7 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAg
         <m.div variants={itemVariants} className="w-full flex flex-col gap-3">
           <Button 
             onClick={onComplete}
-            className="w-full h-12 text-xs font-bold uppercase tracking-widest bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 transition-all flex items-center justify-center gap-2 overflow-hidden active:scale-[0.97] active:translate-y-0 duration-150"
+            className="w-full h-12 text-xs font-bold bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 transition-all flex items-center justify-center gap-2 overflow-hidden active:scale-[0.97] active:translate-y-0 duration-150"
           >
             <AnimatePresence mode="wait" initial={false}>
               <m.span

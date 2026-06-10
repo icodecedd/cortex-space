@@ -27,7 +27,7 @@ export function SetupControls({ step, isStepValid, onPrev, onNext, onLaunch, mod
         style={{ visibility: step === 1 ? 'hidden' : 'visible', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
       >
         <ChevronLeft size={16} />
-        PREVIOUS
+        Previous
       </Button>
 
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -44,7 +44,7 @@ export function SetupControls({ step, isStepValid, onPrev, onNext, onLaunch, mod
               cursor: (isStepValid || step === 1) ? 'pointer' : 'not-allowed'
             }}
           >
-            NEXT: {step === 1 ? (mode === 'agents' ? 'ASSIGN' : 'COMMANDS') : 'PREVIEW'}
+            Next: {step === 1 ? (mode === 'agents' ? 'Assign' : 'Commands') : 'Preview'}
             <ChevronRight size={16} />
           </Button>
         ) : (
@@ -62,7 +62,7 @@ export function SetupControls({ step, isStepValid, onPrev, onNext, onLaunch, mod
             }}
           >
             <Play size={16} fill="currentColor" />
-            INITIALIZE SPACE
+            Initialize Space
           </Button>
         )}
       </div>

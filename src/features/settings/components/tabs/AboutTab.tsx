@@ -1,6 +1,6 @@
 import { SettingsCard } from "../shared/SettingsUI";
 import { Button } from "@/components/ui/button";
-import { Info, Book, RefreshCcw, Github, Globe } from "@/components/ui/icons";
+import { Info, Book, RefreshCcw } from "@/components/ui/icons";
 import { motion, Variants } from "framer-motion";
 
 export function AboutTab() {
@@ -44,41 +44,22 @@ export function AboutTab() {
               <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
                 Cortex Space
               </h2>
-              <p className="text-xs text-[var(--text-secondary)] mt-1 font-mono uppercase tracking-widest opacity-60">
+              <p className="text-xs text-[var(--text-secondary)] mt-1 font-mono opacity-60">
                 Release v0.1.0-alpha
               </p>
             </div>
-            <p className="text-[11px] text-[var(--text-secondary)] max-w-[280px] text-center leading-relaxed font-medium">
+            <p className="text-[12.5px] text-[var(--text-secondary)] max-w-[280px] text-center leading-relaxed font-medium">
               A highly optimized, modular workspace orchestrator. Designed
               for maximum throughput and rich aesthetics.
             </p>
             <div className="pt-2 flex gap-2">
-              <Button variant="outline" className="h-8 text-[10px] px-3 font-bold uppercase tracking-wider bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] transition-all">
+              <Button variant="outline" className="h-8 text-[10px] px-3 font-bold bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] transition-all">
                 <Book size={12} className="mr-2" /> Documentation
               </Button>
-              <Button variant="outline" className="h-8 text-[10px] px-3 font-bold uppercase tracking-wider bg-[var(--text-primary)]/[0.03] border-[var(--border-color)]/20 hover:bg-[var(--text-primary)]/[0.05] transition-all">
+              <Button variant="outline" className="h-8 text-[10px] px-3 font-bold bg-[var(--text-primary)]/[0.03] border-[var(--border-color)]/20 hover:bg-[var(--text-primary)]/[0.05] transition-all">
                 <RefreshCcw size={12} className="mr-2" /> Check Updates
               </Button>
             </div>
-          </div>
-        </SettingsCard>
-      </motion.div>
-
-      <motion.div variants={itemVariants}>
-        <SettingsCard 
-          title="Community & Links" 
-          icon={<Globe size={16} />}
-          description="Connect with the Cortex team and development resources."
-        >
-          <div className="grid grid-cols-2 gap-3 p-1">
-            <Button variant="ghost" className="h-10 justify-start px-4 text-[11px] font-bold uppercase tracking-wider hover:bg-[var(--text-primary)]/[0.03] group">
-              <Github size={14} className="mr-3 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]" />
-              Source Code
-            </Button>
-            <Button variant="ghost" className="h-10 justify-start px-4 text-[11px] font-bold uppercase tracking-wider hover:bg-[var(--text-primary)]/[0.03] group">
-              <div className="w-3.5 h-3.5 mr-3 flex items-center justify-center bg-[var(--text-secondary)] group-hover:bg-[var(--accent-primary)] rounded-full transition-colors" />
-              X / Twitter
-            </Button>
           </div>
         </SettingsCard>
       </motion.div>

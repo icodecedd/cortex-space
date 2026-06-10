@@ -93,17 +93,17 @@ export function ShortcutsTab({
 
       <div className="flex items-center justify-between px-2 mb-8">
         <div>
-          <h3 className="text-[14px] font-bold tracking-[0.2em] text-[var(--text-primary)] uppercase flex items-center gap-2.5">
+          <h3 className="text-[14px] font-bold text-[var(--text-primary)] flex items-center gap-2.5">
             <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_10px_var(--accent-primary)]" />
             Keyboard Shortcuts
           </h3>
-          <p className="text-[11px] text-[var(--text-secondary)] mt-1 font-medium">Reconfigure the shortcuts for your workspace.</p>
+          <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 font-medium">Reconfigure the shortcuts for your workspace.</p>
         </div>
         <Button 
           variant="ghost" 
           size="sm" 
           onClick={() => setIsConfirmOpen(true)}
-          className="h-8 px-3 text-[10px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all uppercase tracking-widest border border-[var(--accent-primary)]/20"
+          className="h-8 px-3 text-[10px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all border border-[var(--accent-primary)]/20"
         >
           <RotateCcw size={12} className="mr-2" /> Reset All
         </Button>
@@ -180,7 +180,7 @@ export function ShortcutsTab({
 function StaticShortcutItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--text-primary)]/[0.02] transition-colors">
-      <span className="text-[11px] font-bold text-[var(--text-secondary)]">{label}</span>
+      <span className="text-[12px] font-bold text-[var(--text-secondary)]">{label}</span>
       <Kbd className="bg-transparent border-none p-0 text-[var(--text-secondary)] opacity-60 italic">{value}</Kbd>
     </div>
   );
@@ -283,7 +283,7 @@ function ShortcutItem({ label, shortcutKey, currentValue, defaultValue, onChange
           : "hover:bg-[var(--text-primary)]/[0.03]"
       )}>
         <span className={cn(
-          "text-[11px] font-bold tracking-tight transition-colors",
+          "text-[12px] font-bold tracking-tight transition-colors",
           isRecording
             ? "text-[var(--accent-primary)]"
             : hasConflict
@@ -309,7 +309,7 @@ function ShortcutItem({ label, shortcutKey, currentValue, defaultValue, onChange
             )}
           >
             {isRecording ? (
-              <span className="text-[var(--accent-primary)] animate-pulse flex items-center gap-1.5 uppercase font-bold tracking-widest text-[9px]">
+              <span className="text-[var(--accent-primary)] animate-pulse flex items-center gap-1.5 font-bold text-[9px]">
                 Recording
               </span>
             ) : (
@@ -388,13 +388,13 @@ function ShortcutItem({ label, shortcutKey, currentValue, defaultValue, onChange
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={handleSwap}
-                  className="h-5 px-2 rounded text-[9px] font-bold uppercase tracking-widest bg-amber-500/20 text-amber-300 hover:bg-amber-500/35 transition-colors border border-amber-500/30"
+                  className="h-5 px-2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 hover:bg-amber-500/35 transition-colors border border-amber-500/30"
                 >
                   Swap
                 </button>
                 <button
                   onClick={dismissConflict}
-                  className="h-5 px-2 rounded text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/60 hover:text-[var(--text-secondary)] hover:bg-[var(--text-primary)]/5 transition-colors"
+                  className="h-5 px-2 rounded text-[9px] font-bold text-[var(--text-secondary)]/60 hover:text-[var(--text-secondary)] hover:bg-[var(--text-primary)]/5 transition-colors"
                 >
                   Cancel
                 </button>

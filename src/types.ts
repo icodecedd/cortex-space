@@ -43,12 +43,14 @@ export interface SpaceTemplate {
   createdAt: string;
   lastUsedAt?: string;
   color?: string;
+  isArchived?: boolean;
 }
 
 export interface DirectoryPreset {
   id: string;
   label: string;
   path: string;
+  isArchived?: boolean;
 }
 
 export interface Snippet {
@@ -57,6 +59,7 @@ export interface Snippet {
   command: string; // Supports variable placeholders like {{VARIABLE_NAME}}
   category?: string;
   tags?: string[];
+  isArchived?: boolean;
 }
 
 export interface Agent {

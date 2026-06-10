@@ -4,6 +4,7 @@ import { PaneConfig } from "@/lib/setup-constants";
 import { PaneConfigCard } from "../ui-parts/PaneConfigCard";
 import { useState } from "react";
 import { Snippet, Agent } from "@/types";
+import { toTitleCase } from "@/lib/utils";
 import {
   Combobox,
 } from "@/components/ui/combobox";
@@ -41,7 +42,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
   };
 
   const globalItems = mode === 'agents' 
-    ? agents.filter(p => p.status === 'installed').map(p => ({ label: p.label, value: p.command }))
+    ? agents.filter(p => p.status === 'installed').map(p => ({ label: toTitleCase(p.label), value: p.command }))
     : snippets.map(s => ({ label: s.label, value: s.command }));
 
   return (
@@ -54,7 +55,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
       <motion.div variants={itemVariants} className="flex flex-col gap-1 mb-10">
         <div className="flex items-center gap-2 mb-1">
           <Command size={16} className="text-[var(--accent-primary)]" />
-          <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
+          <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
             {mode === 'agents' ? 'Configure AI Agents' : 'Configure Terminal Commands'}
           </h3>
         </div>
@@ -77,7 +78,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
             <div className="flex flex-col gap-2 max-w-md">
               <div className="flex items-center gap-2">
                 <Zap size={14} className="text-[var(--accent-primary)]" />
-                <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--accent-primary)]">
+                <h4 className="text-[11px] font-bold tracking-wider text-[var(--accent-primary)]">
                   Apply to All Panes
                 </h4>
               </div>
@@ -102,7 +103,7 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
                 emptyText="No results found."
               />
               <div className="flex items-center gap-2 opacity-80">
-                <span className="text-[9px] font-mono text-[var(--text-secondary)] font-bold uppercase tracking-tighter">Individual overrides enabled</span>
+                <span className="text-[9px] font-mono text-[var(--text-secondary)] font-bold tracking-tighter">Individual overrides enabled</span>
               </div>
             </div>
           </div>

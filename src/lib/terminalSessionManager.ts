@@ -214,24 +214,24 @@ class SessionManager {
     await Promise.all(allChecks.map(async ({ terminalId, check }) => {
       const key = `${terminalId}:${check.port}`;
       try {
-        const status = await invoke<string>('check_port', { port: check.check.port });
+        const status = await invoke<string>('check_port', { port: check.port });
         if (status === 'open') {
           this.portFailures.set(key, 0);
         } else if (status === 'refused') {
           // Port definitively closed
-          this.handlePortGone(terminalId, check.check);
+          this.handlePortGone(terminalId, check);
         } else {
           // Timeout / error
           const failures = (this.portFailures.get(key) || 0) + 1;
           if (failures >= maxFailures) {
-            this.handlePortGone(terminalId, check.check);
+            this.handlePortGone(terminalId, check);
           } else {
             this.portFailures.set(key, failures);
           }
         }
       } catch {
         const failures = (this.portFailures.get(key) || 0) + 1;
-        if (failures >= maxFailures) this.handlePortGone(terminalId, check.check);
+        if (failures >= maxFailures) this.handlePortGone(terminalId, check);
         else this.portFailures.set(key, failures);
       }
     }));
@@ -273,10 +273,8 @@ class SessionManager {
     session.onDataCallbacks.add(onData);
     session.onExitCallbacks.add(onExit);
 
-    const encoder = new TextEncoder();
     return {
-      isTerminated: session.isTerminated,
-      history: encoder.encode(session.buffer.join(''))
+      isTerminated: session.isTerminated
     };
   }
 

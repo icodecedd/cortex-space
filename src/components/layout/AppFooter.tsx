@@ -55,7 +55,6 @@ export const AppFooter = React.memo(({ theme, setTheme, allThemes }: AppFooterPr
                   fontSize: '10px',
                   color: 'var(--text-secondary)',
                   fontWeight: 800,
-                  textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   padding: '0.85rem 0.85rem 0.5rem',
                   opacity: 0.9

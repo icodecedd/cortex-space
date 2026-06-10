@@ -28,7 +28,7 @@ export function LayoutSelector({
   // All layouts are now dynamic and come from savedLayouts
   const options = useMemo(() => [
     ...savedLayouts.map(l => ({ id: l.id, name: l.name, isSystem: false })),
-    { id: 'custom', name: 'CUSTOM', isSystem: true }
+    { id: 'custom', name: 'Custom', isSystem: true }
   ], [savedLayouts]);
 
   const handleNumericInput = (val: string, key: 'rows' | 'cols') => {
@@ -74,7 +74,7 @@ export function LayoutSelector({
                 "font-mono text-[9px] font-bold tracking-wider truncate max-w-full",
                 currentLayout === opt.id ? "text-[var(--accent-primary)]" : "text-[var(--text-secondary)]"
               )}>
-                {opt.name.toUpperCase()}
+                {opt.name}
               </span>
               {!opt.isSystem && (
                 <span className="font-mono text-[7px] text-[var(--text-secondary)] font-bold">
@@ -149,7 +149,7 @@ function CustomLayoutForm({
   return (
     <div className="flex items-center gap-8 rounded-md border border-[var(--border-color)] bg-white/[0.02] p-5">
       <div className="flex items-center gap-4">
-        <div className="font-mono text-[10px] font-bold tracking-tight text-[var(--text-secondary)] uppercase">Rows</div>
+        <div className="font-mono text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">Rows</div>
         <Input 
           type="number" 
           min="1" 
@@ -161,7 +161,7 @@ function CustomLayoutForm({
       </div>
       <div className="text-[var(--text-secondary)] font-mono text-xs font-bold">×</div>
       <div className="flex items-center gap-4">
-        <div className="font-mono text-[10px] font-bold tracking-tight text-[var(--text-secondary)] uppercase">Cols</div>
+        <div className="font-mono text-[10px] font-bold tracking-tight text-[var(--text-secondary)]">Cols</div>
         <Input 
           type="number" 
           min="1" 
@@ -173,7 +173,7 @@ function CustomLayoutForm({
       </div>
       <div className="ml-auto flex items-center gap-6">
         <div className="font-mono text-[10px] text-[var(--text-secondary)] font-bold">
-          PREVIEW: <span className="font-bold text-[var(--accent-primary)]">{(customLayout.rows || 1) * (customLayout.cols || 1)} PANES</span>
+          Preview: <span className="font-bold text-[var(--accent-primary)]">{(customLayout.rows || 1) * (customLayout.cols || 1)} Panes</span>
         </div>
         <div className="h-10 w-10">
           <LayoutMiniPreview type="custom" customConfig={customLayout} />

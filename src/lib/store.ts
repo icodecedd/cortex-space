@@ -59,6 +59,7 @@ export async function clearAllSettings() {
   const store = await getStore();
   await store.clear();
   cachedStore = {};
+  if (cachePromise) cachePromise = Promise.resolve({});
 }
 
 // ---------------------------------------------------------------------------

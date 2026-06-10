@@ -23,8 +23,15 @@ export function usePty(
     onDataRef.current = onData;
   }, [onData]);
 
+  const lastStatusUpdateRef = useRef<number>(0);
+
   // Handle data stream for status monitoring
   const updateStatusOnData = useCallback(() => {
+    const now = Date.now();
+    // Throttle status updates to once every 100ms to avoid excessive React renders
+    if (now - lastStatusUpdateRef.current < 100) return;
+    lastStatusUpdateRef.current = now;
+
     setStatus('thinking');
     
     // Clear existing timers
@@ -34,9 +41,6 @@ export function usePty(
     // Set "finished" state after 1.5s of inactivity
     statusTimersRef.current.finish = setTimeout(() => {
       setStatus('finished');
-      
-      // Removed: Automatic revert to "idle". 
-      // Status remains "finished" until new data sets it to "thinking" again.
     }, 1500);
   }, []);
 

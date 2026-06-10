@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { 
   DndContext, 
   DragEndEvent, 
@@ -58,27 +58,18 @@ export const SpaceView = React.memo(({
   onMovePane,
   onKillPane,
   onRenamePane,
-  onSaveSnippet
-}: SpaceViewProps) => {
-  // Normalize layout to LayoutNode tree
-  // Only re-calculate if the layout string/structure changes
-  const layoutTree = useMemo(() => {
-    if (typeof config.layout === 'string') {
-      const configObj: LayoutConfig = { rows: 2, cols: 2 };
-      if (config.layout === '1x1') { configObj.rows = 1; configObj.cols = 1; }
-      else if (config.layout === '1x2') { configObj.rows = 1; configObj.cols = 2; }
-      else if (config.layout === '2x1') { configObj.rows = 2; configObj.cols = 1; }
-      else if (config.layout === '3x3') { configObj.rows = 3; configObj.cols = 3; }
-      return gridToLayoutNode(configObj, config.panes || []);
-    }
-    return config.layout;
-  }, [config.layout, config.panes]); // config.panes is still needed if layout is a string
-
+  onSaveSnippet,
+  isCurrent
+}: SpaceViewProps & { isCurrent: boolean }) => {
+  const isMobile = useIsMobile();
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [focusedPaneId, setFocusedPaneId] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
-  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -88,22 +79,32 @@ export const SpaceView = React.memo(({
     })
   );
 
-  useEffect(() => {
-    getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
-  }, []);
+  const layoutTree = useMemo(() => {
+    if (typeof config.layout === 'string') {
+      try {
+        return JSON.parse(config.layout) as LayoutNode;
+      } catch (e) {
+        console.error("Failed to parse layout JSON", e);
+        return { type: 'pane', id: '1', name: 'Terminal', command: '' } as PaneNode;
+      }
+    }
+    return config.layout as LayoutNode;
+  }, [config.layout]);
 
-  // Find all panes to manage focus and maximization
   const allPanes = useMemo(() => {
     const panes: PaneNode[] = [];
     const traverse = (node: LayoutNode) => {
-      if (node.type === 'pane') panes.push(node);
-      else node.children.forEach(traverse);
+      if (node.type === 'pane') {
+        panes.push(node);
+      } else {
+        node.children.forEach(traverse);
+      }
     };
     traverse(layoutTree);
     return panes;
   }, [layoutTree]);
 
-  // Set initial focus if not set
+  // Set initial focus if none
   useEffect(() => {
     if (!focusedPaneId && allPanes.length > 0) {
       setFocusedPaneId(allPanes[0].id);
@@ -112,7 +113,10 @@ export const SpaceView = React.memo(({
 
   // Global active session workspace keyboard shortcuts
   useEffect(() => {
+    if (!isCurrent) return; // ONLY attach listener if this is the visible workspace
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ...
       // 1. Focus Pane (Ctrl/Cmd + [1-9])
       const isNumKey = e.key >= '1' && e.key <= '9';
       if ((e.ctrlKey || e.metaKey) && isNumKey && !e.shiftKey && !e.altKey) {

@@ -1,13 +1,32 @@
 import * as React from "react";
-import { SquareTerminal, Bot, Keyboard, Settings, Minus, Square, Copy, X, Plus, Rocket } from "@/components/ui/icons";
+import { SquareTerminal, Bot, Keyboard, Settings, Minus, Square, Copy, X, Plus, Rocket, Edit2, Pin, PinOff, Palette, Ban, Layers, ArrowRight, RotateCcw } from "@/components/ui/icons";
 import { Reorder } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Workspace } from "@/types";
-import { InteractiveTab } from "@/components/ui/interactive-tab";
+import { InteractiveTab, COLOR_MAP, TabColor } from "@/components/ui/interactive-tab";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+} from "@/components/ui/context-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { countPanes } from "@/lib/setup-utils";
 import { getWorkspacePlaceholder } from "@/lib/utils";
 import { HEADER_CONTENT } from "@/lib/content";
+import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
   workspaces: Workspace[];
@@ -59,6 +78,17 @@ export const AppHeader = React.memo(({
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = React.useState(false);
 
+  // Shared Context Menu & Rename Dialog State
+  const [contextWorkspaceId, setContextWorkspaceId] = React.useState<string | null>(null);
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = React.useState(false);
+  const [tempName, setTempName] = React.useState("");
+  const renameInputRef = React.useRef<HTMLInputElement>(null);
+
+  const contextWorkspace = React.useMemo(() => 
+    workspaces.find(ws => ws.id === contextWorkspaceId), 
+    [workspaces, contextWorkspaceId]
+  );
+
   // Allow horizontal scrolling with mouse wheel
   React.useEffect(() => {
     const el = scrollRef.current;
@@ -67,7 +97,6 @@ export const AppHeader = React.memo(({
     const handleWheel = (e: WheelEvent) => {
       if (e.deltaY !== 0) {
         e.preventDefault();
-        // Reverse: scroll down (positive deltaY) moves right, scroll up (negative deltaY) moves left
         el.scrollLeft += e.deltaY;
       }
     };
@@ -101,6 +130,20 @@ export const AppHeader = React.memo(({
     if (idsToClose.length > 0) {
       onCloseWorkspaces(idsToClose);
     }
+  };
+
+  const handleRenameClick = (ws: Workspace) => {
+    setContextWorkspaceId(ws.id);
+    setTempName(ws.customName || ws.name);
+    setIsRenameDialogOpen(true);
+  };
+
+  const handleRenameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (contextWorkspaceId) {
+      onRenameWorkspace(contextWorkspaceId, tempName.trim());
+    }
+    setIsRenameDialogOpen(false);
   };
 
   return (
@@ -141,35 +184,142 @@ export const AppHeader = React.memo(({
                       onDragStart={() => setIsDragging(true)}
                       onDragEnd={() => setIsDragging(false)}
                     >
-                      <InteractiveTab
-                        id={ws.id}
-                        name={ws.name ? ws.name : getWorkspacePlaceholder(idx)}
-                        customName={ws.customName}
-                        isActive={isActive}
-                        isDraft={isDraft}
-                        color={ws.color}
-                        isPinned={ws.isPinned}
-                        terminalCount={terminalCount}
-                        icon={
-                          ws.mode === 'agents' ? (
-                            <Bot size={13} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
-                          ) : (
-                            <SquareTerminal size={13} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
-                          )
-                        }
-                        onSelect={() => onSwitchWorkspace(ws.id)}
-                        onClose={() => onCloseWorkspace(ws.id)}
-                        onRename={(newName) => onRenameWorkspace(ws.id, newName)}
-                        onColorChange={(newColor) => onColorWorkspace(ws.id, newColor)}
-                        onPin={(pinned) => onPinWorkspace(ws.id, pinned)}
-                        onNewToRight={() => onNewWorkspaceToRight(ws.id)}
-                        onCloseOthers={() => handleCloseOthers(ws.id)}
-                        onCloseToRight={() => handleCloseToRight(ws.id)}
-                        canClose={workspaces.length > 1}
-                        canCloseOthers={canCloseOthers}
-                        isLast={isLast}
-                        disableTooltip={isDragging}
-                      />
+                      <ContextMenu onOpenChange={(open) => { if (open) setContextWorkspaceId(ws.id); }}>
+                        <ContextMenuTrigger asChild>
+                          <div>
+                            <InteractiveTab
+                              id={ws.id}
+                              name={ws.name ? ws.name : getWorkspacePlaceholder(idx)}
+                              customName={ws.customName}
+                              isActive={isActive}
+                              isDraft={isDraft}
+                              color={ws.color}
+                              isPinned={ws.isPinned}
+                              terminalCount={terminalCount}
+                              icon={
+                                ws.mode === 'agents' ? (
+                                  <Bot size={13} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
+                                ) : (
+                                  <SquareTerminal size={13} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
+                                )
+                              }
+                              onSelect={() => onSwitchWorkspace(ws.id)}
+                              onClose={() => onCloseWorkspace(ws.id)}
+                              onRename={() => handleRenameClick(ws)}
+                              onColorChange={(newColor) => onColorWorkspace(ws.id, newColor)}
+                              onPin={(pinned) => onPinWorkspace(ws.id, pinned)}
+                              onNewToRight={() => onNewWorkspaceToRight(ws.id)}
+                              onCloseOthers={() => handleCloseOthers(ws.id)}
+                              onCloseToRight={() => handleCloseToRight(ws.id)}
+                              canClose={workspaces.length > 1}
+                              canCloseOthers={canCloseOthers}
+                              isLast={isLast}
+                              disableTooltip={isDragging}
+                            />
+                          </div>
+                        </ContextMenuTrigger>
+
+                        <ContextMenuContent className="w-56 bg-[var(--surface-color)] border-[var(--border-color)] p-1 text-[var(--text-primary)]">
+                          <ContextMenuItem 
+                            onClick={() => handleRenameClick(ws)}
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                          >
+                            <Edit2 size={14} className="text-[var(--text-secondary)]" />
+                            <span className="font-bold">Rename</span>
+                          </ContextMenuItem>
+
+                          <ContextMenuItem 
+                            onClick={() => onPinWorkspace(ws.id, !ws.isPinned)}
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                          >
+                            {ws.isPinned ? (
+                              <>
+                                <PinOff size={14} className="text-[var(--text-secondary)]" />
+                                <span className="font-bold">Unpin</span>
+                              </>
+                            ) : (
+                              <>
+                                <Pin size={14} className="text-[var(--text-secondary)]" />
+                                <span className="font-bold">Pin</span>
+                              </>
+                            )}
+                          </ContextMenuItem>
+
+                          <ContextMenuSub>
+                            <ContextMenuSubTrigger className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]">
+                              <Palette size={14} className="text-[var(--text-secondary)]" />
+                              <span className="font-bold">Color</span>
+                            </ContextMenuSubTrigger>
+                            <ContextMenuSubContent className="w-48 bg-[var(--surface-color)] border-[var(--border-color)] p-1 text-[var(--text-primary)]">
+                              <ContextMenuItem
+                                onClick={() => onColorWorkspace(ws.id, undefined)}
+                                className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                              >
+                                <Ban size={14} className="text-[var(--text-secondary)]" />
+                                <span>Default Slate</span>
+                              </ContextMenuItem>
+                              <ContextMenuSeparator className="bg-[var(--border-color)]/50" />
+                              {(Object.keys(COLOR_MAP) as TabColor[]).map((c) => {
+                                const item = COLOR_MAP[c];
+                                return (
+                                  <ContextMenuItem
+                                    key={c}
+                                    onClick={() => onColorWorkspace(ws.id, c)}
+                                    className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                                  >
+                                    <div 
+                                      className="w-3 h-3 rounded-full border border-black/20" 
+                                      style={{ backgroundColor: item.hex }} 
+                                    />
+                                    <span>{item.label}</span>
+                                  </ContextMenuItem>
+                                );
+                              })}
+                            </ContextMenuSubContent>
+                          </ContextMenuSub>
+
+                          <ContextMenuSeparator className="bg-[var(--border-color)]/50" />
+
+                          <ContextMenuItem
+                            onClick={() => onNewWorkspaceToRight(ws.id)}
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                          >
+                            <Plus size={14} className="text-[var(--text-secondary)]" />
+                            <span className="font-bold">New to Right</span>
+                          </ContextMenuItem>
+
+                          <ContextMenuItem
+                            onClick={() => handleCloseOthers(ws.id)}
+                            disabled={!canCloseOthers}
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                          >
+                            <Layers size={14} className={cn("text-[var(--text-secondary)]", !canCloseOthers && "opacity-50")} />
+                            <span className="font-bold">Close Others</span>
+                          </ContextMenuItem>
+
+                          <ContextMenuItem
+                            onClick={() => handleCloseToRight(ws.id)}
+                            disabled={isLast}
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                          >
+                            <ArrowRight size={14} className={cn("text-[var(--text-secondary)]", isLast && "opacity-50")} />
+                            <span className="font-bold">Close to Right</span>
+                          </ContextMenuItem>
+
+                          <ContextMenuSeparator className="bg-[var(--border-color)]/50" />
+                          <ContextMenuItem 
+                            onClick={() => onCloseWorkspace(ws.id)}
+                            disabled={workspaces.length <= 1}
+                            className="flex items-center justify-between gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
+                          >
+                            <div className="flex items-center gap-2">
+                              <X size={14} />
+                              <span className="font-bold">Close</span>
+                            </div>
+                            <span className="text-[10px] opacity-50 font-mono">Ctrl+W</span>
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
                     </Reorder.Item>
                   );
                 })}
@@ -307,9 +457,60 @@ export const AppHeader = React.memo(({
             </TooltipContent>
           </Tooltip>
         </div>
-
       </div>
 
+      {/* Shared Rename Dialog */}
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Rename Workspace</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRenameSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="name" className="text-xs font-bold text-[var(--text-secondary)] tracking-wider">
+                    Workspace Name
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setTempName("")}
+                    className="flex items-center gap-1 text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors tracking-tight"
+                  >
+                    <RotateCcw size={10} />
+                    Reset to Default
+                  </button>
+                </div>
+                <Input
+                  id="name"
+                  ref={renameInputRef}
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  className="bg-[var(--bg-color)]/25 border-[var(--border-color)] focus:border-[var(--accent-primary)]"
+                  placeholder={contextWorkspace?.name || "New Workspace"}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={() => setIsRenameDialogOpen(false)}
+                className="hover:bg-[var(--text-primary)]/5"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:brightness-110"
+              >
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });

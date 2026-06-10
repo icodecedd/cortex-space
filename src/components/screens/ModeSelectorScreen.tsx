@@ -185,7 +185,7 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, showShortcutHints 
           >
             <div className="absolute top-4 right-4 flex items-center gap-2">
               {lastMode === "normal" && (
-                <span className="text-[9px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                <span className="text-[9px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2 py-0.5 rounded-full">
                   Last Used
                 </span>
               )}
@@ -203,7 +203,6 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, showShortcutHints 
                   alignItems: "center",
                   gap: "0.75rem",
                   fontSize: "1.1rem",
-                  letterSpacing: "0.1em",
                   color: "var(--text-primary)",
                 }}
               >
@@ -240,7 +239,7 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, showShortcutHints 
           >
             <div className="absolute top-4 right-4 flex items-center gap-2">
               {lastMode === "agents" && (
-                <span className="text-[9px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                <span className="text-[9px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2 py-0.5 rounded-full">
                   Last Used
                 </span>
               )}
@@ -272,7 +271,6 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, showShortcutHints 
                   alignItems: "center",
                   gap: "0.75rem",
                   fontSize: "1.1rem",
-                  letterSpacing: "0.1em",
                   color: "var(--text-primary)",
                 }}
               >

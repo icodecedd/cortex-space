@@ -42,7 +42,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
       <motion.div variants={itemVariants} className="flex flex-col gap-1 mb-10">
         <div className="flex items-center gap-2 mb-1">
           <ShieldCheck size={16} className="text-[var(--accent-primary)]" />
-          <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
+          <h3 className="text-lg font-bold text-[var(--text-primary)]">
             Setup Summary
           </h3>
         </div>
@@ -58,7 +58,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
           <motion.section variants={itemVariants} className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-color)]">
               <Database size={14} className="text-[var(--text-secondary)]" />
-              <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+              <h4 className="text-[11px] font-bold text-[var(--text-secondary)]">
                 Environment
               </h4>
             </div>
@@ -82,7 +82,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
           <motion.section variants={itemVariants} className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-color)]">
               <Layers size={14} className="text-[var(--text-secondary)]" />
-              <h4 className="text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+              <h4 className="text-[11px] font-bold text-[var(--text-secondary)]">
                 Layout
               </h4>
             </div>
@@ -105,7 +105,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
                       </span>
                     </div>
                     <Badge variant="outline" className="h-5 px-1.5 text-[9px] font-mono bg-[var(--text-primary)]/5 border-[var(--border-color)] opacity-80 rounded-sm font-bold">
-                      READY
+                      Ready
                     </Badge>
                   </div>
                 ))}
@@ -124,7 +124,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
         <motion.div variants={itemVariants} className="md:col-span-5">
           <Card className="p-1 border-[var(--border-color)] bg-[var(--text-primary)]/5 shadow-2xl overflow-hidden group rounded-md">
             <div className="p-4 flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--text-primary)]/5">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+              <span className="text-[10px] font-bold text-[var(--text-secondary)]">
                 Workspace Preview
               </span>
               <div className="flex gap-1.5">
@@ -185,7 +185,7 @@ function SummaryItem({ label, value, status, icon }: {
           {icon}
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">{label}</span>
+          <span className="text-[10px] font-bold text-[var(--text-secondary)]">{label}</span>
           <span className={`text-sm font-bold ${status === 'missing' ? 'text-red-600' : 'text-[var(--text-primary)]'}`}>
             {value}
           </span>

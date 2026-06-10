@@ -1,30 +1,27 @@
 import { useState } from "react";
 import { SettingsCard, SettingsRow } from "../shared/SettingsUI";
 import { Switch } from "@/components/ui/switch";
-import { DemoSettings, setSetting } from "@/lib/store";
+import { DemoSettings } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Layout, Keyboard, RefreshCcw } from "@/components/ui/icons";
 import { motion, Variants } from "framer-motion";
 import { ConfirmActionDialog } from "@/components/dialogs/ConfirmActionDialog";
+import { setSetting } from "@/lib/store";
 
 interface DemoTabProps {
   demo: DemoSettings;
   setDemoSetting: <K extends keyof DemoSettings>(key: K, value: DemoSettings[K]) => Promise<void>;
   onResetDemo: () => Promise<void>;
+  onFactoryReset: () => Promise<void>;
 }
 
 export function DemoTab({
   demo,
   setDemoSetting,
   onResetDemo,
+  onFactoryReset,
 }: DemoTabProps) {
   const [isFactoryResetConfirmOpen, setIsFactoryResetConfirmOpen] = useState(false);
-
-  const handleFactoryReset = async () => {
-    const { clearAllSettings } = await import("@/lib/store");
-    await clearAllSettings();
-    window.location.reload();
-  };
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -55,13 +52,13 @@ export function DemoTab({
         description="Are you absolutely sure you want to completely wipe all application data? This will erase all your presets, snippets, templates, and workspace settings back to their factory defaults. This action cannot be undone."
         confirmLabel="Wipe Everything"
         variant="destructive"
-        onConfirm={handleFactoryReset}
+        onConfirm={onFactoryReset}
       />
 
       <motion.div variants={itemVariants}>
         <SettingsCard 
           title="Destructive Operations" 
-          icon={<AlertTriangle size={16} />}
+          icon={<AlertTriangle size={16} className="text-red-500" />}
           description="High-level system resets and environment wipes."
           onReset={onResetDemo}
         >
@@ -79,7 +76,7 @@ export function DemoTab({
                 await setSetting('cortex_agents', null);
                 window.location.reload();
               }}
-              className="h-7 text-[10px] uppercase font-bold tracking-wider bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]"
+              className="h-7 text-[10px] font-bold tracking-wider bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]"
             >
               Trigger Demo
             </Button>
@@ -94,7 +91,7 @@ export function DemoTab({
               variant="destructive" 
               size="xs" 
               onClick={() => setIsFactoryResetConfirmOpen(true)}
-              className="h-7 text-[10px] uppercase font-bold tracking-wider"
+              className="h-7 text-[10px] font-bold tracking-wider"
             >
               Wipe Everything
             </Button>
@@ -107,6 +104,7 @@ export function DemoTab({
           title="Navigation Debugging" 
           icon={<Layout size={16} />}
           description="Toggle visibility of experimental header components."
+          onReset={onResetDemo}
         >
           <SettingsRow
             label="Show Workspaces Tab"

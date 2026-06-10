@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useRef } from "react";
 import { Kbd } from "@/components/ui/kbd";
 import { extractVariables, resolveVariables } from "@/lib/snippet-utils";
+import { toTitleCase } from "@/lib/utils";
 
 interface PendingSnippet {
   originalCommand: string;
@@ -105,7 +106,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
             {mode === 'agents' ? <Cpu size={14} /> : <Terminal size={14} />}
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] font-mono font-bold text-[var(--accent-primary)] opacity-80 uppercase tracking-widest">
+            <span className="text-[10px] font-mono font-bold text-[var(--accent-primary)] opacity-80 tracking-widest">
               Pane 0{pane.id}
             </span>
             {isEditingName ? (
@@ -138,14 +139,14 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
             className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-ansi-green/10 border border-ansi-green/20"
           >
             <CheckCircle2 size={10} className="text-ansi-green" />
-            <span className="text-[8px] font-bold text-ansi-green uppercase tracking-tighter">Ready</span>
+            <span className="text-[8px] font-bold text-ansi-green tracking-tighter">Ready</span>
           </motion.div>
         )}
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em]">
+          <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-[0.1em]">
             {mode === 'agents' 
               ? (pane.isCustom ? 'Custom Command' : 'Agent Selection') 
               : 'Input Command'}
@@ -160,7 +161,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                 title={pane.isCustom ? "Return to Agent Selection" : "Enter Manual Command"}
               >
                 {pane.isCustom ? <Cpu size={10} /> : <Code size={10} />}
-                <span className="text-[9px] font-bold uppercase tracking-tight whitespace-nowrap">
+                <span className="text-[9px] font-bold tracking-tight whitespace-nowrap">
                   {pane.isCustom ? 'Switch to AI' : 'Switch to Custom'}
                 </span>
               </Button>
@@ -174,14 +175,14 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                     className="h-5 px-2 gap-1.5 border border-[var(--border-color)] bg-[var(--text-primary)]/[0.02] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--accent-primary)]/30 hover:bg-[var(--accent-primary)]/5 transition-all"
                   >
                     <Library size={10} />
-                    <span className="text-[9px] font-bold uppercase tracking-tight whitespace-nowrap">
+                    <span className="text-[9px] font-bold tracking-tight whitespace-nowrap">
                       Snippets
                     </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-2 bg-[var(--surface-color)] border-[var(--border-color)] shadow-xl rounded-md" align="end">
                   <div className="flex flex-col gap-1">
-                    <div className="px-2 py-1.5 text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest border-b border-[var(--border-color)] mb-1">
+                    <div className="px-2 py-1.5 text-[9px] font-bold text-[var(--text-secondary)] tracking-widest border-b border-[var(--border-color)] mb-1">
                       Quick Snippets
                     </div>
                     {snippets.length === 0 ? (
@@ -216,7 +217,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
 
         {mode === 'agents' && !pane.isCustom ? (
           <Combobox
-            items={agents.filter(p => p.status === 'installed').map(p => ({ label: p.label, value: p.command }))}
+            items={agents.filter(p => p.status === 'installed').map(p => ({ label: toTitleCase(p.label), value: p.command }))}
             value={pane.command || ""}
             onValueChange={(val) => {
               const isPreset = agents.some(p => p.command === val);
@@ -266,7 +267,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
             >
               <div className="p-3 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-[var(--accent-primary)] uppercase tracking-widest">Variable Required</span>
+                  <span className="text-[9px] font-bold text-[var(--accent-primary)] tracking-widest">Variable Required</span>
                   <button onClick={handleVariableCancel} className="p-1 hover:bg-[var(--text-primary)]/5 rounded text-[var(--text-secondary)]">
                     <X size={12} />
                   </button>
@@ -297,8 +298,8 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
 
                 <div className="flex items-center justify-between text-[9px] text-[var(--text-secondary)] font-bold">
                   <div className="flex gap-2">
-                    <div className="flex items-center gap-1"><Kbd className="text-[8px]">ENTER</Kbd> OK</div>
-                    <div className="flex items-center gap-1"><Kbd className="text-[8px]">ESC</Kbd> CANCEL</div>
+                    <div className="flex items-center gap-1"><Kbd className="text-[8px]">Enter</Kbd> Ok</div>
+                    <div className="flex items-center gap-1"><Kbd className="text-[8px]">Esc</Kbd> Cancel</div>
                   </div>
                   <div>{pendingSnippet.currentIndex + 1}/{pendingSnippet.variables.length}</div>
                 </div>

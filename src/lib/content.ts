@@ -4,23 +4,23 @@ export const ASSETS = {
 };
 
 export const SPLASH_CONTENT = {
-  TITLE: "CORTEX",
-  SUBTITLE: "SPACE",
-  AWAKENING: "INITIALIZING SYSTEM"
+  TITLE: "Cortex",
+  SUBTITLE: "Space",
+  AWAKENING: "Initializing system"
 };
 
 export const MODE_SELECTOR_CONTENT = {
-  TITLE: "CORTEX",
-  SUBTITLE: "SPACE",
+  TITLE: "Cortex",
+  SUBTITLE: "Space",
   DESCRIPTION: "The unified workspace for your terminal and AI-assisted workflows",
   PROMPT: "Choose how you want to work today.",
   NORMAL_MODE: {
-    TITLE: "TERMINAL MODE",
+    TITLE: "Terminal Mode",
     DESCRIPTION: "Classic terminal experience with multi-pane support",
     SHORTCUT_LABEL: "Ctrl + N"
   },
   AGENTS_MODE: {
-    TITLE: "AI ASSISTED MODE",
+    TITLE: "AI Assisted Mode",
     DESCRIPTION: "AI-powered environment for collaborative development",
     SHORTCUT_LABEL: "Ctrl + A"
   },
@@ -50,19 +50,19 @@ export const FOOTER_CONTENT = {
 };
 
 export const SETUP_CONTENT = {
-  TITLE: "CORTEX",
-  SUBTITLE: "SPACE",
-  WORKSPACE_SETUP: "SET UP YOUR WORKSPACE",
+  TITLE: "Cortex",
+  SUBTITLE: "Space",
+  WORKSPACE_SETUP: "Set up your workspace",
   STEPS: {
-    WORKSPACE: "WORKSPACE",
-    ASSIGN: "ASSIGN",
-    COMMANDS: "COMMANDS",
-    PREVIEW: "PREVIEW"
+    WORKSPACE: "Workspace",
+    ASSIGN: "Assign",
+    COMMANDS: "Commands",
+    PREVIEW: "Preview"
   }
 };
 
 export const ONBOARDING_CONTENT = {
-  AWAKENING: "PREPARING SYSTEM",
+  AWAKENING: "Preparing system",
   TITLE: "AI Agent Setup",
   SUBTITLE: "Configure your AI-powered development tools.",
   DETECTED: "Detected",
