@@ -19,7 +19,7 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">
+        <div className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider">
           Quick Access Paths
         </div>
         {(rootPath && !isDuplicate) && (
@@ -27,7 +27,7 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
             variant="ghost"
             size="xs"
             onClick={onAdd}
-            className="h-6 px-2 text-[9px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 tracking-widest uppercase rounded"
+            className="h-6 px-2 text-[9px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 tracking-wider rounded"
           >
             <Plus size={10} className="mr-1" />
             Save Current

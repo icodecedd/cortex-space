@@ -98,7 +98,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, onCustomize }: Key
                 variant="ghost" 
                 size="sm" 
                 onClick={onCustomize}
-                className="h-8 px-2.5 gap-2 text-[10px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all uppercase tracking-widest"
+                className="h-8 px-2.5 gap-2 text-[10px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all tracking-widest"
               >
                 <Settings size={12} strokeWidth={3} /> Customize
               </Button>
@@ -113,7 +113,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, onCustomize }: Key
           <div className="flex flex-col gap-6 px-6 py-4 pr-10 pb-8">
             {groups.map((group, idx) => (
               <div key={idx}>
-                <h4 className="text-[10px] tracking-wider text-[var(--accent-primary)] font-bold mb-3 font-mono uppercase opacity-80">
+                <h4 className="text-[10px] tracking-wider text-[var(--accent-primary)] font-bold mb-3 font-mono opacity-80">
                   {group.title}
                 </h4>
                 <div className="flex flex-col gap-3.5 font-mono text-[12px]">

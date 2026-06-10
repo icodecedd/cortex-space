@@ -9,35 +9,64 @@ import {
 
 const PREFIX = 'focus';
 
-export function useFocusSettings() {
-  const [settings, setSettings] = useState<FocusSettings>(FOCUS_DEFAULTS);
-  const [isLoaded, setIsLoaded] = useState(false);
+// Shared global state to keep all hook instances in sync
+let globalSettings: FocusSettings = FOCUS_DEFAULTS;
+let isInitialLoaded = false;
+const listeners = new Set<(settings: FocusSettings) => void>();
 
-  // Load from store on mount
+function notifyListeners() {
+  listeners.forEach(listener => listener(globalSettings));
+}
+
+export function useFocusSettings() {
+  const [settings, setSettings] = useState<FocusSettings>(globalSettings);
+  const [isLoaded, setIsLoaded] = useState(isInitialLoaded);
+
+  // Register listener and handle initial load
   useEffect(() => {
-    getSettingsGroup<FocusSettings>(PREFIX, FOCUS_DEFAULTS).then((saved) => {
-      setSettings(saved);
+    const listener = (newSettings: FocusSettings) => {
+      setSettings(newSettings);
       setIsLoaded(true);
-    });
+    };
+
+    listeners.add(listener);
+
+    if (!isInitialLoaded) {
+      getSettingsGroup<FocusSettings>(PREFIX, FOCUS_DEFAULTS).then((saved) => {
+        globalSettings = saved;
+        isInitialLoaded = true;
+        setIsLoaded(true);
+        notifyListeners();
+      });
+    } else {
+        setIsLoaded(true);
+    }
+
+    return () => {
+      listeners.delete(listener);
+    };
   }, []);
 
   const setFocusSetting = useCallback(async <K extends keyof FocusSettings>(
     key: K,
     value: FocusSettings[K]
   ) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    globalSettings = { ...globalSettings, [key]: value };
+    notifyListeners();
     await setSetting(`${PREFIX}.${String(key)}`, value);
   }, []);
 
   const toggleZenMode = useCallback(async () => {
-    const nextVal = !settings.isZenMode;
-    setSettings((prev) => ({ ...prev, isZenMode: nextVal }));
+    const nextVal = !globalSettings.isZenMode;
+    globalSettings = { ...globalSettings, isZenMode: nextVal };
+    notifyListeners();
     await setSetting(`${PREFIX}.isZenMode`, nextVal);
     return nextVal;
-  }, [settings.isZenMode]);
+  }, []);
 
   const resetToDefaults = useCallback(async () => {
-    setSettings(FOCUS_DEFAULTS);
+    globalSettings = FOCUS_DEFAULTS;
+    notifyListeners();
     await setSettingsGroup<FocusSettings>(PREFIX, FOCUS_DEFAULTS);
   }, []);
 

@@ -66,6 +66,14 @@ export function useAgents() {
       setIsInitialized(true);
     }
     loadAgents();
+
+    const handleSync = () => loadAgents();
+    window.addEventListener('cortex:agents-updated', handleSync);
+    window.addEventListener('cortex-settings-changed', handleSync);
+    return () => {
+      window.removeEventListener('cortex:agents-updated', handleSync);
+      window.removeEventListener('cortex-settings-changed', handleSync);
+    };
   }, []);
 
   useEffect(() => {
@@ -78,6 +86,7 @@ export function useAgents() {
     setAgents(prev => prev.map(a =>
       a.id === id ? { ...a, status, errorMessage: errorMessage ?? (status !== 'error' ? undefined : a.errorMessage) } : a
     ));
+    window.dispatchEvent(new Event('cortex:agents-updated'));
   }, []);
 
   const addAgent = useCallback((label: string, command: string, installCommand?: string, downloadUrl?: string) => {
@@ -103,9 +112,16 @@ export function useAgents() {
       return;
     }
 
+    let finalLabel = trimmedLabel || trimmedCommand.toUpperCase();
+    
+    // Normalize standard names like 'freebuff' to 'Freebuff'
+    if (finalLabel.toLowerCase() === 'freebuff') {
+      finalLabel = 'Freebuff';
+    }
+
     const newAgent: Agent = {
       id: crypto.randomUUID(),
-      label: trimmedLabel || trimmedCommand.toUpperCase(),
+      label: finalLabel,
       command: trimmedCommand,
       status: 'not-installed',
       downloadUrl: trimmedDownloadUrl || undefined,
@@ -114,6 +130,8 @@ export function useAgents() {
     };
 
     setAgents(prev => [...prev, newAgent]);
+    window.dispatchEvent(new Event('cortex:agents-updated'));
+    
     toast.success(`${newAgent.label} added successfully`, {
       description: "The agent is now in your agent library."
     });
@@ -135,6 +153,8 @@ export function useAgents() {
       return;
     }
     setAgents(prev => prev.filter(a => a.id !== id));
+    window.dispatchEvent(new Event('cortex:agents-updated'));
+    
     toast.success(`${agent?.label || 'Agent'} removed successfully`, {
       description: "The agent has been removed from your library."
     });

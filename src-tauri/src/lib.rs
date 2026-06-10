@@ -4,6 +4,13 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
+
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 use portable_pty::{native_pty_system, CommandBuilder, PtySize, MasterPty, Child};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
@@ -51,6 +58,8 @@ fn get_shell_env() -> HashMap<String, String> {
             }
         }
     }
+
+    // Windows shell environment is usually inherited correctly, but we could add logic here if needed
     
     env
 }
@@ -64,9 +73,10 @@ fn kill_process_tree(child: &mut Box<dyn Child + Send + Sync>) {
         }
         #[cfg(windows)]
         {
-            let _ = std::process::Command::new("taskkill")
-                .args(["/F", "/T", "/PID", &pid.to_string()])
-                .output();
+            let mut cmd = std::process::Command::new("taskkill");
+            cmd.args(["/F", "/T", "/PID", &pid.to_string()]);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            let _ = cmd.output();
         }
     }
     // Fallback if the process is still around
@@ -74,7 +84,7 @@ fn kill_process_tree(child: &mut Box<dyn Child + Send + Sync>) {
 }
 
 #[tauri::command]
-fn spawn_pty<R: Runtime>(
+async fn spawn_pty<R: Runtime>(
     app: AppHandle<R>,
     id: String,
     command: Option<String>,
@@ -83,173 +93,209 @@ fn spawn_pty<R: Runtime>(
     cols: u16,
     shell: Option<String>,
 ) -> Result<(), String> {
-    let pty_system = native_pty_system();
-    
-    let pty_pair = pty_system
-        .openpty(PtySize {
-            rows,
-            cols,
-            pixel_width: 0,
-            pixel_height: 0,
-        })
-        .map_err(|e| format!("Failed to open PTY: {}", e))?;
+    let app_handle = app.clone();
+    let id_clone = id.clone();
 
-    let env = get_shell_env();
-
-    let child = if cfg!(target_os = "windows") {
-        let shell_to_use = shell.unwrap_or_else(|| "pwsh.exe".to_string());
-        let mut main_cmd = CommandBuilder::new(&shell_to_use);
+    let result = tokio::task::spawn_blocking(move || {
+        let pty_system = native_pty_system();
         
-        if shell_to_use.contains("pwsh.exe") || shell_to_use.contains("powershell.exe") {
-            if let Some(ref cmd_str) = command {
-                main_cmd.args([
-                    "-NoLogo",
-                    "-ExecutionPolicy",
-                    "Bypass",
-                    "-NoExit",
-                    "-Command",
-                    &format!("{} -NoLogo -ExecutionPolicy Bypass -Command {}", shell_to_use, cmd_str),
-                ]);
-            } else {
-                main_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
-            }
-        } else if let Some(ref cmd_str) = command {
-            // For other shells like git bash or cmd
-            main_cmd.arg("-c");
-            main_cmd.arg(cmd_str);
-        }
+        let pty_pair = pty_system
+            .openpty(PtySize {
+                rows,
+                cols,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .map_err(|e| format!("Failed to open PTY: {}", e))?;
 
-        if let Some(ref path) = cwd {
-            if !path.trim().is_empty() && std::path::Path::new(path).exists() {
-                main_cmd.cwd(path);
-            } else if let Some(home_dir) = home::home_dir() {
-                main_cmd.cwd(home_dir);
-            }
-        } else if let Some(home_dir) = home::home_dir() {
-            main_cmd.cwd(home_dir);
-        }
-        for (key, val) in &env {
-            main_cmd.env(key, val);
-        }
-        main_cmd.env("TERM", "xterm-256color");
-        main_cmd.env("COLORTERM", "truecolor");
+        let env = get_shell_env();
 
-        match pty_pair.slave.spawn_command(main_cmd) {
-            Ok(c) => c,
-            Err(_) if shell_to_use == "pwsh.exe" => {
-                // Fallback to powershell.exe if pwsh failed and was the default
-                let mut ps_cmd = CommandBuilder::new("powershell.exe");
+        let child = if cfg!(target_os = "windows") {
+            let shell_to_use = shell.unwrap_or_else(|| "pwsh.exe".to_string());
+            let mut main_cmd = CommandBuilder::new(&shell_to_use);
+            
+            if shell_to_use.contains("pwsh.exe") || shell_to_use.contains("powershell.exe") {
                 if let Some(ref cmd_str) = command {
-                    ps_cmd.args([
+                    main_cmd.args([
                         "-NoLogo",
                         "-ExecutionPolicy",
                         "Bypass",
                         "-NoExit",
                         "-Command",
-                        &format!("powershell.exe -NoLogo -ExecutionPolicy Bypass -Command {}", cmd_str),
+                        &format!("{} -NoLogo -ExecutionPolicy Bypass -Command {}", shell_to_use, cmd_str),
                     ]);
                 } else {
-                    ps_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
+                    main_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
                 }
-                if let Some(ref path) = cwd {
-                    if !path.trim().is_empty() && std::path::Path::new(path).exists() {
-                        ps_cmd.cwd(path);
+            } else if let Some(ref cmd_str) = command {
+                // For other shells like git bash or cmd
+                main_cmd.arg("-c");
+                main_cmd.arg(cmd_str);
+            }
+
+            if let Some(ref path) = cwd {
+                if !path.trim().is_empty() && std::path::Path::new(path).exists() {
+                    main_cmd.cwd(path);
+                } else if let Some(home_dir) = home::home_dir() {
+                    main_cmd.cwd(home_dir);
+                }
+            } else if let Some(home_dir) = home::home_dir() {
+                main_cmd.cwd(home_dir);
+            }
+            for (key, val) in &env {
+                main_cmd.env(key, val);
+            }
+            main_cmd.env("TERM", "xterm-256color");
+            main_cmd.env("COLORTERM", "truecolor");
+
+            match pty_pair.slave.spawn_command(main_cmd) {
+                Ok(c) => c,
+                Err(_) if shell_to_use == "pwsh.exe" => {
+                    // Fallback to powershell.exe if pwsh failed and was the default
+                    let mut ps_cmd = CommandBuilder::new("powershell.exe");
+                    if let Some(ref cmd_str) = command {
+                        ps_cmd.args([
+                            "-NoLogo",
+                            "-ExecutionPolicy",
+                            "Bypass",
+                            "-NoExit",
+                            "-Command",
+                            &format!("powershell.exe -NoLogo -ExecutionPolicy Bypass -Command {}", cmd_str),
+                        ]);
+                    } else {
+                        ps_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
+                    }
+                    if let Some(ref path) = cwd {
+                        if !path.trim().is_empty() && std::path::Path::new(path).exists() {
+                            ps_cmd.cwd(path);
+                        } else if let Some(home_dir) = home::home_dir() {
+                            ps_cmd.cwd(home_dir);
+                        }
                     } else if let Some(home_dir) = home::home_dir() {
                         ps_cmd.cwd(home_dir);
                     }
-                } else if let Some(home_dir) = home::home_dir() {
-                    ps_cmd.cwd(home_dir);
-                }
-                for (key, val) in &env {
-                    ps_cmd.env(key, val);
-                }
-                ps_cmd.env("TERM", "xterm-256color");
-                ps_cmd.env("COLORTERM", "truecolor");
+                    for (key, val) in &env {
+                        ps_cmd.env(key, val);
+                    }
+                    ps_cmd.env("TERM", "xterm-256color");
+                    ps_cmd.env("COLORTERM", "truecolor");
 
-                pty_pair.slave.spawn_command(ps_cmd).map_err(|e| format!("Failed to spawn powershell: {}", e))?
+                    pty_pair.slave.spawn_command(ps_cmd).map_err(|e| format!("Failed to spawn powershell: {}", e))?
+                }
+                Err(e) => return Err(format!("Failed to spawn {}: {}", shell_to_use, e)),
             }
-            Err(e) => return Err(format!("Failed to spawn {}: {}", shell_to_use, e)),
-        }
-    } else {
-        // Unix shell
-        let shell_to_use = shell.unwrap_or_else(|| std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string()));
-        let mut unix_cmd = CommandBuilder::new(&shell_to_use);
-        
-        // Add interactive/login flags for standard shells
-        if shell_to_use.ends_with("sh") || shell_to_use.ends_with("bash") || shell_to_use.ends_with("zsh") {
-            unix_cmd.arg("-l");
-            unix_cmd.arg("-i");
-        }
-        
-        if let Some(ref cmd_str) = command {
-            unix_cmd.arg("-c");
-            unix_cmd.arg(format!("exec {}", cmd_str));
-        }
+        } else {
+            // Unix shell
+            let shell_to_use = shell.unwrap_or_else(|| std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string()));
+            let mut unix_cmd = CommandBuilder::new(&shell_to_use);
+            
+            // Add interactive/login flags for standard shells
+            if shell_to_use.ends_with("sh") || shell_to_use.ends_with("bash") || shell_to_use.ends_with("zsh") {
+                unix_cmd.arg("-l");
+                unix_cmd.arg("-i");
+            }
+            
+            if let Some(ref cmd_str) = command {
+                unix_cmd.arg("-c");
+                unix_cmd.arg(format!("exec {}", cmd_str));
+            }
 
-        if let Some(ref path) = cwd {
-            if !path.trim().is_empty() && std::path::Path::new(path).exists() {
-                unix_cmd.cwd(path);
+            if let Some(ref path) = cwd {
+                if !path.trim().is_empty() && std::path::Path::new(path).exists() {
+                    unix_cmd.cwd(path);
+                } else if let Some(home_dir) = home::home_dir() {
+                    unix_cmd.cwd(home_dir);
+                }
             } else if let Some(home_dir) = home::home_dir() {
                 unix_cmd.cwd(home_dir);
             }
-        } else if let Some(home_dir) = home::home_dir() {
-            unix_cmd.cwd(home_dir);
-        }
-        for (key, val) in &env {
-            unix_cmd.env(key, val);
-        }
-        unix_cmd.env("TERM", "xterm-256color");
-        unix_cmd.env("COLORTERM", "truecolor");
+            for (key, val) in &env {
+                unix_cmd.env(key, val);
+            }
+            unix_cmd.env("TERM", "xterm-256color");
+            unix_cmd.env("COLORTERM", "truecolor");
 
-        pty_pair.slave.spawn_command(unix_cmd).map_err(|e| format!("Failed to spawn shell {}: {}", shell_to_use, e))?
-    };
-    let reader = pty_pair.master.try_clone_reader().map_err(|e| format!("Failed to clone reader: {}", e))?;
-    let writer = pty_pair.master.take_writer().map_err(|e| format!("Failed to take writer: {}", e))?;
+            pty_pair.slave.spawn_command(unix_cmd).map_err(|e| format!("Failed to spawn shell {}: {}", shell_to_use, e))?
+        };
 
+        let reader = pty_pair.master.try_clone_reader().map_err(|e| format!("Failed to clone reader: {}", e))?;
+        let writer = pty_pair.master.take_writer().map_err(|e| format!("Failed to take writer: {}", e))?;
+
+        Ok((pty_pair.master, writer, child, reader))
+    }).await.map_err(|e| e.to_string())??;
+
+    let (master, writer, child, reader) = result;
     let session_id = SESSION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-    let mut sessions = PTY_SESSIONS.lock().unwrap();
-    // Kill existing session if any with the same ID
-    if let Some(mut old_session) = sessions.remove(&id) {
-        kill_process_tree(&mut old_session.child);
+    // Kill existing session if any with the same ID, release lock before killing to avoid blocking
+    let old_session = {
+        let mut sessions = PTY_SESSIONS.lock().unwrap();
+        sessions.remove(&id)
+    };
+    
+    if let Some(mut old) = old_session {
+        // Run blocking operation in a separate thread to avoid freezing main thread
+        let _ = tokio::task::spawn_blocking(move || {
+            kill_process_tree(&mut old.child);
+        }).await;
     }
 
-    sessions.insert(
-        id.clone(),
-        PtySession {
-            master: pty_pair.master,
-            writer,
-            child,
-            session_id,
-        },
-    );
+    {
+        let mut sessions = PTY_SESSIONS.lock().unwrap();
+        sessions.insert(
+            id.clone(),
+            PtySession {
+                master,
+                writer,
+                child,
+                session_id,
+            },
+        );
+    }
 
 
 
-    let app_clone = app.clone();
-    let id_clone = id.clone();
+    let id_clone_thread = id_clone.clone();
     thread::spawn(move || {
         let mut reader = reader;
-        let mut buffer = [0u8; 8192]; // Larger buffer for better throughput
+        let mut buffer = [0u8; 8192];
+        let mut accumulated_data = String::with_capacity(16384);
+        let mut last_emit = std::time::Instant::now();
+
         loop {
             match reader.read(&mut buffer) {
                 Ok(n) if n > 0 => {
-                    let data = String::from_utf8_lossy(&buffer[..n]).into_owned();
-                    let _ = app_clone.emit("pty-output", PtyOutputPayload {
-                        id: id_clone.clone(),
-                        data,
-                    });
+                    accumulated_data.push_str(&String::from_utf8_lossy(&buffer[..n]));
+                    
+                    // Batch output: emit if buffer is large OR if some time has passed
+                    if accumulated_data.len() > 12288 || last_emit.elapsed().as_millis() > 10 {
+                        let _ = app_handle.emit("pty-output", PtyOutputPayload {
+                            id: id_clone_thread.clone(),
+                            data: accumulated_data.clone(),
+                        });
+                        accumulated_data.clear();
+                        last_emit = std::time::Instant::now();
+                    }
                 }
-                _ => break, // EOF or error
+                _ => {
+                    // Flush any remaining data before exiting
+                    if !accumulated_data.is_empty() {
+                        let _ = app_handle.emit("pty-output", PtyOutputPayload {
+                            id: id_clone_thread.clone(),
+                            data: accumulated_data,
+                        });
+                    }
+                    break;
+                }
             }
         }
         // Notify frontend that this PTY session has terminated, ONLY if it is still the current active session
         let mut sessions = PTY_SESSIONS.lock().unwrap();
-        if let Some(session) = sessions.get(&id_clone) {
+        if let Some(session) = sessions.get(&id_clone_thread) {
             if session.session_id == session_id {
-                sessions.remove(&id_clone);
+                sessions.remove(&id_clone_thread);
                 drop(sessions); // Release lock before emitting event to avoid deadlocks
-                let _ = app_clone.emit("pty-exit", id_clone.clone());
+                let _ = app_handle.emit("pty-exit", id_clone_thread.clone());
             }
         }
     });
@@ -258,7 +304,7 @@ fn spawn_pty<R: Runtime>(
 }
 
 #[tauri::command]
-fn write_pty(id: String, data: String) -> Result<(), String> {
+async fn write_pty(id: String, data: String) -> Result<(), String> {
     let mut sessions = PTY_SESSIONS.lock().unwrap();
     if let Some(session) = sessions.get_mut(&id) {
         session.writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
@@ -270,7 +316,7 @@ fn write_pty(id: String, data: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn resize_pty(id: String, rows: u16, cols: u16) -> Result<(), String> {
+async fn resize_pty(id: String, rows: u16, cols: u16) -> Result<(), String> {
     let mut sessions = PTY_SESSIONS.lock().unwrap();
     if let Some(session) = sessions.get_mut(&id) {
         session
@@ -289,18 +335,27 @@ fn resize_pty(id: String, rows: u16, cols: u16) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn kill_pty(id: String) -> Result<(), String> {
-    let mut sessions = PTY_SESSIONS.lock().unwrap();
-    if let Some(mut session) = sessions.remove(&id) {
-        kill_process_tree(&mut session.child);
+async fn kill_pty(id: String) -> Result<(), String> {
+    let session = {
+        let mut sessions = PTY_SESSIONS.lock().unwrap();
+        sessions.remove(&id)
+    };
+    
+    if let Some(mut s) = session {
+        // Run blocking operation in a separate thread to avoid freezing main thread
+        let _ = tokio::task::spawn_blocking(move || {
+            kill_process_tree(&mut s.child);
+        }).await;
     }
     Ok(())
 }
 
 #[tauri::command]
-fn validate_directory(path: String) -> bool {
-    let p = std::path::Path::new(&path);
-    p.exists() && p.is_dir()
+async fn validate_directory(path: String) -> bool {
+    tokio::task::spawn_blocking(move || {
+        let p = std::path::Path::new(&path);
+        p.exists() && p.is_dir()
+    }).await.unwrap_or(false)
 }
 
 #[tauri::command]
@@ -354,10 +409,12 @@ async fn check_port_lsof(port: u16) -> String {
     use tokio::process::Command;
     
     if cfg!(target_os = "windows") {
-        let output = Command::new("cmd")
-            .args(["/C", &format!("netstat -ano | findstr :{} | findstr LISTEN", port)])
-            .output()
-            .await;
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/C", &format!("netstat -ano | findstr :{} | findstr LISTEN", port)]);
+        #[cfg(windows)]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+        
+        let output = cmd.output().await;
             
         if let Ok(output) = output {
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -388,9 +445,12 @@ async fn kill_port_process(port: u16) -> Result<(), String> {
 
     if cfg!(target_os = "windows") {
         // Find PID holding the port
-        let output = Command::new("cmd")
-            .args(["/C", &format!("netstat -ano | findstr :{} | findstr LISTEN", port)])
-            .output()
+        let mut find_cmd = Command::new("cmd");
+        find_cmd.args(["/C", &format!("netstat -ano | findstr :{} | findstr LISTEN", port)]);
+        #[cfg(windows)]
+        find_cmd.creation_flags(CREATE_NO_WINDOW);
+
+        let output = find_cmd.output()
             .await
             .map_err(|e| e.to_string())?;
 
@@ -398,10 +458,12 @@ async fn kill_port_process(port: u16) -> Result<(), String> {
         if let Some(line) = stdout.lines().next() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if let Some(pid) = parts.last() {
-                let _ = Command::new("taskkill")
-                    .args(["/F", "/T", "/PID", pid])
-                    .output()
-                    .await;
+                let mut kill_cmd = Command::new("taskkill");
+                kill_cmd.args(["/F", "/T", "/PID", pid]);
+                #[cfg(windows)]
+                kill_cmd.creation_flags(CREATE_NO_WINDOW);
+                
+                let _ = kill_cmd.output().await;
             }
         }
     } else {
@@ -415,8 +477,10 @@ async fn kill_port_process(port: u16) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn debug_env() -> String {
-    let env = get_shell_env();
+async fn debug_env() -> String {
+    // get_shell_env is relatively fast but it's better to run it in a non-blocking way if possible.
+    // However, it's mostly inheriting vars. Only Unix runs a command.
+    let env = tokio::task::spawn_blocking(move || get_shell_env()).await.unwrap_or_default();
     env.get("PATH")
         .or_else(|| env.get("Path"))
         .or_else(|| env.get("path"))
@@ -428,21 +492,25 @@ fn debug_env() -> String {
 }
 
 #[tauri::command]
-fn check_command(command: String) -> bool {
-    let mut cmd = if cfg!(target_os = "windows") {
-        let mut c = std::process::Command::new("where");
-        c.arg(&command);
-        c
-    } else {
-        let mut c = std::process::Command::new("which");
-        c.arg(&command);
-        c
-    };
-    
-    match cmd.output() {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
-    }
+async fn check_command(command: String) -> bool {
+    tokio::task::spawn_blocking(move || {
+        let mut cmd = if cfg!(target_os = "windows") {
+            let mut c = std::process::Command::new("where");
+            c.arg(&command);
+            #[cfg(windows)]
+            c.creation_flags(CREATE_NO_WINDOW);
+            c
+        } else {
+            let mut c = std::process::Command::new("which");
+            c.arg(&command);
+            c
+        };
+        
+        match cmd.output() {
+            Ok(output) => output.status.success(),
+            Err(_) => false,
+        }
+    }).await.unwrap_or(false)
 }
 
 #[tauri::command]
@@ -467,18 +535,23 @@ async fn install_agent_cli(command: String) -> Result<(), String> {
         // Fall back to powershell.exe (Windows PowerShell 5.x) if pwsh is unavailable.
         let ps_args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &command];
 
-        let pwsh_result = Command::new("pwsh.exe")
-            .args(&ps_args)
-            .output()
-            .await;
+        let mut pwsh_cmd = Command::new("pwsh.exe");
+        pwsh_cmd.args(&ps_args);
+        #[cfg(windows)]
+        pwsh_cmd.creation_flags(CREATE_NO_WINDOW);
+
+        let pwsh_result = pwsh_cmd.output().await;
 
         let output = match pwsh_result {
             Ok(o) => o,
             Err(_) => {
                 // pwsh not found — fallback to legacy powershell.exe
-                Command::new("powershell.exe")
-                    .args(&ps_args)
-                    .output()
+                let mut ps5_cmd = Command::new("powershell.exe");
+                ps5_cmd.args(&ps_args);
+                #[cfg(windows)]
+                ps5_cmd.creation_flags(CREATE_NO_WINDOW);
+                
+                ps5_cmd.output()
                     .await
                     .map_err(|e| format!("Failed to execute powershell: {}", e))?
             }
@@ -520,19 +593,24 @@ async fn install_agent_cli(command: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_default_shell() -> String {
-    if cfg!(target_os = "windows") {
-        // Check if pwsh exists by trying to run it
-        let pwsh_exists = std::process::Command::new("where")
-            .arg("pwsh.exe")
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false);
-            
-        if pwsh_exists { "pwsh.exe".to_string() } else { "powershell.exe".to_string() }
-    } else {
-        std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
-    }
+async fn get_default_shell() -> String {
+    tokio::task::spawn_blocking(move || {
+        if cfg!(target_os = "windows") {
+            // Check if pwsh exists by trying to run it
+            let mut where_cmd = std::process::Command::new("where");
+            where_cmd.arg("pwsh.exe");
+            #[cfg(windows)]
+            where_cmd.creation_flags(CREATE_NO_WINDOW);
+
+            let pwsh_exists = where_cmd.output()
+                .map(|o| o.status.success())
+                .unwrap_or(false);
+                
+            if pwsh_exists { "pwsh.exe".to_string() } else { "powershell.exe".to_string() }
+        } else {
+            std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
+        }
+    }).await.unwrap_or_else(|_| "/bin/sh".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

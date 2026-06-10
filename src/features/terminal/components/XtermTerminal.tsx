@@ -129,7 +129,7 @@ export function XtermTerminal({
   useEffect(() => {
     const loadSettings = async () => {
       const [startup, sh, showHeader, visibility, terminal] = await Promise.all([
-        getSettingsGroup<TerminalSettings>('startup', { defaultShell: '' } as any),
+        getSettingsGroup<any>('startup', { defaultShell: '' }),
         getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS),
         getSetting('demo.showFloatingTerminalHeader', true),
         getSetting<'hover' | 'always'>('demo.terminalHeaderVisibility', 'hover'),
@@ -946,7 +946,7 @@ export function XtermTerminal({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse" />
-                    <span className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-widest">Fill Snippet Variables</span>
+                    <span className="text-[10px] font-bold text-[var(--accent-primary)]">Fill Snippet Variables</span>
                   </div>
                   <button 
                     onClick={handleVariableCancel}
@@ -988,12 +988,12 @@ export function XtermTerminal({
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5">
-                      <Kbd className="text-[9px] px-1 py-0.5">ENTER</Kbd>
-                      <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Submit</span>
+                      <Kbd className="text-[9px] px-1 py-0.5">Enter</Kbd>
+                      <span className="text-[10px] font-bold text-[var(--text-secondary)]">Submit</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Kbd className="text-[9px] px-1 py-0.5">ESC</Kbd>
-                      <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Cancel</span>
+                      <Kbd className="text-[9px] px-1 py-0.5">Esc</Kbd>
+                      <span className="text-[10px] font-bold text-[var(--text-secondary)]">Cancel</span>
                     </div>
                   </div>
                   <div className="text-[10px] font-mono text-[var(--text-secondary)] font-bold">
@@ -1023,14 +1023,14 @@ export function XtermTerminal({
         display: isTerminated ? 'flex' : 'none'
       }}>
         <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.15em' }}>
-          TERMINAL STOPPED
+          Terminal Stopped
         </span>
         <Button
           onClick={() => relaunch()}
           className="primary btn-tactile"
           style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', letterSpacing: '0.05em', borderRadius: 'var(--radius-sm)' }}
         >
-          RESTART SESSION
+          Restart Session
         </Button>
       </div>
     </div>

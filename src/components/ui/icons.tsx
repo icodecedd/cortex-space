@@ -111,3 +111,5 @@ export const AlertTriangle = wrapIcon(HugeIcons.AlertTriangle);
 export const RefreshCcw = wrapIcon(HugeIcons.ReloadIcon);
 export const Book = wrapIcon(HugeIcons.Book02Icon);
 export const Github = wrapIcon(HugeIcons.GithubIcon);
+export const Archive = wrapIcon(HugeIcons.InboxIcon);
+export const ListView = wrapIcon(HugeIcons.ListViewIcon);

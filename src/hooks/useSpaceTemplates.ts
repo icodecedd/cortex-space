@@ -81,7 +81,7 @@ export function useSpaceTemplates() {
     );
 
     if (isDuplicate) {
-      toast.error("Template cannot be added", {
+      toast.error("Workspace cannot be added", {
         id: `tpl-dup-${normalizedTarget}`,
         description: "An identical configuration already exists in your library."
       });
@@ -99,9 +99,9 @@ export function useSpaceTemplates() {
     };
 
     setTemplates(prev => [newTemplate, ...prev]);
-    toast.success(`${name} captured successfully`, {
+    toast.success(`${name} saved successfully`, {
       id: `tpl-save-${normalizedTarget}`,
-      description: "The workspace template has been saved.",
+      description: "The workspace has been added to your library.",
     });
   }, []);
 
@@ -110,15 +110,78 @@ export function useSpaceTemplates() {
     const name = template?.name || "Template";
     
     setTemplates(prev => prev.filter(t => t.id !== id));
-    toast.info(`${name} removed successfully`, { 
+    toast.success(`${name} permanently deleted`, { 
       id: `tpl-del-${id}`,
-      description: "The template has been deleted from your library."
+      description: "The workspace has been permanently removed."
+    });
+  }, []);
+
+  const archiveTemplate = useCallback((id: string) => {
+    const template = templatesRef.current.find(t => t.id === id);
+    const name = template?.name || "Template";
+    setTemplates(prev => prev.map(t => t.id === id ? { ...t, isArchived: true } : t));
+    toast.info(`${name} archived`, {
+      id: `tpl-arch-${id}`,
+      description: "The workspace has been archived and can be restored later."
+    });
+  }, []);
+
+  const archiveTemplates = useCallback((ids: string[]) => {
+    const count = ids.length;
+    setTemplates(prev => prev.map(t => ids.includes(t.id) ? { ...t, isArchived: true } : t));
+    toast.info(`${count} workspaces archived`, {
+      id: `tpl-arch-bulk-${ids.join('-').substring(0, 50)}`,
+      description: "The items have been archived and can be restored later."
+    });
+  }, []);
+
+  const unarchiveTemplate = useCallback((id: string) => {
+    const template = templatesRef.current.find(t => t.id === id);
+    const name = template?.name || "Template";
+    setTemplates(prev => prev.map(t => t.id === id ? { ...t, isArchived: false } : t));
+    toast.success(`${name} restored`, {
+      id: `tpl-unarch-${id}`,
+      description: "The workspace has been restored to your library."
+    });
+  }, []);
+
+  const unarchiveTemplates = useCallback((ids: string[]) => {
+    const count = ids.length;
+    setTemplates(prev => prev.map(t => ids.includes(t.id) ? { ...t, isArchived: false } : t));
+    toast.success(`${count} workspaces restored`, {
+      id: `tpl-unarch-bulk-${ids.join('-').substring(0, 50)}`,
+      description: `Successfully restored ${count} items to your library.`
+    });
+  }, []);
+
+  const permanentlyDeleteTemplate = useCallback((id: string) => {
+    const template = templatesRef.current.find(t => t.id === id);
+    const name = template?.name || "Template";
+    setTemplates(prev => prev.filter(t => t.id !== id));
+    toast.success(`${name} permanently deleted`, {
+      id: `tpl-perm-${id}`,
+      description: "The workspace has been permanently removed."
+    });
+  }, []);
+
+  const deleteTemplates = useCallback((ids: string[]) => {
+    const count = ids.length;
+    setTemplates(prev => prev.filter(t => !ids.includes(t.id)));
+    toast.success(`${count} workspaces permanently deleted`, {
+      id: `tpl-del-bulk-${ids.join('-').substring(0, 50)}`,
+      description: `Successfully removed ${count} items from your library.`
     });
   }, []);
 
   return {
     templates,
     captureCurrent,
-    deleteTemplate
+    deleteTemplate,
+    deleteTemplates,
+    archiveTemplate,
+    archiveTemplates,
+    unarchiveTemplate,
+    unarchiveTemplates,
+    permanentlyDeleteTemplate
   };
 }

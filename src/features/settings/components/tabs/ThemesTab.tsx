@@ -167,14 +167,14 @@ export function ThemesTab({
         >
           <div className="flex flex-col gap-6 px-1 pt-2 pb-4">
             <div className="flex items-center justify-between px-1">
-              <span className="text-[11px] font-bold tracking-wider text-[var(--text-secondary)] uppercase">
+              <span className="text-[11px] font-bold text-[var(--text-secondary)]">
                 Library
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsImporting(!isImporting)}
-                className="h-7 text-[10px] gap-1.5 bg-[var(--accent-primary)]/5 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold uppercase tracking-wider"
+                className="h-7 text-[10px] gap-1.5 bg-[var(--accent-primary)]/5 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold"
               >
                 <Plus size={10} strokeWidth={3} />
                 Create Theme
@@ -212,7 +212,7 @@ export function ThemesTab({
                     <Button
                       size="sm"
                       onClick={handleImportTheme}
-                      className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] text-[11px] font-bold uppercase tracking-wider h-8"
+                      className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] text-[11px] font-bold h-8"
                     >
                       <Check size={12} className="mr-1.5" />
                       Add to Library
@@ -290,7 +290,7 @@ export function ThemesTab({
                             </Badge>
                           )}
                         </div>
-                        <span className="text-[10px] text-[var(--text-secondary)] mt-0.5 leading-tight line-clamp-2">
+                        <span className="text-[11.5px] text-[var(--text-secondary)] mt-0.5 leading-tight line-clamp-2">
                           {t.isCustom ? "User-created theme" : (THEME_DESCRIPTIONS[t.id] || "Core Cortex preset")}
                         </span>
                       </div>

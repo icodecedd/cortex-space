@@ -28,10 +28,10 @@ export function SettingsCard({
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
             {icon && <span className="text-[var(--accent-primary)]">{icon}</span>}
-            <h4 className="text-[11px] font-bold tracking-[0.15em] text-[var(--text-primary)] uppercase">{title}</h4>
+            <h4 className="text-[13px] font-bold text-[var(--text-primary)]">{title}</h4>
           </div>
           {description && (
-            <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed font-medium">{description}</p>
+            <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed font-medium">{description}</p>
           )}
         </div>
         {onReset && (
@@ -39,7 +39,7 @@ export function SettingsCard({
             variant="ghost"
             size="sm"
             onClick={onReset}
-            className="h-8 px-3 text-[10px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all uppercase tracking-widest border border-[var(--accent-primary)]/20"
+            className="h-8 px-3 text-[10px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all border border-[var(--accent-primary)]/20"
           >
             <RotateCcw size={12} className="mr-2" /> Reset
           </Button>
@@ -69,13 +69,13 @@ export function SettingsRow({
       <div className="flex flex-col gap-0.5 min-w-0">
         <Label
           htmlFor={htmlFor}
-          className="text-[12px] font-bold cursor-pointer transition-colors group-hover/row:text-[var(--text-primary)]"
+          className="text-[13px] font-bold cursor-pointer transition-colors group-hover/row:text-[var(--text-primary)]"
           style={{ color: "var(--text-secondary)" }}
         >
           {label}
         </Label>
         {description && (
-          <span className="text-[10px] leading-relaxed font-medium" style={{ color: "var(--text-secondary)", opacity: 0.8 }}>
+          <span className="text-[11px] leading-relaxed font-medium" style={{ color: "var(--text-secondary)", opacity: 0.85 }}>
             {description}
           </span>
         )}
@@ -95,7 +95,7 @@ export function SectionHeader({
   return (
     <div className="flex items-center justify-between mb-3">
       <h3
-        className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]"
+        className="text-[11.5px] font-bold uppercase tracking-wider text-[var(--text-secondary)]/80"
       >
         {title}
       </h3>

@@ -45,18 +45,18 @@ export function truncatePath(path: string, maxLength: number = 40): string {
   return "..." + end;
 }
 
-export function formatWorkspaceName(name: string): string {
-  if (!name) return "";
-  
-  // Replace hyphens and underscores with spaces
-  const spaced = name.replace(/[-_]/g, " ");
-  
-  // Capitalize each word
-  return spaced
+export function toTitleCase(str: string): string {
+  if (!str) return "";
+  return str
+    .replace(/[-_]/g, " ")
     .split(" ")
     .filter(Boolean)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
+}
+
+export function formatWorkspaceName(name: string): string {
+  return toTitleCase(name);
 }
 
 export function getWorkspacePlaceholder(_index: number): string {

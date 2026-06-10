@@ -42,7 +42,7 @@ export function EmptyState({
       
       <h4 className={cn(
         "font-semibold text-[var(--text-primary)] mb-1.5 tracking-tight",
-        compact ? "text-[12px]" : "text-[14px]"
+        compact ? "text-[13.5px]" : "text-[15px]"
       )}>
         {title}
       </h4>
@@ -50,7 +50,7 @@ export function EmptyState({
       <p className={cn(
         "text-[var(--text-secondary)] font-medium mx-auto",
         action ? "mb-5" : "mb-0",
-        compact ? "text-[11px] max-w-[240px] leading-snug" : "text-[12px] max-w-[320px] leading-relaxed"
+        compact ? "text-[12.5px] max-w-[260px] leading-snug" : "text-[13.5px] max-w-[340px] leading-relaxed"
       )}>
         {description}
       </p>

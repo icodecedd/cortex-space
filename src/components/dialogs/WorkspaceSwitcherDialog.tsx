@@ -263,19 +263,19 @@ export function WorkspaceSwitcherDialog({
                             "text-[14px] font-bold truncate",
                             isSelected ? "text-[var(--text-primary)]" : "text-[var(--text-primary)]/90"
                           )}>
-                            {item.type === 'workspace' ? (item.data.customName || item.data.name || "UNNAMED WORKSPACE") : 
+                            {item.type === 'workspace' ? (item.data.customName || item.data.name || "Unnamed Workspace") : 
                             item.type === 'template' ? item.data.name : 
                             item.type === 'snippet' ? item.data.label :
                             item.label}
                           </span>
                           <span className={cn(
-                            "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border transition-colors",
+                            "text-[9px] font-bold px-1.5 py-0.5 rounded border transition-colors",
                             item.type === 'workspace' ? "bg-ansi-blue/5 text-ansi-blue border-ansi-blue/20" :
                             item.type === 'template' ? "bg-ansi-green/5 text-green-600 dark:text-ansi-green border-ansi-green/20" :
                             item.type === 'snippet' ? "bg-ansi-yellow/5 text-yellow-600 dark:text-ansi-yellow border-ansi-yellow/20" :
                             "bg-purple-500/5 text-purple-600 dark:text-purple-400 border-purple-500/20"
                           )}>
-                            {item.type}
+                            {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] font-medium truncate">
@@ -307,12 +307,12 @@ export function WorkspaceSwitcherDialog({
                                 className="h-7 px-2 flex items-center gap-1.5 bg-ansi-yellow/10 hover:bg-ansi-yellow/20 text-ansi-yellow rounded border border-ansi-yellow/20 transition-colors"
                               >
                                 <Play size={10} fill="currentColor" />
-                                <span>RUN</span>
+                                <span>Run</span>
                               </button>
                           )}
                           <div className="flex items-center gap-1.5 px-1">
                             <span className="opacity-50 font-mono text-[12px]">{modKey}</span>
-                            <span>{item.type === 'workspace' ? 'SWITCH' : item.type === 'template' ? 'LAUNCH' : item.type === 'snippet' ? 'INJECT' : 'EXECUTE'}</span>
+                            <span>{item.type === 'workspace' ? 'Switch' : item.type === 'template' ? 'Launch' : item.type === 'snippet' ? 'Inject' : 'Execute'}</span>
                           </div>
                         </div>
                       ) : item.shortcut && (
@@ -335,16 +335,16 @@ export function WorkspaceSwitcherDialog({
               <span>Navigate</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-bold">ENTER</Kbd>
+              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-bold">Enter</Kbd>
               <span>Select</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-bold">SHIFT+ENTER</Kbd>
+              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-bold">Shift+Enter</Kbd>
               <span>Instant Run</span>
             </div>
           </div>
-          <div className="flex items-center gap-1 uppercase tracking-widest">
-            <span>{filteredItems.length} COMMANDS</span>
+          <div className="flex items-center gap-1">
+            <span>{filteredItems.length} Commands</span>
           </div>
         </div>
       </DialogContent>

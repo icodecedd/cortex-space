@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { SettingsCard } from "../shared/SettingsUI";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, toTitleCase } from "@/lib/utils";
 
 export function AgentsTab() {
   const { agents, installAgent, addAgent, deleteAgent } = useAgents();
@@ -89,9 +89,9 @@ export function AgentsTab() {
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-tight">{agent.label}</span>
+                        <span className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight">{toTitleCase(agent.label)}</span>
                         {agent.isDefault && (
-                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold uppercase tracking-tighter">System</span>
+                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold tracking-tighter">System</span>
                         )}
                       </div>
                       <span className="text-[10px] font-mono text-[var(--text-secondary)] opacity-60">{agent.command}</span>
@@ -103,19 +103,19 @@ export function AgentsTab() {
                       {agent.status === 'installed' && (
                         <div className="flex items-center gap-1.5">
                           <CheckCircle2 size={11} className="text-ansi-green" />
-                          <span className="text-[9px] font-bold text-ansi-green uppercase tracking-tighter">Active</span>
+                          <span className="text-[9px] font-bold text-ansi-green tracking-tighter">Active</span>
                         </div>
                       )}
                       {agent.status === 'installing' && (
                         <div className="flex items-center gap-1.5">
                           <Loader2 size={11} className="text-ansi-blue animate-spin" />
-                          <span className="text-[9px] font-bold text-ansi-blue uppercase tracking-tighter">Syncing</span>
+                          <span className="text-[9px] font-bold text-ansi-blue tracking-tighter">Syncing</span>
                         </div>
                       )}
                       {agent.status === 'error' && (
                         <div className="flex items-center gap-1.5">
                           <AlertCircle size={11} className="text-ansi-red" />
-                          <span className="text-[9px] font-bold text-ansi-red uppercase tracking-tighter">Error</span>
+                          <span className="text-[9px] font-bold text-ansi-red tracking-tighter">Error</span>
                         </div>
                       )}
                     </div>
@@ -131,7 +131,7 @@ export function AgentsTab() {
                         }}
                       >
                         <Download size={10} />
-                        <span className="text-[9px] font-bold uppercase tracking-tight">{agent.status === 'error' ? 'Retry' : 'Install'}</span>
+                        <span className="text-[9px] font-bold tracking-tight">{agent.status === 'error' ? 'Retry' : 'Install'}</span>
                       </Button>
                     )}
 
@@ -141,7 +141,7 @@ export function AgentsTab() {
                         size="xs"
                         onClick={() => toggleError(agent.id)}
                         className={cn(
-                          "h-7 px-2.5 gap-1.5 border text-[9px] font-bold uppercase tracking-tight transition-all",
+                          "h-7 px-2.5 gap-1.5 border text-[9px] font-bold tracking-tight transition-all",
                           expandedErrors.has(agent.id)
                             ? "border-red-500/30 bg-red-500/10 text-red-400"
                             : "border-[var(--border-color)]/20 text-[var(--text-secondary)] hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-400"
@@ -184,7 +184,7 @@ export function AgentsTab() {
                       className="overflow-hidden"
                     >
                       <div className="px-4 py-3 border-t border-red-500/10 bg-red-500/[0.03]">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-red-400/70 mb-2">Installation Error Output</p>
+                        <p className="text-[9px] font-bold tracking-widest text-red-400/70 mb-2">Installation Error Output</p>
                         <pre className="text-[10px] font-mono text-red-300/80 whitespace-pre-wrap break-all leading-relaxed max-h-40 overflow-y-auto scrollbar-thin">{agent.errorMessage}</pre>
                       </div>
                     </motion.div>
@@ -204,7 +204,7 @@ export function AgentsTab() {
                   onClick={() => setShowAddForm(true)}
                 >
                   <Plus size={12} className="text-[var(--text-secondary)] group-hover/add:text-[var(--accent-primary)] transition-colors" />
-                  <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest group-hover/add:text-[var(--text-primary)] transition-colors">
+                  <span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-widest group-hover/add:text-[var(--text-primary)] transition-colors">
                     Register Custom Agent
                   </span>
                 </motion.button>
@@ -219,28 +219,28 @@ export function AgentsTab() {
                 >
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest px-1">Agent Label</label>
+                      <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-widest px-1">Terminal Command</label>
                       <Input 
                         autoFocus
-                        placeholder="DROID"
-                        value={newLabel}
-                        onChange={e => setNewLabel(e.target.value)}
-                        className="h-8 text-[11px] font-bold bg-[var(--bg-color)]/50 border-[var(--border-color)]/20 focus:border-[var(--accent-primary)]/40"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest px-1">Terminal Command</label>
-                      <Input 
                         placeholder="droid"
                         value={newCommand}
                         onChange={e => setNewCommand(e.target.value)}
-                        className="h-8 text-[11px] font-mono bg-[var(--bg-color)]/50 border-[var(--border-color)]/20 focus:border-[var(--accent-primary)]/40 text-right"
+                        className="h-8 text-[11px] font-mono bg-[var(--bg-color)]/50 border-[var(--border-color)]/20 focus:border-[var(--accent-primary)]/40"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-widest px-1">Agent Label (Optional)</label>
+                      <Input 
+                        placeholder="DROID"
+                        value={newLabel}
+                        onChange={e => setNewLabel(e.target.value)}
+                        className="h-8 text-[11px] font-bold bg-[var(--bg-color)]/50 border-[var(--border-color)]/20 focus:border-[var(--accent-primary)]/40 text-right"
                       />
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest px-1">
+                    <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-widest px-1">
                       Installation Command (Optional)
                     </label>
                     <Input 
@@ -252,10 +252,10 @@ export function AgentsTab() {
                   </div>
 
                   <div className="flex items-center gap-2 justify-end mt-2">
-                    <Button type="button" variant="ghost" size="xs" className="h-7 text-[10px] uppercase font-bold px-3" onClick={handleCancel}>
+                    <Button type="button" variant="ghost" size="xs" className="h-7 text-[10px] font-bold px-3" onClick={handleCancel}>
                       Cancel
                     </Button>
-                    <Button type="submit" size="xs" className="h-7 px-5 bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 font-bold uppercase tracking-tight text-[10px]">
+                    <Button type="submit" size="xs" className="h-7 px-5 bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 font-bold tracking-tight text-[10px]">
                       Register Agent
                     </Button>
                   </div>

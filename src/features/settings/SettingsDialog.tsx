@@ -9,7 +9,6 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Settings2,
-  Target,
   Keyboard,
   Terminal,
   Palette,
@@ -24,6 +23,7 @@ import {
   setSetting,
   getSettingsGroup,
   setSettingsGroup,
+  clearAllSettings,
   ShortcutSettings,
   SHORTCUT_DEFAULTS,
   FocusSettings,
@@ -35,6 +35,7 @@ import {
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
 import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { toast } from "sonner";
 
 
 // Tab Components
@@ -47,6 +48,9 @@ import { DemoTab } from "./components/tabs/DemoTab";
 import { AboutTab } from "./components/tabs/AboutTab";
 
 interface SettingsDialogProps {
+// ...
+// ...
+
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialTab?: string;
@@ -118,8 +122,6 @@ export function SettingsDialog({
   const [checkUpdates, setCheckUpdates] = useState(true);
   const [confirmModeChange, setConfirmModeChange] = useState(true);
   const [defaultShell, setDefaultShell] = useState("");
-  const [lastMode, setLastMode] = useState<string | null>(null);
-
   // Shortcut settings
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
 
@@ -148,8 +150,7 @@ export function SettingsDialog({
           updates,
           confirmMode,
           shell,
-          savedShortcuts,
-          savedLastMode
+          savedShortcuts
         ] = await Promise.all([
           getSetting("cortex_default_path", ""),
           getSetting("startup.showSplashAnimation", true),
@@ -157,8 +158,7 @@ export function SettingsDialog({
           getSetting("startup.checkForUpdatesOnStartup", true),
           getSetting("startup.confirmModeChange", true),
           getSetting("startup.defaultShell", ""),
-          getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS),
-          getSetting("startup.lastMode", "normal")
+          getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS)
         ]);
 
         if (!isMounted) return;
@@ -170,7 +170,6 @@ export function SettingsDialog({
         setConfirmModeChange(confirmMode);
         setDefaultShell(shell);
         setShortcuts(savedShortcuts);
-        setLastMode(savedLastMode);
       } catch (err) {
         console.error("Failed to load settings:", err);
       }
@@ -232,6 +231,19 @@ export function SettingsDialog({
     window.dispatchEvent(new CustomEvent('cortex-settings-changed', {
       detail: { shortcuts: SHORTCUT_DEFAULTS }
     }));
+  };
+
+  const handleFactoryReset = async () => {
+    try {
+      await clearAllSettings();
+      toast.success("Factory reset successful", { description: "The application will now reload." });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err) {
+      console.error("Factory reset failed:", err);
+      toast.error("Factory reset failed", { description: "An error occurred while clearing data." });
+    }
   };
 
   return (
@@ -308,7 +320,6 @@ export function SettingsDialog({
                 setStartupBehavior(v);
                 await setSetting("startup.behavior", v);
               }}
-              lastMode={lastMode}
               checkUpdates={checkUpdates}
               setCheckUpdates={(v) => handleStartupToggle("startup.checkForUpdatesOnStartup", setCheckUpdates, v)}
               confirmModeChange={confirmModeChange}
@@ -327,6 +338,7 @@ export function SettingsDialog({
               focusSettings={focusSettings}
               setFocusSetting={setFocusSetting}
               onResetFocus={resetFocus}
+              onFactoryReset={handleFactoryReset}
             />
           </TabsContent>
 
@@ -373,6 +385,7 @@ export function SettingsDialog({
               demo={demoSettings}
               setDemoSetting={setDemoSetting}
               onResetDemo={resetDemo}
+              onFactoryReset={handleFactoryReset}
             />
           </TabsContent>
 

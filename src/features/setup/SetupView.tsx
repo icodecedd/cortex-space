@@ -62,6 +62,10 @@ export const SetupView = React.memo(({ mode, onLaunch, onBack }: SetupViewProps)
     isInitialized
   } = useSetupPanes(agents);
 
+  const activePresets = useMemo(() => presets.filter(p => !p.isArchived), [presets]);
+  const activeSnippets = useMemo(() => snippets.filter(s => !s.isArchived), [snippets]);
+  const activeSavedLayouts = useMemo(() => savedLayouts.filter(l => !l.isArchived), [savedLayouts]);
+
   const isStepValid = useMemo(() => {
     if (step === 1) return (rootPath || defaultDir).trim() !== "";
     if (step === 2) return true; // Allow proceeding even if command inputs are empty
@@ -145,14 +149,14 @@ export const SetupView = React.memo(({ mode, onLaunch, onBack }: SetupViewProps)
                 isValidDir={isValidDir}
                 handleBrowse={handleBrowse}
                 handleBreadcrumbClick={handleBreadcrumbClick}
-                presets={presets}
+                presets={activePresets}
                 addPreset={addPreset}
                 removePreset={removePreset}
                 layout={layoutType}
                 handleLayoutChange={handleLayoutChange}
                 customLayout={customLayout}
                 setCustomLayout={setCustomLayout}
-                savedLayouts={savedLayouts}
+                savedLayouts={activeSavedLayouts}
                 addSavedLayout={addSavedLayout}
                 removeSavedLayout={removeSavedLayout}
                 onRestoreLayouts={restoreDefaults}
@@ -167,7 +171,7 @@ export const SetupView = React.memo(({ mode, onLaunch, onBack }: SetupViewProps)
                 updatePaneCommand={updatePaneCommand}
                 updatePaneName={updatePaneName}
                 updateAllPaneCommands={updateAllPaneCommands}
-                snippets={snippets}
+                snippets={activeSnippets}
                 agents={agents}
               />
             )}

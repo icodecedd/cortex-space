@@ -80,7 +80,6 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
                   fontWeight: 700,
                   padding: step > 1 ? '0.1rem 0.4rem' : '0.15rem 0.5rem',
                   borderRadius: '9999px',
-                  textTransform: 'uppercase',
                   letterSpacing: '0.08em',
                   transition: 'all 0.4s ease',
                   whiteSpace: 'nowrap'

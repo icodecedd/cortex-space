@@ -337,10 +337,22 @@ export function derivePaneName(
     return mappedTool;
   }
 
+  // 1.5 Special Handling for Standard Names
+  if (base === 'freebuff') {
+    const sub = parts.find(p => !p.startsWith('-') && p !== base);
+    const suffix = sub ? ` ${sub.charAt(0).toUpperCase() + sub.slice(1)}` : '';
+    return `Freebuff${suffix}`;
+  }
+
   // 2. Dynamic Agent Mapping
   const matchedAgent = agents.find(a => a.command.toLowerCase() === base);
   if (matchedAgent) {
-    return `${matchedAgent.label.charAt(0).toUpperCase() + matchedAgent.label.slice(1).toLowerCase()} ${PANE_SEMANTICS.AGENT_SUFFIX}`;
+    let label = matchedAgent.label;
+    // Normalize if it's 'freebuff'
+    if (label.toLowerCase() === 'freebuff') {
+      label = 'Freebuff';
+    }
+    return `${label.charAt(0).toUpperCase() + label.slice(1).toLowerCase()} ${PANE_SEMANTICS.AGENT_SUFFIX}`;
   }
 
   // 3. Pattern Matching for Generic Tools (bin run -> Run)

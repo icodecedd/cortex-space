@@ -9,6 +9,7 @@ export interface LayoutConfig {
 export interface SavedLayout extends LayoutConfig {
   id: string;
   name: string;
+  isArchived?: boolean;
 }
 
 export type LayoutType = '1x1' | '1x2' | '2x1' | '2x2' | '3x3' | 'custom' | string;

@@ -12,11 +12,7 @@ import {
   FolderOpen, 
   Palette, 
   Rocket, 
-  Database, 
   Target, 
-  Cpu, 
-  Layout,
-  Terminal,
   Monitor
 } from "@/components/ui/icons";
 import { 
@@ -48,7 +44,6 @@ interface GeneralTabProps {
   setShowSplash: (v: boolean) => void;
   startupBehavior: StartupBehavior;
   setStartupBehavior: (v: StartupBehavior) => void;
-  lastMode: string | null;
   checkUpdates: boolean;
   setCheckUpdates: (v: boolean) => void;
   confirmModeChange: boolean;
@@ -65,6 +60,7 @@ interface GeneralTabProps {
   setDefaultShell: (v: string) => void;
   defaultPath: string;
   onSetPath: () => void;
+  onFactoryReset: () => Promise<void>;
 }
 
 export function GeneralTab({
@@ -81,7 +77,6 @@ export function GeneralTab({
   setShowSplash,
   startupBehavior,
   setStartupBehavior,
-  lastMode,
   checkUpdates,
   setCheckUpdates,
   confirmModeChange,
@@ -94,10 +89,12 @@ export function GeneralTab({
   setDefaultShell,
   defaultPath,
   onSetPath,
+  onFactoryReset,
 }: GeneralTabProps) {
   const [isAppearanceResetOpen, setIsAppearanceResetOpen] = useState(false);
   const [isStartupResetOpen, setIsStartupResetOpen] = useState(false);
   const [isFocusResetOpen, setIsFocusResetOpen] = useState(false);
+  const [isFactoryResetOpen, setIsFactoryResetOpen] = useState(false);
   const [systemShell, setSystemShell] = useState<string>("detecting...");
 
   useEffect(() => {
@@ -156,6 +153,16 @@ export function GeneralTab({
         confirmLabel="Reset Focus"
         variant="destructive"
         onConfirm={onResetFocus}
+      />
+
+      <ConfirmActionDialog
+        open={isFactoryResetOpen}
+        onOpenChange={setIsFactoryResetOpen}
+        title="Factory Reset Application"
+        description="CRITICAL: This will permanently delete ALL settings, workspaces, agents, and snippets. The application will restart in a clean state. This cannot be undone."
+        confirmLabel="Perform Factory Reset"
+        variant="destructive"
+        onConfirm={onFactoryReset}
       />
 
       {/* 1. Application & Startup */}
@@ -377,7 +384,7 @@ export function GeneralTab({
                 className="w-[180px] h-8 text-[11px] font-mono bg-[var(--bg-color)]/50 border-[var(--border-color)]/20 text-right"
               />
               {!defaultShell && (
-                <span className="text-[9px] font-mono text-[var(--text-secondary)]/60 uppercase tracking-tighter">
+                <span className="text-[9px] font-mono text-[var(--text-secondary)]/60 tracking-tighter">
                   Detected: {systemShell}
                 </span>
               )}
@@ -385,7 +392,7 @@ export function GeneralTab({
           </SettingsRow>
           
           <div className="px-2 py-3 mt-2 border-t border-[var(--border-color)]/10">
-            <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)]/60 uppercase mb-3 block">
+            <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)]/60 mb-3 block">
               Default Workspace Path
             </label>
             <div className="flex items-center gap-2">
@@ -397,7 +404,7 @@ export function GeneralTab({
               <Button
                 variant="outline"
                 onClick={onSetPath}
-                className="shrink-0 h-8 px-3 bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] text-[10px] font-bold uppercase tracking-wider transition-all"
+                className="shrink-0 h-8 px-3 bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/20 hover:bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] text-[10px] font-bold tracking-wider transition-all"
               >
                 <FolderOpen size={12} className="mr-1.5" />
                 Browse

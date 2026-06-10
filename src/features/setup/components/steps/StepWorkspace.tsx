@@ -56,7 +56,7 @@ export function StepWorkspace({
 
   const handleSaveLayout = () => {
     const finalName = layoutName.trim() 
-      ? layoutName.toUpperCase() 
+      ? layoutName 
       : `${customLayout.rows}X${customLayout.cols}`;
     
     addSavedLayout(finalName, customLayout);
@@ -96,7 +96,7 @@ export function StepWorkspace({
         <div className="flex flex-col gap-1 mb-8">
           <div className="flex items-center gap-2 mb-1">
             <Database size={16} className="text-[var(--accent-primary)]" />
-            <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
+            <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
               Workspace Directory
             </h3>
           </div>
@@ -114,14 +114,14 @@ export function StepWorkspace({
           </div>
           
           <div className="flex-1 flex flex-col">
-            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-0.5 ml-0.5">
+            <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-[0.1em] mb-0.5 ml-0.5">
               Selected Path
             </label>
             <Input
               type="text"
               value={rootPath}
               onChange={(e) => setRootPath(e.target.value)}
-              placeholder={defaultDir || "SELECT A TARGET DIRECTORY"}
+              placeholder={defaultDir || "Select a target directory"}
               className="h-7 border-none bg-transparent px-0.5 font-mono text-[13px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/50"
             />
           </div>
@@ -142,9 +142,9 @@ export function StepWorkspace({
               variant="outline"
               size="sm"
               onClick={handleBrowse}
-              className="h-9 px-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] hover:bg-[var(--text-primary)]/10 hover:border-[var(--text-primary)]/20 text-[10px] font-bold tracking-widest text-[var(--text-primary)] rounded-md transition-all"
+              className="h-9 px-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] hover:bg-[var(--text-primary)]/10 hover:border-[var(--text-primary)]/20 text-[10px] font-bold tracking-wider text-[var(--text-primary)] rounded-md transition-all"
             >
-              BROWSE
+              Browse
             </Button>
           </div>
         </div>
@@ -161,13 +161,13 @@ export function StepWorkspace({
                     i === arr.length - 1 ? "text-[var(--accent-primary)] font-bold bg-[var(--accent-primary)]/5" : "text-[var(--text-secondary)] font-bold"
                   )}
                 >
-                  {part.toUpperCase()}
+                  {part}
                 </button>
                 {i < arr.length - 1 && <span className="text-[var(--text-secondary)]/30 font-bold">/</span>}
               </span>
             ))}
             {!rootPath && (
-              <Badge variant="outline" className="ml-3 h-5 px-2 text-[8px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30 uppercase tracking-tighter rounded-full">
+              <Badge variant="outline" className="ml-3 h-5 px-2 text-[8px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30 tracking-tighter rounded-full">
                 System Default
               </Badge>
             )}
@@ -190,7 +190,7 @@ export function StepWorkspace({
         <div className="flex flex-col gap-1 mb-8">
           <div className="flex items-center gap-2 mb-1">
             <Layout size={16} className="text-[var(--accent-primary)]" />
-            <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] uppercase">
+            <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
               Grid Layout
             </h3>
           </div>
@@ -217,7 +217,7 @@ export function StepWorkspace({
               description="Configure standard grid arrangements by installing the layout starter pack."
               iconColor="text-[var(--accent-primary)]"
               action={{
-                label: "INSTALL STARTER PACK",
+                label: "Install Starter Pack",
                 onClick: onRestoreLayouts,
                 icon: Zap
               }}
@@ -239,14 +239,14 @@ export function StepWorkspace({
                   <Save size={18} />
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-0.5 ml-0.5">
+                  <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-[0.1em] mb-0.5 ml-0.5">
                     Layout Name
                   </label>
                   <Input
                     type="text"
-                    placeholder={`ID: ${customLayout.rows}X${customLayout.cols} (OPTIONAL)`}
+                    placeholder={`ID: ${customLayout.rows}X${customLayout.cols} (Optional)`}
                     value={layoutName}
-                    onChange={(e) => setLayoutName(e.target.value.toUpperCase())}
+                    onChange={(e) => setLayoutName(e.target.value)}
                     className="h-7 border-none bg-transparent px-0.5 font-mono text-[12px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/50"
                   />
                 </div>
@@ -254,7 +254,7 @@ export function StepWorkspace({
               
               <div className="flex items-center gap-4 pl-14 md:pl-0">
                 <div className="hidden md:flex flex-col items-end gap-0.5 mr-2">
-                  <span className="text-[8px] font-mono font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-80 text-right">Layout ID</span>
+                  <span className="text-[8px] font-mono font-bold text-[var(--text-secondary)] tracking-widest opacity-80 text-right">Layout ID</span>
                   <span className="text-[10px] font-mono font-bold text-[var(--accent-primary)] text-right">
                     {layoutName.trim() ? layoutName : `${customLayout.rows}X${customLayout.cols}`}
                   </span>
@@ -264,9 +264,9 @@ export function StepWorkspace({
                   size="sm"
                   onClick={handleSaveLayout}
                   disabled={customLayout.rows < 1 || customLayout.cols < 1}
-                  className="h-9 px-6 bg-[var(--accent-primary)] text-[var(--accent-contrast)] border-[var(--accent-primary)] hover:brightness-110 font-bold text-[10px] tracking-widest rounded-md transition-all"
+                  className="h-9 px-6 bg-[var(--accent-primary)] text-[var(--accent-contrast)] border-[var(--accent-primary)] hover:brightness-110 font-bold text-[10px] tracking-wider rounded-md transition-all"
                 >
-                  SAVE LAYOUT
+                  Save Layout
                 </Button>
               </div>
             </div>
