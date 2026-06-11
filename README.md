@@ -1,4 +1,4 @@
-h1 align="center">Cortex Space</h1>
+<h1 align="center">Cortex Space</h1>
 <p align="center"><em>High-Performance Developer Workspace & Terminal Manager</em></p>
 <p align="center"><strong>Instant Terminals. Dynamic Layouts. Keyboard-Driven Workflow.</strong></p>
 
