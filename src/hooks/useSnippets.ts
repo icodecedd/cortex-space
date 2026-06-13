@@ -7,7 +7,6 @@ import { derivePaneName } from "@/lib/setup-utils";
 
 export function useSnippets() {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
   const snippetsRef = useRef<Snippet[]>([]);
 
   // Sync ref with state
@@ -22,7 +21,6 @@ export function useSnippets() {
         setSnippets(saved);
         snippetsRef.current = saved;
       }
-      setIsInitialized(true);
     }
     loadSnippets();
 

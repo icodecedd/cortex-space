@@ -851,7 +851,6 @@ export function XtermTerminal({
           onKill={() => onKill?.(paneId)}
           onRename={(newName) => onRename?.(paneId, newName)}
           onRelaunch={relaunch}
-          terminalInstance={xtermRef.current}
           detectedPorts={detectedPorts}
           headerVisibility={headerVisibility}
         />

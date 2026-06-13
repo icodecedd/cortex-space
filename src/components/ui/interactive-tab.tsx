@@ -1,27 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { X, Terminal, Ban, Edit2, Palette, Layers, ArrowRight, RotateCcw, Pin, PinOff, Plus } from "@/components/ui/icons"
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-  ContextMenuSeparator,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-} from "@/components/ui/context-menu"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { X, Terminal, Pin } from "@/components/ui/icons"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 export type TabColor = 'slate' | 'emerald' | 'cobalt' | 'crimson' | 'amber'
@@ -116,7 +97,6 @@ export const COLOR_MAP: Record<
 }
 
 export function InteractiveTab({
-  id,
   name,
   customName,
   isActive,

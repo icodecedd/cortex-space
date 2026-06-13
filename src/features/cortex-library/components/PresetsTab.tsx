@@ -190,14 +190,6 @@ export function PresetsTab({
     setArchivedSelectedIds(next);
   };
 
-  const toggleSelectAllArchived = () => {
-    if (archivedSelectedIds.size === archivedFiltered.length) {
-      setArchivedSelectedIds(new Set());
-    } else {
-      setArchivedSelectedIds(new Set(archivedFiltered.map(p => p.id)));
-    }
-  };
-
   const renderArchivedContent = () => {
     if (archivedFiltered.length === 0) {
       return (

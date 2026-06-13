@@ -55,12 +55,6 @@ interface CortexLibraryDialogProps {
 
 import { DirectoryPreset } from "@/types";
 
-// Helper to normalize path for comparison
-const normalizePath = (p: string) => {
-  if (!p) return "";
-  return p.replace(/[\\/]+$/, "").replace(/\//g, "\\").toLowerCase().trim();
-};
-
 export function CortexLibraryDialog({
   isOpen,
   onOpenChange,

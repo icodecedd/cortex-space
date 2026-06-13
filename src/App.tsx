@@ -426,7 +426,6 @@ function AppInner() {
                         onMovePane={handleMovePane}
                         onKillPane={handleKillPane}
                         onRenamePane={handleRenamePane}
-                        onSaveSnippet={(command) => addSnippet("", command)}
                         isCurrent={isCurrent}
                       />
                     </div>

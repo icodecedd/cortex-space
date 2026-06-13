@@ -90,17 +90,6 @@ export function SnippetsTab({
     }
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) {
-      const next = new Set(selectedIds);
-      filtered.forEach(s => next.delete(s.id));
-      // Assuming onToggleSelection handles the parent state correctly
-      // But actually we need a way to clear them all.
-      // For now, assume toggleSelectAll is local or we need a prop for it.
-      // Wait, selectedIds is a prop. We can't clear it here directly without a prop.
-    }
-  };
-
   const renderActiveContent = () => {
     if (filtered.length === 0) {
       return (

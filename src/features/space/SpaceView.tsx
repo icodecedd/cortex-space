@@ -11,8 +11,7 @@ import {
 import { TerminalPane } from "../terminal/TerminalPane";
 import { DropZone } from "./components/DropZone";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { gridToLayoutNode, findNeighborPane } from "@/lib/setup-utils";
-import { LayoutConfig } from "@/lib/setup-constants";
+import { findNeighborPane } from "@/lib/setup-utils";
 import { ThemeName } from "@/hooks/useTheme";
 import { LayoutNode, PaneNode } from "@/types";
 import { getSettingsGroup, SHORTCUT_DEFAULTS, ShortcutSettings } from "@/lib/store";

@@ -207,13 +207,7 @@ export function LayoutsTab({
     setArchivedSelectedIds(next);
   };
 
-  const toggleSelectAllArchived = () => {
-    if (archivedSelectedIds.size === archivedFiltered.length) {
-      setArchivedSelectedIds(new Set());
-    } else {
-      setArchivedSelectedIds(new Set(archivedFiltered.map(l => l.id)));
-    }
-  };
+
 
   const renderArchivedContent = () => {
     if (archivedFiltered.length === 0) {

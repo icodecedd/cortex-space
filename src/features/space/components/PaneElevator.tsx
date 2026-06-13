@@ -26,7 +26,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Terminal } from '@xterm/xterm';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type { DetectedPort } from '../../terminal/components/XtermTerminal';
 
@@ -42,7 +41,6 @@ interface PaneElevatorProps {
   onKill?: () => void;
   onRename?: (newName: string) => void;
   onRelaunch: () => void;
-  terminalInstance: Terminal | null;
   detectedPorts?: DetectedPort[];
   headerVisibility?: 'hover' | 'always';
 }
@@ -58,7 +56,6 @@ export function PaneElevator({
   onKill,
   onRename,
   onRelaunch,
-  terminalInstance,
   detectedPorts = [],
   headerVisibility = 'hover'
 }: PaneElevatorProps) {
