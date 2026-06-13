@@ -355,6 +355,7 @@ function AppInner() {
                 agents={agents}
                 installAgent={installAgent}
                 isInitialized={isInitialized}
+                onBack={() => setAppState("splash")}
                 onComplete={async () => {
                   await setSetting("startup.hasOnboardedAgents", true);
                   setAppState("running");
@@ -374,6 +375,7 @@ function AppInner() {
                     <div key={ws.id} className="w-full h-full flex">
                       <ModeSelectorScreen
                         onSelectMode={handleSelectMode}
+                        onBack={() => handleCloseWorkspace(ws.id)}
                         showShortcutHints={demoSettings.showModeShortcutHints}
                         showTemplatesHint={demoSettings.showTemplatesButton}
                       />

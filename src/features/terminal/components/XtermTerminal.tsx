@@ -444,7 +444,6 @@ export function XtermTerminal({
     };
 
     const keyCb = (e: KeyboardEvent) => {
-      const isEscape = e.key === 'Escape';
       const isNumKey = e.key >= '1' && e.key <= '9';
       const isArrowKey = e.key.startsWith('Arrow');
       const isDirectionalNav = e.altKey && isArrowKey;
@@ -452,7 +451,10 @@ export function XtermTerminal({
       const isMaximize = (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'm';
       const isRelaunch = (e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r';
 
-      if (isGlobalShortcut(e, shortcuts) || isEscape || isDirectionalNav || isPaneFocus || isMaximize || isRelaunch) {
+      // We no longer block 'Escape' here. This allows it to reach the terminal process
+      // (crucial for AI agent CLIs and vim). useAppShortcuts still handles Escape 
+      // globally, but focus precedence will now favor the PTY.
+      if (isGlobalShortcut(e, shortcuts) || isDirectionalNav || isPaneFocus || isMaximize || isRelaunch) {
         return false;
       }
       return true;
@@ -548,6 +550,26 @@ export function XtermTerminal({
 
     if (isNew) {
       activeTerm.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+        // --- 1. COPY: Ctrl+Shift+C ---
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+          if (activeTerm.hasSelection()) {
+            const text = activeTerm.getSelection();
+            navigator.clipboard.writeText(text);
+            return false;
+          }
+        }
+
+        // --- 2. PASTE: Ctrl+Shift+V ---
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'v') {
+          navigator.clipboard.readText().then(text => {
+            if (text) {
+              const delegate = terminalSessionManager.getWriteDelegate(id);
+              if (delegate) delegate(text);
+            }
+          });
+          return false;
+        }
+
         const delegate = terminalSessionManager.getKeyEventHandlerDelegate(id);
         if (delegate) return delegate(e);
         return true;
@@ -918,8 +940,14 @@ export function XtermTerminal({
                     value={currentVarValue}
                     onChange={(e) => setCurrentVarValue(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleVariableSubmit();
-                      if (e.key === 'Escape') handleVariableCancel();
+                      if (e.key === 'Enter') {
+                        e.stopPropagation();
+                        handleVariableSubmit();
+                      }
+                      if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        handleVariableCancel();
+                      }
                     }}
                     placeholder={`Type ${pendingSnippet.variables[pendingSnippet.currentIndex].toLowerCase()}...`}
                     className="h-11 bg-[var(--text-primary)]/[0.03] border-[var(--border-color)] focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] text-sm font-mono transition-all pr-12"

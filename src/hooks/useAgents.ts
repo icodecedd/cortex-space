@@ -1,95 +1,151 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getSetting, setSetting } from "@/lib/store";
 import { Agent } from "@/types";
 import { DEFAULT_AGENTS } from "@/lib/setup-constants";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 
-export function useAgents() {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const agentsRef = useRef<Agent[]>([]);
+// Shared module-level state for synchronization across all hook instances
+let globalAgents: Agent[] = [];
+let globalIsInitialized = false;
+let globalIsInitializing = false;
+const listeners = new Set<(agents: Agent[], isInitialized: boolean) => void>();
 
-  // Sync ref with state
-  useEffect(() => {
-    agentsRef.current = agents;
-  }, [agents]);
+function notify() {
+  listeners.forEach(listener => listener(globalAgents, globalIsInitialized));
+}
 
-  useEffect(() => {
-    async function loadAgents() {
-      const saved = await getSetting<Agent[]>("cortex_agents", DEFAULT_AGENTS);
+async function writeToStore(agents: Agent[]) {
+  try {
+    await setSetting("cortex_agents", agents);
+  } catch (e) {
+    console.error("Failed to write agents to store:", e);
+  }
+}
+
+async function initializeGlobalAgents() {
+  if (globalIsInitialized || globalIsInitializing) return;
+  globalIsInitializing = true;
+
+  try {
+    const saved = await getSetting<Agent[]>("cortex_agents", DEFAULT_AGENTS);
+    
+    // 1. Sync default properties from constants (now from JSON) to ensure updates reach users
+    const initial = saved.map(agent => {
+      const defaultAgent = DEFAULT_AGENTS.find(da => da.id === agent.id);
       
-      // 1. Sync default properties from constants (now from JSON) to ensure updates reach users
-      const initial = saved.map(agent => {
-        const defaultAgent = DEFAULT_AGENTS.find(da => da.id === agent.id);
-        
-        // If it's a default agent, prioritize the latest installCommand and downloadUrl from the app bundle
-        if (defaultAgent) {
-          return {
-            ...agent,
-            installCommand: defaultAgent.installCommand,
-            downloadUrl: defaultAgent.downloadUrl,
-            // Also ensure label and command are synced if they were changed in the app bundle
-            label: agent.label || defaultAgent.label,
-            command: agent.command || defaultAgent.command,
-          } as Agent;
-        }
+      // If it's a default agent, prioritize the latest installCommand and downloadUrl from the app bundle
+      if (defaultAgent) {
+        return {
+          ...agent,
+          installCommand: defaultAgent.installCommand,
+          downloadUrl: defaultAgent.downloadUrl,
+          // Also ensure label and command are synced if they were changed in the app bundle
+          label: agent.label || defaultAgent.label,
+          command: agent.command || defaultAgent.command,
+        } as Agent;
+      }
+      return agent;
+    });
+
+    // 2. Add any NEW default agents that aren't in the saved list yet
+    const missingDefaults = DEFAULT_AGENTS.filter(
+      da => !initial.some(ia => ia.id === da.id)
+    );
+    
+    globalAgents = [...initial, ...missingDefaults];
+    globalIsInitialized = true;
+    notify();
+
+    // 3. Perform verification check asynchronously in the background
+    const updated = await Promise.all(globalAgents.map(async (agent) => {
+      try {
+        const isInstalled = await invoke<boolean>("check_command", { command: agent.command });
+        return {
+          ...agent,
+          status: isInstalled ? 'installed' : agent.status === 'installed' ? 'not-installed' : agent.status 
+        } as Agent;
+      } catch (e) {
+        console.error("Verification failed for agent:", agent.label, e);
         return agent;
-      });
+      }
+    }));
 
-      // 2. Add any NEW default agents that aren't in the saved list yet
-      const missingDefaults = DEFAULT_AGENTS.filter(
-        da => !initial.some(ia => ia.id === da.id)
-      );
-      
-      const finalInitial = [...initial, ...missingDefaults];
-      
-      setAgents(finalInitial);
-      agentsRef.current = finalInitial;
+    globalAgents = updated;
+    await writeToStore(updated);
+    notify();
+  } catch (error) {
+    console.error("Failed to initialize agents:", error);
+  } finally {
+    globalIsInitializing = false;
+  }
+}
 
-      // 3. Perform verification check asynchronously in the background
-      const updated = await Promise.all(finalInitial.map(async (agent) => {
-        try {
-          const isInstalled = await invoke<boolean>("check_command", { command: agent.command });
-          return {
-            ...agent,
-            status: isInstalled ? 'installed' : agent.status === 'installed' ? 'not-installed' : agent.status 
-          } as Agent;
-        } catch (e) {
-          console.error("Verification failed for agent:", agent.label, e);
-          return agent;
-        }
-      }));
+async function reloadFromStore() {
+  try {
+    const saved = await getSetting<Agent[]>("cortex_agents", DEFAULT_AGENTS);
+    const initial = saved.map(agent => {
+      const defaultAgent = DEFAULT_AGENTS.find(da => da.id === agent.id);
+      if (defaultAgent) {
+        return {
+          ...agent,
+          installCommand: defaultAgent.installCommand,
+          downloadUrl: defaultAgent.downloadUrl,
+          label: agent.label || defaultAgent.label,
+          command: agent.command || defaultAgent.command,
+        } as Agent;
+      }
+      return agent;
+    });
 
-      setAgents(updated);
-      agentsRef.current = updated;
-      setIsInitialized(true);
+    const missingDefaults = DEFAULT_AGENTS.filter(
+      da => !initial.some(ia => ia.id === da.id)
+    );
+    
+    globalAgents = [...initial, ...missingDefaults];
+    notify();
+  } catch (e) {
+    console.error("Failed to reload agents store:", e);
+  }
+}
+
+// Global listener for settings changes
+if (typeof window !== 'undefined') {
+  window.addEventListener('cortex-settings-changed', reloadFromStore);
+  window.addEventListener('cortex:agents-updated', reloadFromStore);
+}
+
+export function useAgents() {
+  const [agents, setAgents] = useState<Agent[]>(globalAgents);
+  const [isInitialized, setIsInitialized] = useState(globalIsInitialized);
+
+  useEffect(() => {
+    const listener = (nextAgents: Agent[], nextInitialized: boolean) => {
+      setAgents(nextAgents);
+      setIsInitialized(nextInitialized);
+    };
+    listeners.add(listener);
+    
+    // Trigger initialization if not started
+    if (!globalIsInitialized && !globalIsInitializing) {
+      initializeGlobalAgents();
     }
-    loadAgents();
 
-    const handleSync = () => loadAgents();
-    window.addEventListener('cortex:agents-updated', handleSync);
-    window.addEventListener('cortex-settings-changed', handleSync);
     return () => {
-      window.removeEventListener('cortex:agents-updated', handleSync);
-      window.removeEventListener('cortex-settings-changed', handleSync);
+      listeners.delete(listener);
     };
   }, []);
 
-  useEffect(() => {
-    if (isInitialized) {
-      setSetting("cortex_agents", agents);
-    }
-  }, [agents, isInitialized]);
-
-  const updateAgentStatus = useCallback((id: string, status: Agent['status'], errorMessage?: string) => {
-    setAgents(prev => prev.map(a =>
+  const updateAgentStatus = useCallback(async (id: string, status: Agent['status'], errorMessage?: string) => {
+    globalAgents = globalAgents.map(a =>
       a.id === id ? { ...a, status, errorMessage: errorMessage ?? (status !== 'error' ? undefined : a.errorMessage) } : a
-    ));
+    );
+    notify();
+    await writeToStore(globalAgents);
     window.dispatchEvent(new Event('cortex:agents-updated'));
   }, []);
 
-  const addAgent = useCallback((label: string, command: string, installCommand?: string, downloadUrl?: string) => {
+  const addAgent = useCallback(async (label: string, command: string, installCommand?: string, downloadUrl?: string) => {
     const trimmedLabel = label?.trim();
     const trimmedCommand = command?.trim();
     const trimmedInstallCommand = installCommand?.trim();
@@ -102,8 +158,7 @@ export function useAgents() {
       return;
     }
 
-    const currentAgents = agentsRef.current;
-    const isDuplicate = currentAgents.some(a => a.command.trim() === trimmedCommand);
+    const isDuplicate = globalAgents.some(a => a.command.trim() === trimmedCommand);
     
     if (isDuplicate) {
       toast.error("Agent cannot be added", {
@@ -129,7 +184,9 @@ export function useAgents() {
       isDefault: false
     };
 
-    setAgents(prev => [...prev, newAgent]);
+    globalAgents = [...globalAgents, newAgent];
+    notify();
+    await writeToStore(globalAgents);
     window.dispatchEvent(new Event('cortex:agents-updated'));
     
     toast.success(`${newAgent.label} added successfully`, {
@@ -137,22 +194,28 @@ export function useAgents() {
     });
     
     // Check if it's already installed
-    invoke<boolean>("check_command", { command: trimmedCommand }).then(isInstalled => {
+    try {
+      const isInstalled = await invoke<boolean>("check_command", { command: trimmedCommand });
       if (isInstalled) {
-        updateAgentStatus(newAgent.id, 'installed');
+        await updateAgentStatus(newAgent.id, 'installed');
       }
-    });
+    } catch (e) {
+      console.error("Verification failed for new agent:", newAgent.label, e);
+    }
   }, [updateAgentStatus]);
 
-  const deleteAgent = useCallback((id: string) => {
-    const agent = agentsRef.current.find(a => a.id === id);
+  const deleteAgent = useCallback(async (id: string) => {
+    const agent = globalAgents.find(a => a.id === id);
     if (agent?.isDefault) {
       toast.error("Agent cannot be deleted", {
         description: "Default agents must remain in your library."
       });
       return;
     }
-    setAgents(prev => prev.filter(a => a.id !== id));
+    
+    globalAgents = globalAgents.filter(a => a.id !== id);
+    notify();
+    await writeToStore(globalAgents);
     window.dispatchEvent(new Event('cortex:agents-updated'));
     
     toast.success(`${agent?.label || 'Agent'} removed successfully`, {
@@ -161,11 +224,11 @@ export function useAgents() {
   }, []);
 
   const installAgent = useCallback(async (id: string) => {
-    const agent = agentsRef.current.find(a => a.id === id);
+    const agent = globalAgents.find(a => a.id === id);
     if (!agent) return;
 
     // Clear any previous error and mark as installing
-    updateAgentStatus(id, 'installing', undefined);
+    await updateAgentStatus(id, 'installing', undefined);
     
     try {
       if (agent.installCommand) {
@@ -176,7 +239,7 @@ export function useAgents() {
       }
       
       // Invoke succeeded — optimistically mark installed. PATH refresh needs new shell.
-      updateAgentStatus(id, 'installed', undefined);
+      await updateAgentStatus(id, 'installed', undefined);
       
       try {
         const confirmedInPath = await invoke<boolean>("check_command", { command: agent.command });
@@ -197,7 +260,7 @@ export function useAgents() {
       }
     } catch (e: any) {
       const detail = typeof e === 'string' ? e : (e?.message ?? "An unexpected error occurred.");
-      updateAgentStatus(id, 'error', detail);
+      await updateAgentStatus(id, 'error', detail);
       toast.error(`Failed to install ${agent.label}`, {
         description: "Click \"View Error\" on the agent card to see full details.",
         duration: 6000,

@@ -117,7 +117,11 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                 onChange={(e) => onNameUpdate?.(pane.id, e.target.value)}
                 onBlur={() => setIsEditingName(false)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') setIsEditingName(false);
+                  if (e.key === 'Enter' || e.key === 'Escape') {
+                    e.stopPropagation();
+                    if (e.key === 'Enter') setIsEditingName(false);
+                    if (e.key === 'Escape') setIsEditingName(false);
+                  }
                 }}
               />
             ) : (
@@ -242,6 +246,11 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                 pane.id === 3 ? "git status" :
                 "Enter command..."
               }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                  e.stopPropagation();
+                }
+              }}
               className="w-full font-mono h-9 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-visible:bg-[var(--bg-color)] focus-visible:border-[var(--accent-primary)]/30 text-[11px] placeholder:text-[var(--text-secondary)]/40 transition-all rounded-md shadow-none focus-visible:ring-0"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none">
@@ -284,8 +293,14 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                       value={currentVarValue}
                       onChange={(e) => setCurrentVarValue(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleVariableSubmit();
-                        if (e.key === 'Escape') handleVariableCancel();
+                        if (e.key === 'Enter') {
+                          e.stopPropagation();
+                          handleVariableSubmit();
+                        }
+                        if (e.key === 'Escape') {
+                          e.stopPropagation();
+                          handleVariableCancel();
+                        }
                       }}
                       placeholder={`Enter ${pendingSnippet.variables[pendingSnippet.currentIndex].toLowerCase()}...`}
                       className="h-8 text-[11px] bg-[var(--text-primary)]/5 border-[var(--border-color)] pr-8"

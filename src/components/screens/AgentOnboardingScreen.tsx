@@ -7,35 +7,46 @@ import { ONBOARDING_CONTENT } from "@/lib/content";
 
 interface AgentOnboardingScreenProps {
   onComplete: () => void;
+  onBack?: () => void;
   agents: Agent[];
   installAgent: (id: string) => Promise<void>;
   isInitialized: boolean;
 }
 
 const dotVariants = {
-  animate: {
-    opacity: [0, 1, 0],
-    transition: {
-      duration: 1.5,
-      repeat: Infinity,
-      ease: "easeInOut" as any
-    }
-  }
+// ... rest of variants
 };
 
 const innerContainerVariants = {
-  hidden: { opacity: 1 },
-  visible: { 
-    opacity: 1, 
-    transition: { 
-      staggerChildren: 0.06, 
-      delayChildren: 0.05 
-    } 
-  }
+// ... rest of variants
 };
 
-export const AgentOnboardingScreen = React.memo(({ onComplete, agents, installAgent, isInitialized }: AgentOnboardingScreenProps) => {
+export const AgentOnboardingScreen = React.memo(({ onComplete, onBack, agents, installAgent, isInitialized }: AgentOnboardingScreenProps) => {
   const shouldReduceMotion = useReducedMotion();
+
+  // Keyboard navigation shortcuts for the onboarding process
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. Enter to continue if ready
+      if (e.key === 'Enter') {
+        const isAnyInstalling = agents.filter(a => a.isDefault).some(a => a.status === 'installing');
+        if (!isAnyInstalling) {
+          e.preventDefault();
+          onComplete();
+        }
+        return;
+      }
+
+      // 2. Previous / Cancel (Esc)
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onBack?.();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [agents, onComplete, onBack]);
 
   // Count active agents and check if any are currently installing
   const activeCount = agents.filter(a => a.isDefault && a.status === 'installed').length;

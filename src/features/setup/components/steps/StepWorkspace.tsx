@@ -121,6 +121,11 @@ export function StepWorkspace({
               type="text"
               value={rootPath}
               onChange={(e) => setRootPath(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                  e.stopPropagation();
+                }
+              }}
               placeholder={defaultDir || "Select a target directory"}
               className="h-7 border-none bg-transparent px-0.5 font-mono text-[13px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/50"
             />
@@ -247,6 +252,11 @@ export function StepWorkspace({
                     placeholder={`ID: ${customLayout.rows}X${customLayout.cols} (Optional)`}
                     value={layoutName}
                     onChange={(e) => setLayoutName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === 'Escape') {
+                        e.stopPropagation();
+                      }
+                    }}
                     className="h-7 border-none bg-transparent px-0.5 font-mono text-[12px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/50"
                   />
                 </div>

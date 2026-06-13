@@ -9,13 +9,25 @@ import { MODE_SELECTOR_CONTENT, ASSETS } from "@/lib/content";
 
 interface ModeSelectorScreenProps {
   onSelectMode: (mode: Mode) => void;
+  onBack?: () => void;
   showShortcutHints?: boolean;
   showTemplatesHint?: boolean;
 }
 
-export const ModeSelectorScreen = React.memo(({ onSelectMode, showShortcutHints = true, showTemplatesHint = true }: ModeSelectorScreenProps) => {
+export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortcutHints = true, showTemplatesHint = true }: ModeSelectorScreenProps) => {
   const shouldReduceMotion = useReducedMotion();
   const [lastMode, setLastMode] = useState<Mode | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onBack?.();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onBack]);
 
   useEffect(() => {
     getSetting<Mode>("startup.lastMode", "normal").then(setLastMode);
