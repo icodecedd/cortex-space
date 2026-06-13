@@ -37,7 +37,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW51c2VkX3B1YmtleV9mb3JfZGV2ZWxvcG1lbnRfcGxlYXNlX3JlcGxhY2VfbWUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZEQjJEQUFEMUFCQkNCODAKUldTQXk3c2FyZHF5L2NtN2hQb3ppMnhGU3RkYkUwb3NnRU1pZ1k1eUQ1SXdsNnU2d3ZsaGI0aDAK",
       "endpoints": [
         "https://github.com/icodecedd/cortex-space/releases/latest/download/latest.json"
       ]

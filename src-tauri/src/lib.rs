@@ -356,7 +356,7 @@ async fn write_pty(id: String, data: String) -> Result<(), String> {
 #[tauri::command]
 async fn resize_pty(id: String, rows: u16, cols: u16) -> Result<(), String> {
     if let Some(session_ref) = pty_sessions().get(&id) {
-        let mut session = session_ref.lock().unwrap();
+        let session = session_ref.lock().unwrap();
         session
             .master
             .resize(PtySize {
