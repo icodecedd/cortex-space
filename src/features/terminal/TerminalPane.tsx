@@ -18,26 +18,25 @@ interface TerminalPaneProps {
   onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
   onKill?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
-  onSaveSnippet?: (command: string) => void;
-}
+  }
 
-export const TerminalPane = React.memo(({
+  export const TerminalPane = React.memo(({
   workspaceId,
   pane,
   isFocused,
   index,
-  isMultiPane = true,
+  isMultiPane,
   onFocus,
   rootPath,
-  isZenMode = false,
-  zenPadding = 32,
-  isMaximized = false,
+  isZenMode,
+  zenPadding,
+  isMaximized,
   onMaximize,
   onSplit,
   onKill,
   onRename,
-  onSaveSnippet
-}: TerminalPaneProps) => {
+  }: TerminalPaneProps) => {
+
   const [fixedCoords, setFixedCoords] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
 
   useEffect(() => {
@@ -148,7 +147,6 @@ export const TerminalPane = React.memo(({
           onSplit={onSplit}
           onKill={onKill}
           onRename={onRename}
-          onSaveSnippet={onSaveSnippet}
         />
       </div>
     </div>

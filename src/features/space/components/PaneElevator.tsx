@@ -5,7 +5,6 @@ import {
   SquareSplitVertical, 
   SquareSplitHorizontal, 
   Trash2, 
-  BookmarkPlus, 
   RefreshCw, 
   Maximize2, 
   Minimize2,
@@ -43,7 +42,6 @@ interface PaneElevatorProps {
   onKill?: () => void;
   onRename?: (newName: string) => void;
   onRelaunch: () => void;
-  onSaveSnippet?: (command: string) => void;
   terminalInstance: Terminal | null;
   detectedPorts?: DetectedPort[];
   headerVisibility?: 'hover' | 'always';
@@ -60,7 +58,6 @@ export function PaneElevator({
   onKill,
   onRename,
   onRelaunch,
-  onSaveSnippet,
   terminalInstance,
   detectedPorts = [],
   headerVisibility = 'hover'
@@ -93,30 +90,6 @@ export function PaneElevator({
       toast.success("Pane renamed successfully", { description: `The pane is now named ${trimmed}.` });
     }
     setIsRenaming(false);
-  };
-
-  const handleSaveSnippet = () => {
-    if (onSaveSnippet && terminalInstance) {
-      const term = terminalInstance;
-      let cmd = term.getSelection();
-      
-      if (!cmd) {
-        // Get current line if no selection
-        const buffer = term.buffer.active;
-        const line = buffer.getLine(buffer.cursorY + buffer.baseY);
-        if (line) {
-          cmd = line.translateToString(true).trim();
-        }
-      }
-      
-      if (cmd) {
-        onSaveSnippet(cmd);
-      } else {
-        toast.error("Snippet cannot be saved", { 
-          description: "Select text or type a command first." 
-        });
-      }
-    }
   };
 
   if (isZenMode) return null;
@@ -160,11 +133,11 @@ export function PaneElevator({
         {...attributes}
         onPointerDown={(e) => {
           setIsPressed(true);
-          listeners?.onPointerDown(e);
+          listeners?.onPointerDown?.(e);
         }}
         onPointerUp={(e) => {
           setIsPressed(false);
-          listeners?.onPointerUp(e);
+          listeners?.onPointerUp?.(e);
         }}
         onPointerCancel={() => {
           setIsPressed(false);
@@ -350,19 +323,14 @@ export function PaneElevator({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => onSplit?.('horizontal')}>
-                    <SquareSplitVertical className="mr-2 h-3 w-3" />
+                    <SquareSplitHorizontal className="mr-2 h-3 w-3" />
                     <span className="text-xs">Split Horizontal</span>
                     <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+H</DropdownMenuShortcut>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onSplit?.('vertical')}>
-                    <SquareSplitHorizontal className="mr-2 h-3 w-3" />
+                    <SquareSplitVertical className="mr-2 h-3 w-3" />
                     <span className="text-xs">Split Vertical</span>
                     <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+V</DropdownMenuShortcut>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSaveSnippet}>
-                    <BookmarkPlus className="mr-2 h-3 w-3" />
-                    <span className="text-xs">Save as Snippet</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 

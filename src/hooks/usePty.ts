@@ -12,6 +12,7 @@ export function usePty(
   const [isReady, setIsReady] = useState(false);
   const [isTerminated, setIsTerminated] = useState(false);
   const [status, setStatus] = useState<PtyStatus>('idle');
+  const [relaunchNonce, setRelaunchNonce] = useState(0);
   const isMountedRef = useRef(true);
   const inputQueueRef = useRef<string[]>([]);
   const pendingResizeRef = useRef<{ rows: number; cols: number } | null>(null);
@@ -113,14 +114,8 @@ export function usePty(
   const relaunch = useCallback(async () => {
     setIsTerminated(false);
     await terminalSessionManager.forceKill(id);
-    await spawn({
-      command: config?.command,
-      cwd: config?.cwd,
-      rows: config?.rows,
-      cols: config?.cols,
-      shell: config?.shell
-    });
-  }, [spawn, config, id]);
+    setRelaunchNonce(prev => prev + 1);
+  }, [id]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -179,7 +174,7 @@ export function usePty(
     };
     // ONLY restart if the core process definition changes.
     // Dimensions (rows/cols) changes must be handled by resize() to keep session alive.
-  }, [id, config?.command, config?.cwd, config?.shell, config?.enabled, spawn, updateStatusOnData]);
+  }, [id, config?.command, config?.cwd, config?.shell, config?.enabled, spawn, updateStatusOnData, relaunchNonce]);
 
   return { write, resize, isReady, isTerminated, relaunch, status };
 }

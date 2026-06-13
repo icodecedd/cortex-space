@@ -42,7 +42,6 @@ interface SpaceViewProps {
   onMovePane?: (dragId: string, dropId: string, direction: 'top' | 'bottom' | 'left' | 'right') => void;
   onKillPane?: (paneId: string) => void;
   onRenamePane?: (paneId: string, newName: string) => void;
-  onSaveSnippet?: (command: string) => void;
 }
 
 interface DropData {
@@ -58,7 +57,6 @@ export const SpaceView = React.memo(({
   onMovePane,
   onKillPane,
   onRenamePane,
-  onSaveSnippet,
   isCurrent
 }: SpaceViewProps & { isCurrent: boolean }) => {
   const isMobile = useIsMobile();
@@ -209,11 +207,10 @@ export const SpaceView = React.memo(({
           onSplit={onSplitPane}
           onKill={onKillPane}
           onRename={onRenamePane}
-          onSaveSnippet={onSaveSnippet}
         />
       </DropZone>
     );
-  }, [workspaceId, activeDragId, allPanes, focusedPaneId, config.rootPath, isZenMode, zenPadding, isMaximized, onSplitPane, onKillPane, onRenamePane, onSaveSnippet]);
+  }, [workspaceId, activeDragId, allPanes, focusedPaneId, config.rootPath, isZenMode, zenPadding, isMaximized, onSplitPane, onKillPane, onRenamePane]);
 
   // Recursive Layout Renderer
   const renderLayout = (node: LayoutNode): React.ReactNode => {
