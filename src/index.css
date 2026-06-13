@@ -785,3 +785,64 @@ body, #root {
     opacity: 1;
   }
 }
+
+/* ========================================================
+   Sonner Toast — Cortex Space Custom Styles
+   Matches the graph-paper icon box + badge deliverable.
+   ======================================================== */
+
+/* Allow the floating type-badge (absolute child of the icon box) to
+   overflow the toast card boundary without being clipped. */
+.cn-toast {
+  overflow: visible !important;
+}
+
+/* ── Inline action button ──────────────────────────────────────────────── */
+/* Ghost style, monospaced label, accent fill on hover —
+   matches the Action/Update variant from the first deliverable. */
+.cn-toast-action {
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  padding: 3px 10px !important;
+  height: auto !important;
+  border-radius: var(--radius-sm, 8px) !important;
+  border: 1px solid var(--border-color, #262626) !important;
+  background: transparent !important;
+  color: var(--text-primary, #ffffff) !important;
+  cursor: pointer;
+  transition: background-color 150ms var(--ease-out),
+              border-color    150ms var(--ease-out),
+              color            150ms var(--ease-out);
+}
+
+.cn-toast-action:hover {
+  background: var(--accent-primary, #FF66B2) !important;
+  border-color: var(--accent-primary, #FF66B2) !important;
+  color: var(--accent-contrast, #000000) !important;
+}
+
+/* ── Cancel / secondary button ────────────────────────────────────────── */
+.cn-toast-cancel {
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  padding: 3px 10px !important;
+  height: auto !important;
+  border-radius: var(--radius-sm, 8px) !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--text-secondary, #A3A3A3) !important;
+  cursor: pointer;
+  transition: background-color 150ms var(--ease-out),
+              color            150ms var(--ease-out);
+}
+
+.cn-toast-cancel:hover {
+  background: rgba(128,128,128,0.1) !important;
+  color: var(--text-primary, #ffffff) !important;
+}
