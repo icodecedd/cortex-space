@@ -326,35 +326,37 @@ export function WorkspacesTab({
   };
 
   return (
-    <Tabs value={activeSubTab} onValueChange={onSubTabChange} className="space-y-6">
-      <div className="flex items-center justify-between mb-2">
-        <TabsList className="bg-[var(--text-primary)]/[0.03]">
-          <TabsTrigger value="active" className="text-[11px] font-bold tracking-wider">
-            Active ({activeTemplates.length})
-          </TabsTrigger>
-          <TabsTrigger value="archived" className="text-[11px] font-bold tracking-wider">
-            Archived ({archivedTemplates.length})
-          </TabsTrigger>
-        </TabsList>
+    <div className="space-y-6">
+      <Tabs value={activeSubTab} onValueChange={onSubTabChange} className="space-y-6">
+        <div className="flex items-center justify-between mb-2">
+          <TabsList className="bg-[var(--text-primary)]/[0.03]">
+            <TabsTrigger value="active" className="text-[11px] font-bold tracking-wider">
+              Active ({activeTemplates.length})
+            </TabsTrigger>
+            <TabsTrigger value="archived" className="text-[11px] font-bold tracking-wider">
+              Archived ({archivedTemplates.length})
+            </TabsTrigger>
+          </TabsList>
 
-        {onCapture && (
-          <Button
-            onClick={onCapture}
-            className="h-8 px-4 text-[11px] font-bold bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:opacity-90 rounded-md transition-all flex gap-2"
-          >
-            <Plus size={14} strokeWidth={3} /> Capture Current
-          </Button>
-        )}
-      </div>
+          {onCapture && (
+            <Button
+              onClick={onCapture}
+              className="h-8 px-4 text-[11px] font-bold bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:opacity-90 rounded-md transition-all flex gap-2"
+            >
+              <Plus size={14} strokeWidth={3} /> Capture Current
+            </Button>
+          )}
+        </div>
 
-      <TabsContent value="active">
-        {renderActiveContent()}
-      </TabsContent>
+        <TabsContent value="active">
+          {renderActiveContent()}
+        </TabsContent>
 
-      <TabsContent value="archived">
-        {renderArchivedContent()}
-      </TabsContent>
-    </Tabs>
+        <TabsContent value="archived">
+          {renderArchivedContent()}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
 

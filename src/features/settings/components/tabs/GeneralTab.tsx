@@ -285,6 +285,19 @@ export function GeneralTab({
               onCheckedChange={setReducedMotion}
             />
           </SettingsRow>
+          <SettingsRow
+            label="Layout Customization Mode"
+            description="Choose the interface mode when configuring custom layouts."
+          >
+            <SegmentedControl<"grid" | "count">
+              value={(focusSettings.customLayoutMode as "grid" | "count") || "grid"}
+              onChange={(v) => setFocusSetting("customLayoutMode", v)}
+              options={[
+                { value: "grid", label: "Grid Mode" },
+                { value: "count", label: "Flex Mode" },
+              ]}
+            />
+          </SettingsRow>
         </SettingsCard>
       </motion.div>
 

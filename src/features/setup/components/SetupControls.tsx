@@ -36,7 +36,7 @@ export function SetupControls({ step, isStepValid, onPrev, onNext, onLaunch, mod
 
         {isLaunch ? (
           <Button
-            className="btn-tactile primary h-12 px-10 text-base shadow-2xl shadow-[var(--accent-primary)]/20"
+            className="btn-tactile primary h-11 px-8 text-base shadow-2xl shadow-[var(--accent-primary)]/20"
             onClick={onLaunch}
             disabled={!isStepValid}
           >
@@ -47,7 +47,7 @@ export function SetupControls({ step, isStepValid, onPrev, onNext, onLaunch, mod
           <Button
             onClick={onNext}
             disabled={!isStepValid && step !== 1}
-            className="btn-tactile primary h-11 px-8"
+            className="btn-tactile primary h-10 px-6"
           >
             <span>Next: {step === 1 ? (mode === 'agents' ? 'Assign' : 'Commands') : 'Preview'}</span>
             <ChevronRight size={16} />

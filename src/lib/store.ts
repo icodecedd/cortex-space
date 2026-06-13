@@ -122,6 +122,7 @@ export interface FocusSettings {
   isZenMode: boolean;
   showTabs: boolean;
   showStatusBar: boolean;
+  customLayoutMode: 'grid' | 'count';
 }
 
 export interface DemoSettings {

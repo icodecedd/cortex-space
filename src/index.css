@@ -9,9 +9,9 @@
 
 :root {
   /* Dynamic Theme Variables */
-  --bg-color: #0A0A0A;
-  --surface-color: #121212;
-  --border-color: #262626;
+  --bg-color: #09090b;
+  --surface-color: #0f0f11;
+  --border-color: #1d1d20;
   --text-primary: #ffffff;
   --text-secondary: #A3A3A3;
   --accent-primary: #FF66B2;
@@ -52,6 +52,13 @@
   --terminal-font-family: "JetBrains Mono", monospace;
   --terminal-line-height: 1.2;
   --terminal-letter-spacing: 0px;
+
+  /* ANSI Theme Colors for Workspace Labels */
+  --ansi-bright-black: #757575;
+  --ansi-green: #10B981;
+  --ansi-blue: #3B82F6;
+  --ansi-red: #EF4444;
+  --ansi-yellow: #F59E0B;
 
   /* UI font scale (1 = 100%). Overridden by useColorScheme hook */
   --ui-font-scale: 1;
@@ -644,62 +651,320 @@ body, #root {
 }
 
 /* ========================================================
-   Sonner Toast — Cortex Space Custom Styles
-   Matches the graph-paper icon box + badge deliverable.
+   Sonner Toast — Cortex Space Premium Styles
+   Redesigned to match the clean dark-theme layout.
    ======================================================== */
 
-/* Allow the floating type-badge (absolute child of the icon box) to
-   overflow the toast card boundary without being clipped. */
 .cn-toast {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  gap: 0 !important; /* Spacing handled via margins for pixel-precision */
+  padding: 16px !important;
+  background: #0f0f11 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6) !important;
+  transition: all var(--duration-normal) var(--ease-out) !important;
+  width: 380px !important;
+  max-width: 100% !important;
   overflow: visible !important;
 }
 
-/* ── Inline action button ──────────────────────────────────────────────── */
-/* Ghost style, monospaced label, accent fill on hover —
-   matches the Action/Update variant from the first deliverable. */
-.cn-toast-action {
-  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
-  font-size: 10px !important;
+/* Pulse keyframe for loading variant's status dot */
+@keyframes cn-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 6px var(--accent-primary, #FF66B2);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+    box-shadow: 0 0 2px var(--accent-primary, #FF66B2);
+  }
+}
+
+/* Content block takes full width minus the icon to force wrap buttons */
+.cn-toast [data-icon] {
+  position: static !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+.cn-toast [data-content] {
+  flex: 1 !important;
+  flex-basis: calc(100% - 54px) !important; /* icon is 36px + 18px gap */
+  margin-left: 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  padding-right: 24px !important; /* Ensures text wraps before hitting close button */
+}
+
+.cn-toast [data-title] {
+  color: #ffffff !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
-  padding: 3px 10px !important;
-  height: auto !important;
-  border-radius: var(--radius-sm, 8px) !important;
-  border: 1px solid var(--border-color, #262626) !important;
-  background: transparent !important;
-  color: var(--text-primary, #ffffff) !important;
-  cursor: pointer;
-  transition: background-color 150ms var(--ease-out),
-              border-color    150ms var(--ease-out),
-              color            150ms var(--ease-out);
+  line-height: 1.4 !important;
 }
 
-.cn-toast-action:hover {
-  background: var(--accent-primary, #FF66B2) !important;
-  border-color: var(--accent-primary, #FF66B2) !important;
-  color: var(--accent-contrast, #000000) !important;
+.cn-toast [data-description] {
+  color: #a3a3a3 !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  margin-top: 2px !important;
 }
 
-/* ── Cancel / secondary button ────────────────────────────────────────── */
-.cn-toast-cancel {
-  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
-  font-size: 10px !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
-  padding: 3px 10px !important;
-  height: auto !important;
-  border-radius: var(--radius-sm, 8px) !important;
-  border: 1px solid transparent !important;
+/* ── Close Button ──────────────────────────────────────────────────────── */
+.cn-toast [data-close-button] {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  left: auto !important;
+  transform: none !important;
   background: transparent !important;
+  border: none !important;
   color: var(--text-secondary, #A3A3A3) !important;
-  cursor: pointer;
-  transition: background-color 150ms var(--ease-out),
-              color            150ms var(--ease-out);
+  cursor: pointer !important;
+  opacity: 0.6 !important;
+  transition: opacity 150ms var(--ease-out), color 150ms var(--ease-out) !important;
 }
 
-.cn-toast-cancel:hover {
-  background: rgba(128,128,128,0.1) !important;
+.cn-toast [data-close-button]:hover {
+  opacity: 1 !important;
   color: var(--text-primary, #ffffff) !important;
+}
+
+/* ── Action & Cancel Buttons ────────────────────────────────────────────── */
+.cn-toast-action,
+.cn-toast [data-button],
+.cn-toast-cancel,
+.cn-toast [data-cancel] {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 5px 12px !important;
+  height: 26px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-top: 8px !important; /* Precise gap from text */
+  transition: background-color 150ms var(--ease-out),
+              border-color 150ms var(--ease-out),
+              color 150ms var(--ease-out),
+              transform 100ms var(--ease-out) !important;
+}
+
+.cn-toast-action:active,
+.cn-toast [data-button]:active,
+.cn-toast-cancel:active,
+.cn-toast [data-cancel]:active {
+  transform: scale(0.96) !important;
+}
+
+/* Cancel / Secondary Button (e.g. Ignore / Undo) */
+.cn-toast-cancel,
+.cn-toast [data-cancel] {
+  order: 2 !important; /* Cancel rendered first visually */
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #e5e5e5 !important;
+}
+
+.cn-toast-cancel:hover,
+.cn-toast [data-cancel]:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+/* Action / Primary Button (e.g. Go to settings / Open Browser) */
+.cn-toast-action,
+.cn-toast [data-button] {
+  order: 3 !important; /* Action rendered second visually */
+  background: #2c2c2e !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+.cn-toast-action:hover,
+.cn-toast [data-button]:hover {
+  background: #3a3a3c !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ── Alignment of buttons with text (under the icon) ── */
+/* When there is an icon, only the visually FIRST button gets the large offset */
+.cn-toast:has([data-icon]) [data-cancel] {
+  margin-left: 54px !important; /* 36px icon + 18px gap */
+}
+
+/* If no cancel button, action button gets the offset */
+.cn-toast:has([data-icon]):not(:has([data-cancel])) [data-button] {
+  margin-left: 54px !important;
+}
+
+/* The second button in the group only needs a small gap */
+.cn-toast [data-cancel] + [data-button],
+.cn-toast [data-button] + [data-cancel] {
+  margin-left: 6px !important;
+}
+
+/* ========================================================
+   Light Mode Overrides for Sonner Toasts
+   ======================================================== */
+html:not(.dark) .cn-toast {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08) !important;
+}
+
+html:not(.dark) .cn-toast [data-title] {
+  color: #121212 !important;
+}
+
+html:not(.dark) .cn-toast [data-description] {
+  color: #555555 !important;
+}
+
+/* Cancel Button in Light Mode */
+html:not(.dark) .cn-toast-cancel,
+html:not(.dark) .cn-toast [data-cancel] {
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #4b5563 !important;
+}
+
+html:not(.dark) .cn-toast-cancel:hover,
+html:not(.dark) .cn-toast [data-cancel]:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: #111827 !important;
+}
+
+/* Action Button in Light Mode */
+html:not(.dark) .cn-toast-action,
+html:not(.dark) .cn-toast [data-button] {
+  background: #f4f4f5 !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  color: #18181b !important;
+}
+
+html:not(.dark) .cn-toast-action:hover,
+html:not(.dark) .cn-toast [data-button]:hover {
+  background: #e4e4e7 !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: #000000 !important;
+}
+
+/* ========================================================
+   Ambient Glowing Border Effect (Pure CSS & Masks)
+   ======================================================== */
+
+@property --glow-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes spin-glow {
+  from {
+    --glow-angle: 0deg;
+  }
+  to {
+    --glow-angle: 360deg;
+  }
+}
+
+.ambient-glow-card {
+  --glow-color-1: var(--accent-primary, #FF66B2);
+  --glow-color-2: #8b5cf6; /* neon purple */
+  --glow-color-3: #06b6d4; /* cyan */
+  --glow-border-width: 1px;
+  --glow-opacity: 0.05;
+  --glow-blur: 16px;
+  --glow-speed: 8s;
+
+  position: relative;
+  background: var(--surface-color, #0f0f11) !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
+/* The glowing border outline */
+.ambient-glow-card::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  padding: var(--glow-border-width) !important;
+  border-radius: inherit !important;
+  background: conic-gradient(
+    from var(--glow-angle),
+    var(--glow-color-1),
+    var(--glow-color-2),
+    var(--glow-color-3),
+    var(--glow-color-1)
+  ) !important;
+
+  /* Mask to isolate the glow strictly to the border edge */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0) !important;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0) !important;
+  -webkit-mask-composite: xor !important;
+  mask-composite: exclude !important;
+
+  pointer-events: none !important;
+  z-index: 10 !important;
+  opacity: var(--glow-opacity) !important;
+  transition: opacity 300ms var(--ease-out) !important;
+  animation: spin-glow var(--glow-speed) linear infinite !important;
+}
+
+/* The ambient bloom blur behind the card */
+.ambient-glow-card::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: calc(-1 * var(--glow-border-width)) !important;
+  border-radius: inherit !important;
+  background: conic-gradient(
+    from var(--glow-angle),
+    var(--glow-color-1),
+    var(--glow-color-2),
+    var(--glow-color-3),
+    var(--glow-color-1)
+  ) !important;
+  filter: blur(var(--glow-blur)) !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+  opacity: calc(var(--glow-opacity) * 0.3) !important; /* Softened bloom */
+  transition: opacity 300ms var(--ease-out), filter 300ms var(--ease-out) !important;
+  animation: spin-glow var(--glow-speed) linear infinite !important;
+  will-change: transform, opacity, filter;
+}
+
+/* Hover State adjustments */
+.ambient-glow-card:hover {
+  --glow-opacity: 0.12;
+  --glow-blur: 18px;
+  --glow-speed: 6s;
+}
+
+/* Selected / Active State */
+.ambient-glow-card.active-glow {
+  --glow-opacity: 0.22;
+  --glow-blur: 16px;
+  --glow-speed: 7s;
+  box-shadow: 0 8px 32px rgba(var(--accent-primary-rgb), 0.02) !important;
+}
+
+.ambient-glow-card.active-glow:hover {
+  --glow-opacity: 0.32;
+  --glow-blur: 22px;
+  --glow-speed: 5s;
+  box-shadow: 0 12px 40px rgba(var(--accent-primary-rgb), 0.04) !important;
 }

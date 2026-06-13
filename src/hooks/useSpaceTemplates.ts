@@ -3,7 +3,7 @@ import { getSetting, setSetting } from "@/lib/store";
 import { SpaceTemplate, LayoutNode, Mode } from "@/types";
 import { toast } from "sonner";
 import { LayoutType, PaneConfig, INITIAL_LAYOUTS } from "@/lib/setup-constants";
-import { gridToLayoutNode } from "@/lib/setup-utils";
+import { configToLayoutNode } from "@/lib/setup-utils";
 
 export function useSpaceTemplates() {
   const [templates, setTemplates] = useState<SpaceTemplate[]>([]);
@@ -55,7 +55,7 @@ export function useSpaceTemplates() {
     if (typeof layout === 'string') {
       const layoutInfo = INITIAL_LAYOUTS.find(l => l.id === layout);
       if (layoutInfo) {
-        layoutNode = gridToLayoutNode(layoutInfo, panes);
+        layoutNode = configToLayoutNode(layoutInfo.config, panes);
       } else {
         // Fallback for custom or unknown strings
         layoutNode = {

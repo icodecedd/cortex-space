@@ -17,6 +17,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useEffect,
   type ReactNode,
 } from 'react';
 import { invoke } from '@tauri-apps/api/core';
@@ -31,7 +32,7 @@ import {
   repositionNode,
 } from '../lib/setup-utils';
 import { formatWorkspaceName } from '../lib/utils';
-import { getSetting, type StartupBehavior } from '../lib/store';
+import { getSetting, setSetting, type StartupBehavior } from '../lib/store';
 import { APP_CONTENT } from '../lib/content';
 
 // ---------------------------------------------------------------------------
@@ -105,6 +106,7 @@ const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefi
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Memoised — was recomputed inline on every render in the old App.tsx
   const activeWorkspace = useMemo(
@@ -134,9 +136,29 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     unarchiveSnippets,
   } = useSnippets();
 
+  // ── Persistence ──────────────────────────────────────────────────────────
+
+  // Sync workspaces to store whenever they change (and after initial load)
+  useEffect(() => {
+    if (isLoaded) {
+      setSetting('internal.workspaces', workspaces);
+      setSetting('internal.activeWorkspaceId', activeWorkspaceId);
+    }
+  }, [workspaces, activeWorkspaceId, isLoaded]);
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   const initWorkspace = useCallback(async () => {
+    const savedWorkspaces = await getSetting<Workspace[]>('internal.workspaces', []);
+    const savedActiveId = await getSetting<string | null>('internal.activeWorkspaceId', null);
+
+    if (savedWorkspaces.length > 0) {
+      setWorkspaces(savedWorkspaces);
+      setActiveWorkspaceId(savedActiveId || savedWorkspaces[0].id);
+      setIsLoaded(true);
+      return;
+    }
+
     const behavior = await getSetting<StartupBehavior>('startup.behavior', 'modeSelector');
     const lastMode = await getSetting<Mode>('startup.lastMode', 'normal');
     const initialId = crypto.randomUUID();
@@ -166,6 +188,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
     setWorkspaces([{ id: initialId, name: '', mode, config: null, status }]);
     setActiveWorkspaceId(initialId);
+    setIsLoaded(true);
   }, []);
 
   // ── Workspace CRUD ────────────────────────────────────────────────────────
@@ -195,20 +218,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const rootName = formatWorkspaceName(rawName);
       const updatedConfig = { ...newConfig, rootPath: finalPath };
 
-      // BUG FIX: read the workspace mode INSIDE the updater so we always
-      // see the current value, not the stale closure from the last render.
+      const current = workspaces.find((w) => w.id === activeWorkspaceId);
+      const activeMode = current?.mode ?? 'normal';
+
+      toast.success(APP_CONTENT.WORKSPACE_ACTIVATED(rootName), {
+        description: `Workspace is now active in ${activeMode} mode.`,
+      });
+
       setWorkspaces((prev) => {
-        const current = prev.find((w) => w.id === activeWorkspaceId);
-        const activeMode = current?.mode ?? 'normal';
-
-        // queueMicrotask keeps the updater pure (no side-effects inside React
-        // state updaters) while still firing before the next paint.
-        queueMicrotask(() => {
-          toast.success(APP_CONTENT.WORKSPACE_ACTIVATED(rootName), {
-            description: `Workspace is now active in ${activeMode} mode.`,
-          });
-        });
-
         return prev.map((w) =>
           w.id === activeWorkspaceId
             ? { ...w, name: rootName, config: updatedConfig, status: 'active' as const }
@@ -216,7 +233,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         );
       });
     },
-    [activeWorkspaceId],
+    [activeWorkspaceId, workspaces],
   );
 
   const handleSwitchWorkspace = useCallback((id: string) => {
@@ -225,6 +242,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const handleCloseWorkspace = useCallback(
     (id: string) => {
+      const target = workspaces.find((w) => w.id === id);
+      if (!target) return;
+
+      if (workspaces.length <= 1) {
+        toast.success('Workspace reset successfully', {
+          description: 'Returning to the mode selection screen.',
+        });
+      } else {
+        toast.warning('Workspace closed successfully', {
+          description: 'Process connections have been terminated.',
+        });
+      }
+
       setWorkspaces((prev) => {
         const index = prev.findIndex((w) => w.id === id);
         if (index === -1) return prev;
@@ -232,11 +262,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (prev.length <= 1) {
           const newId = crypto.randomUUID();
           setActiveWorkspaceId(newId);
-          queueMicrotask(() =>
-            toast.success('Workspace reset successfully', {
-              description: 'Returning to the mode selection screen.',
-            }),
-          );
           return [
             { id: newId, name: '', mode: 'normal' as Mode, config: null, status: 'mode-select' as const },
           ];
@@ -247,20 +272,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           setActiveWorkspaceId(updated[Math.max(0, index - 1)].id);
         }
 
-        queueMicrotask(() =>
-          toast.warning('Workspace closed successfully', {
-            description: 'Process connections have been terminated.',
-          }),
-        );
         return updated;
       });
     },
-    [activeWorkspaceId],
+    [activeWorkspaceId, workspaces],
   );
 
   const handleCloseWorkspaces = useCallback(
     (ids: string[]) => {
       if (ids.length === 0) return;
+
+      toast.warning('Workspaces closed successfully', {
+        description: `${ids.length} workspaces have been terminated.`,
+      });
+
       setWorkspaces((prev) => {
         const updated = prev.filter((w) => !ids.includes(w.id));
 
@@ -274,22 +299,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           } else {
             const newId = crypto.randomUUID();
             setActiveWorkspaceId(newId);
-            queueMicrotask(() =>
-              toast.warning('Workspaces closed successfully', {
-                description: `${ids.length} workspaces have been terminated.`,
-              }),
-            );
             return [
               { id: newId, name: '', mode: 'normal' as Mode, config: null, status: 'mode-select' as const },
             ];
           }
         }
 
-        queueMicrotask(() =>
-          toast.warning('Workspaces closed successfully', {
-            description: `${ids.length} workspaces have been terminated.`,
-          }),
-        );
         return updated;
       });
     },
@@ -390,14 +405,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const handleKillPane = useCallback(
     (paneId: string) => {
       if (!activeWorkspaceId) return;
+
+      const ws = workspaces.find((w) => w.id === activeWorkspaceId);
+      if (ws?.config) {
+        const newLayout = removeNode(ws.config.layout, paneId);
+        if (!newLayout) {
+          toast.success(APP_CONTENT.WORKSPACE_RESET, {
+            description: APP_CONTENT.WORKSPACE_RESET_DESC,
+          });
+        }
+      }
+
       setWorkspaces((prev) =>
         prev.map((w) => {
           if (w.id === activeWorkspaceId && w.config) {
             const newLayout = removeNode(w.config.layout, paneId);
             if (!newLayout) {
-              toast.success(APP_CONTENT.WORKSPACE_RESET, {
-                description: APP_CONTENT.WORKSPACE_RESET_DESC,
-              });
               return { ...w, status: 'mode-select' as const, config: null };
             }
             return { ...w, config: { ...w.config, layout: newLayout } };
@@ -406,7 +429,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         }),
       );
     },
-    [activeWorkspaceId],
+    [activeWorkspaceId, workspaces],
   );
 
   const handleRenamePane = useCallback(

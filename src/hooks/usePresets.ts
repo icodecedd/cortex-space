@@ -97,6 +97,10 @@ export function usePresets(rootPath: string, isValidDir: boolean | null) {
           label: "Undo",
           onClick: () => setPresets(old => [...old, presetToRemove])
         },
+        cancel: {
+          label: "Dismiss",
+          onClick: () => {}
+        },
       });
 
       return prev.filter(p => p.path !== path);

@@ -13,7 +13,9 @@ interface StepPreviewProps {
 }
 
 export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepPreviewProps) {
-  const layoutString = `${layout.rows}x${layout.cols}`;
+  const layoutString = layout.type === 'grid' ? `${layout.rows}x${layout.cols}` : `${layout.value} PANES`;
+  const isCountMode = layout.type === 'count';
+  const gridCols = isCountMode ? Math.ceil(Math.sqrt(layout.value)) : undefined;
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -142,8 +144,8 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
               <div 
                 className="aspect-[4/3] grid gap-1.5 bg-black/40 p-2 rounded-lg border border-[var(--border-color)] shadow-inner"
                 style={{
-                  gridTemplateColumns: getGridCols(layout),
-                  gridTemplateRows: getGridRows(layout)
+                  gridTemplateColumns: isCountMode ? `repeat(${gridCols}, 1fr)` : getGridCols(layout),
+                  gridTemplateRows: isCountMode ? 'auto' : getGridRows(layout)
                 }}
               >
                 {activePanes.map((pane) => (

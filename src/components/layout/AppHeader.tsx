@@ -134,8 +134,15 @@ export const AppHeader = React.memo(({
 
   const handleRenameClick = (ws: Workspace) => {
     setContextWorkspaceId(ws.id);
-    setTempName(ws.customName || ws.name);
+    const initialName = ws.customName || ws.name || getWorkspacePlaceholder(workspaces.indexOf(ws));
+    setTempName(initialName);
     setIsRenameDialogOpen(true);
+    
+    // Use a small timeout to ensure the dialog is mounted before focusing
+    setTimeout(() => {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    }, 50);
   };
 
   const handleRenameSubmit = (e: React.FormEvent) => {
@@ -180,13 +187,13 @@ export const AppHeader = React.memo(({
                       key={ws.id} 
                       value={ws}
                       data-active={isActive}
-                      className="h-[80%] flex items-center"
+                      className="h-full flex items-end pb-[1px]"
                       onDragStart={() => setIsDragging(true)}
                       onDragEnd={() => setIsDragging(false)}
                     >
                       <ContextMenu onOpenChange={(open) => { if (open) setContextWorkspaceId(ws.id); }}>
                         <ContextMenuTrigger asChild>
-                          <div className="h-full flex items-center">
+                          <div className="h-full flex items-end">
                             <InteractiveTab
                               id={ws.id}
                               name={ws.name ? ws.name : getWorkspacePlaceholder(idx)}
@@ -198,9 +205,9 @@ export const AppHeader = React.memo(({
                               terminalCount={terminalCount}
                               icon={
                                 ws.mode === 'agents' ? (
-                                  <Bot size={13} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
+                                  <Bot size={13} className="shrink-0" />
                                 ) : (
-                                  <SquareTerminal size={13} className={isActive ? "text-[var(--accent-primary)] shrink-0" : "text-[var(--text-secondary)] shrink-0 opacity-70 group-hover:opacity-100"} />
+                                  <SquareTerminal size={13} className="shrink-0" />
                                 )
                               }
                               onSelect={() => onSwitchWorkspace(ws.id)}
@@ -461,7 +468,10 @@ export const AppHeader = React.memo(({
 
       {/* Shared Rename Dialog */}
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+        <DialogContent 
+          open={isRenameDialogOpen}
+          className="sm:max-w-[425px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]"
+        >
           <DialogHeader>
             <DialogTitle className="text-lg font-bold tracking-tight">Rename Workspace</DialogTitle>
           </DialogHeader>

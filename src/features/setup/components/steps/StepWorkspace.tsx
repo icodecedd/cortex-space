@@ -58,13 +58,19 @@ export function StepWorkspace({
   const handleSaveLayout = () => {
     const finalName = layoutName.trim() 
       ? layoutName 
-      : `${customLayout.rows}X${customLayout.cols}`;
+      : customLayout.type === 'grid' 
+        ? `${customLayout.rows}X${customLayout.cols}`
+        : `${customLayout.value} PANES`;
     
     addSavedLayout(finalName, customLayout);
     setLayoutName("");
   };
 
   const currentPath = rootPath || defaultDir;
+
+  const isInvalid = customLayout.type === 'grid' 
+    ? (customLayout.rows < 1 || customLayout.cols < 1)
+    : (customLayout.value < 1);
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -96,8 +102,8 @@ export function StepWorkspace({
       <motion.section variants={itemVariants} className="mb-16">
         <div className="flex flex-col gap-1 mb-10">
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]">
-              <Database size={16} />
+            <div className="text-[var(--accent-primary)]">
+              <Database size={18} />
             </div>
             <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
               Workspace Directory
@@ -193,8 +199,8 @@ export function StepWorkspace({
       <motion.section variants={itemVariants}>
         <div className="flex flex-col gap-1 mb-10">
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]">
-              <Layout size={16} />
+            <div className="text-[var(--accent-primary)]">
+              <Layout size={18} />
             </div>
             <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
               Grid Layout
@@ -249,7 +255,7 @@ export function StepWorkspace({
                     </label>
                     <Input
                       type="text"
-                      placeholder={`Dynamic ID: ${customLayout.rows}X${customLayout.cols}`}
+                      placeholder={customLayout.type === 'grid' ? `Dynamic ID: ${customLayout.rows}X${customLayout.cols}` : `Dynamic ID: ${customLayout.value} PANES`}
                       value={layoutName}
                       onChange={(e) => setLayoutName(e.target.value)}
                       className="h-8 border-none bg-transparent px-0.5 font-mono text-[14px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/40"
@@ -261,12 +267,12 @@ export function StepWorkspace({
                   <div className="hidden md:flex flex-col items-end gap-1 mr-4">
                     <span className="text-[9px] font-bold text-[var(--text-secondary)] tracking-widest uppercase opacity-50 text-right">Layout Blueprint</span>
                     <span className="text-xs font-mono font-bold text-[var(--accent-primary)] text-right">
-                      {layoutName.trim() ? layoutName : `${customLayout.rows}X${customLayout.cols}`}
+                      {layoutName.trim() ? layoutName : customLayout.type === 'grid' ? `${customLayout.rows}X${customLayout.cols}` : `${customLayout.value} PANES`}
                     </span>
                   </div>
                   <Button
                     onClick={handleSaveLayout}
-                    disabled={customLayout.rows < 1 || customLayout.cols < 1}
+                    disabled={isInvalid}
                     className="btn-tactile primary h-11 px-8 font-bold text-[11px] tracking-wider"
                   >
                     Save Configuration
@@ -280,3 +286,5 @@ export function StepWorkspace({
     </motion.div>
   );
 }
+
+

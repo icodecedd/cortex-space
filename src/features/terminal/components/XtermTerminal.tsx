@@ -138,11 +138,11 @@ export function XtermTerminal({
     const themeDef = allThemes.find(t => t.id === themeName) || allThemes.find(t => t.id === 'cortex');
     if (!themeDef) {
       return {
-        bg: scheme === 'dark' ? '#0A0A0A' : '#ffffff',
-        headerBg: scheme === 'dark' ? '#111111' : '#f5f5f7',
-        footerBg: scheme === 'dark' ? '#0A0A0A' : '#ffffff',
-        surface: scheme === 'dark' ? '#161616' : '#ffffff',
-        border: scheme === 'dark' ? '#262626' : '#d1d1d1',
+        bg: scheme === 'dark' ? '#09090b' : '#ffffff',
+        headerBg: scheme === 'dark' ? '#0f0f11' : '#f5f5f7',
+        footerBg: scheme === 'dark' ? '#09090b' : '#ffffff',
+        surface: scheme === 'dark' ? '#0f0f11' : '#ffffff',
+        border: scheme === 'dark' ? '#1d1d20' : '#d1d1d1',
         textPrimary: scheme === 'dark' ? '#ffffff' : '#000000',
         textSecondary: scheme === 'dark' ? '#A3A3A3' : '#525252',
         accent: '#ffffff',

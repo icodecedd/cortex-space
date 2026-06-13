@@ -94,92 +94,89 @@ export function useSnippets() {
     if (now - lastOpRef.current < 500) return;
     lastOpRef.current = now;
 
-    const currentSnippets = snippetsRef.current;
-    const snippet = currentSnippets.find(s => s.id === id);
-    
-    const newSnippets = currentSnippets.filter(s => s.id !== id);
-    setSnippets(newSnippets);
-    setSetting("cortex_snippets", newSnippets).then(() => {
-      window.dispatchEvent(new Event('cortex:snippets-updated'));
-    });
-    
-    toast.success(`${snippet?.label || 'Snippet'} permanently deleted`, {
-      id: `del-${id}`,
-      description: "The snippet has been permanently removed."
+    setSnippets(prev => {
+      const snippet = prev.find(s => s.id === id);
+      const newSnippets = prev.filter(s => s.id !== id);
+      setSetting("cortex_snippets", newSnippets).then(() => {
+        window.dispatchEvent(new Event('cortex:snippets-updated'));
+      });
+      toast.success(`${snippet?.label || 'Snippet'} permanently deleted`, {
+        id: `del-${id}`,
+        description: "The snippet has been permanently removed."
+      });
+      return newSnippets;
     });
   }, []);
 
   const deleteSnippets = useCallback((ids: string[]) => {
-    const now = Date.now();
-    if (now - lastOpRef.current < 500) return;
-    lastOpRef.current = now;
-
-    const count = ids.length;
-    const newSnippets = snippetsRef.current.filter(s => !ids.includes(s.id));
-    setSnippets(newSnippets);
-    setSetting("cortex_snippets", newSnippets).then(() => {
-      window.dispatchEvent(new Event('cortex:snippets-updated'));
-    });
-    
-    toast.success(`${count} snippets permanently deleted`, {
-      id: `del-bulk-${ids.join('-').substring(0, 50)}`,
-      description: `Successfully removed ${count} items from your library.`
+    setSnippets(prev => {
+      const newSnippets = prev.filter(s => !ids.includes(s.id));
+      setSetting("cortex_snippets", newSnippets).then(() => {
+        window.dispatchEvent(new Event('cortex:snippets-updated'));
+      });
+      toast.success(`${ids.length} snippets permanently deleted`, {
+        id: `del-bulk-${ids.join('-').substring(0, 50)}`,
+        description: `Successfully removed ${ids.length} items from your library.`
+      });
+      return newSnippets;
     });
   }, []);
 
   const archiveSnippet = useCallback((id: string) => {
-    const newSnippets = snippetsRef.current.map(s => s.id === id ? { ...s, isArchived: true } : s);
-    setSnippets(newSnippets);
-    setSetting("cortex_snippets", newSnippets).then(() => {
-      window.dispatchEvent(new Event('cortex:snippets-updated'));
-    });
-    
-    const snippet = snippetsRef.current.find(s => s.id === id);
-    toast.info(`${snippet?.label || 'Snippet'} archived`, {
-      id: `arch-${id}`,
-      description: "The snippet has been archived and can be restored later."
+    setSnippets(prev => {
+      const snippet = prev.find(s => s.id === id);
+      const newSnippets = prev.map(s => s.id === id ? { ...s, isArchived: true } : s);
+      setSetting("cortex_snippets", newSnippets).then(() => {
+        window.dispatchEvent(new Event('cortex:snippets-updated'));
+      });
+      toast.info(`${snippet?.label || 'Snippet'} archived`, {
+        id: `arch-${id}`,
+        description: "The snippet has been archived and can be restored later."
+      });
+      return newSnippets;
     });
   }, []);
 
   const archiveSnippets = useCallback((ids: string[]) => {
-    const count = ids.length;
-    const newSnippets = snippetsRef.current.map(s => ids.includes(s.id) ? { ...s, isArchived: true } : s);
-    setSnippets(newSnippets);
-    setSetting("cortex_snippets", newSnippets).then(() => {
-      window.dispatchEvent(new Event('cortex:snippets-updated'));
-    });
-    
-    toast.info(`${count} snippets archived`, {
-      id: `arch-bulk-${ids.join('-').substring(0, 50)}`,
-      description: "The items have been archived and can be restored later."
+    setSnippets(prev => {
+      const newSnippets = prev.map(s => ids.includes(s.id) ? { ...s, isArchived: true } : s);
+      setSetting("cortex_snippets", newSnippets).then(() => {
+        window.dispatchEvent(new Event('cortex:snippets-updated'));
+      });
+      toast.info(`${ids.length} snippets archived`, {
+        id: `arch-bulk-${ids.join('-').substring(0, 50)}`,
+        description: "The items have been archived and can be restored later."
+      });
+      return newSnippets;
     });
   }, []);
 
   const unarchiveSnippet = useCallback((id: string) => {
-    const newSnippets = snippetsRef.current.map(s => s.id === id ? { ...s, isArchived: false } : s);
-    setSnippets(newSnippets);
-    setSetting("cortex_snippets", newSnippets).then(() => {
-      window.dispatchEvent(new Event('cortex:snippets-updated'));
-    });
-    
-    const snippet = snippetsRef.current.find(s => s.id === id);
-    toast.success(`${snippet?.label || 'Snippet'} restored`, {
-      id: `unarch-${id}`,
-      description: "The snippet has been restored to your library."
+    setSnippets(prev => {
+      const snippet = prev.find(s => s.id === id);
+      const newSnippets = prev.map(s => s.id === id ? { ...s, isArchived: false } : s);
+      setSetting("cortex_snippets", newSnippets).then(() => {
+        window.dispatchEvent(new Event('cortex:snippets-updated'));
+      });
+      toast.success(`${snippet?.label || 'Snippet'} restored`, {
+        id: `unarch-${id}`,
+        description: "The snippet has been restored to your library."
+      });
+      return newSnippets;
     });
   }, []);
 
   const unarchiveSnippets = useCallback((ids: string[]) => {
-    const count = ids.length;
-    const newSnippets = snippetsRef.current.map(s => ids.includes(s.id) ? { ...s, isArchived: false } : s);
-    setSnippets(newSnippets);
-    setSetting("cortex_snippets", newSnippets).then(() => {
-      window.dispatchEvent(new Event('cortex:snippets-updated'));
-    });
-    
-    toast.success(`${count} snippets restored`, {
-      id: `unarch-bulk-${ids.join('-').substring(0, 50)}`,
-      description: `Successfully restored ${count} items to your library.`
+    setSnippets(prev => {
+      const newSnippets = prev.map(s => ids.includes(s.id) ? { ...s, isArchived: false } : s);
+      setSetting("cortex_snippets", newSnippets).then(() => {
+        window.dispatchEvent(new Event('cortex:snippets-updated'));
+      });
+      toast.success(`${ids.length} snippets restored`, {
+        id: `unarch-bulk-${ids.join('-').substring(0, 50)}`,
+        description: `Successfully restored ${ids.length} items to your library.`
+      });
+      return newSnippets;
     });
   }, []);
 

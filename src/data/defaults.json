@@ -75,7 +75,8 @@
   "focus": {
     "isZenMode": false,
     "showTabs": false,
-    "showStatusBar": false
+    "showStatusBar": false,
+    "customLayoutMode": "grid"
   },
   "demo": {
     "showWorkspacesTab": true,

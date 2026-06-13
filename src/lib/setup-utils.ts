@@ -4,25 +4,53 @@ import { PANE_SEMANTICS } from "./content";
 import { SemanticsSettings, SEMANTICS_DEFAULTS } from "./store";
 
 export function getPaneCount(layout: LayoutConfig) {
-  return layout.rows * layout.cols;
+  if (!layout) return 1;
+  if (layout.type === 'grid') {
+    return (layout.rows || 1) * (layout.cols || 1);
+  }
+  if (layout.type === 'count') {
+    return layout.value || 1;
+  }
+  // Legacy fallback
+  if ('rows' in layout && 'cols' in layout) {
+    return (layout as any).rows * (layout as any).cols;
+  }
+  return 1;
 }
 
 export function getGridCols(layout: LayoutConfig) {
-  return `repeat(${layout.cols}, 1fr)`;
+  if (!layout) return '1fr';
+  if (layout.type === 'grid') {
+    return `repeat(${layout.rows || 1}, 1fr)`;
+  }
+  return '1fr';
 }
 
 export function getGridRows(layout: LayoutConfig) {
-  return `repeat(${layout.rows}, 1fr)`;
+  if (!layout) return '1fr';
+  if (layout.type === 'grid') {
+    return `repeat(${layout.rows || 1}, 1fr)`;
+  }
+  return '1fr';
 }
 
 export function getGridTemplate(layout: LayoutConfig, isMobile: boolean) {
   if (isMobile) return '1fr / 1fr';
-  return `repeat(${layout.rows}, 1fr) / repeat(${layout.cols}, 1fr)`;
+  if (layout.type === 'grid') {
+    return `repeat(${layout.rows}, 1fr) / repeat(${layout.cols}, 1fr)`;
+  }
+  return '1fr / 1fr';
 }
 
-export function gridToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): LayoutNode {
-  const { rows, cols } = config;
+export function configToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): LayoutNode {
+  if (config.type === 'grid') {
+    return gridToLayoutNode(config.rows, config.cols, panes);
+  } else {
+    return countToLayoutNode(config.value, panes);
+  }
+}
 
+function gridToLayoutNode(rows: number, cols: number, panes: PaneConfig[]): LayoutNode {
   if (rows === 1 && cols === 1) {
     return {
       type: 'pane',
@@ -32,7 +60,6 @@ export function gridToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): Lay
     };
   }
 
-  // Helper to build a tree from a slice of panes
   const buildGridTree = (paneSlice: PaneConfig[], r: number, c: number): LayoutNode => {
     if (paneSlice.length === 1) {
       return {
@@ -43,7 +70,6 @@ export function gridToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): Lay
       };
     }
 
-    // If more than 1 row, split vertically first
     if (r > 1) {
       const splitRow = Math.ceil(r / 2);
       const topCount = splitRow * c;
@@ -58,7 +84,6 @@ export function gridToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): Lay
       };
     }
 
-    // If only 1 row but multiple columns, split horizontally
     const splitCol = Math.ceil(c / 2);
     return {
       type: 'split',
@@ -72,6 +97,116 @@ export function gridToLayoutNode(config: LayoutConfig, panes: PaneConfig[]): Lay
   };
 
   return buildGridTree(panes.slice(0, rows * cols), rows, cols);
+}
+
+function countToLayoutNode(count: number, panes: PaneConfig[]): LayoutNode {
+  const splitHorizontally = (left: LayoutNode, right: LayoutNode, ratio: number): LayoutNode => {
+    return {
+      type: "split",
+      direction: "horizontal",
+      ratio,
+      children: [left, right]
+    };
+  };
+
+  const buildBalancedTree = (paneSlice: PaneConfig[], depth: number = 0): LayoutNode => {
+    if (paneSlice.length === 1) {
+      return {
+        type: "pane",
+        id: paneSlice[0].id.toString(),
+        name: paneSlice[0].name,
+        command: paneSlice[0].command
+      };
+    }
+
+    const mid = Math.ceil(paneSlice.length / 2);
+    const leftSlice = paneSlice.slice(0, mid);
+    const rightSlice = paneSlice.slice(mid);
+    
+    // Alternate direction based on depth for a more "square" look
+    const direction = depth % 2 === 0 ? "horizontal" : "vertical";
+
+    return {
+      type: "split",
+      direction,
+      ratio: mid / paneSlice.length,
+      children: [
+        buildBalancedTree(leftSlice, depth + 1),
+        buildBalancedTree(rightSlice, depth + 1)
+      ]
+    };
+  };
+
+  const paneSlice = panes.slice(0, count);
+
+  switch (count) {
+    case 1:
+      return gridToLayoutNode(1, 1, paneSlice);
+    case 2:
+      return gridToLayoutNode(1, 2, paneSlice);
+    case 3:
+      return splitHorizontally(
+        gridToLayoutNode(2, 1, paneSlice.slice(0, 2)),
+        gridToLayoutNode(1, 1, paneSlice.slice(2, 3)),
+        0.5
+      );
+    case 4:
+      return gridToLayoutNode(2, 2, paneSlice);
+    case 5:
+      return splitHorizontally(
+        gridToLayoutNode(2, 2, paneSlice.slice(0, 4)),
+        gridToLayoutNode(1, 1, paneSlice.slice(4, 5)),
+        2 / 3
+      );
+    case 6:
+      return gridToLayoutNode(2, 3, paneSlice);
+    case 7:
+      return splitHorizontally(
+        gridToLayoutNode(2, 3, paneSlice.slice(0, 6)),
+        gridToLayoutNode(1, 1, paneSlice.slice(6, 7)),
+        3 / 4
+      );
+    case 8:
+      return gridToLayoutNode(2, 4, paneSlice);
+    case 9:
+      return gridToLayoutNode(3, 3, paneSlice);
+    case 10:
+      return splitHorizontally(
+        gridToLayoutNode(3, 3, paneSlice.slice(0, 9)),
+        gridToLayoutNode(1, 1, paneSlice.slice(9, 10)),
+        3 / 4
+      );
+    case 11:
+      return splitHorizontally(
+        gridToLayoutNode(3, 3, paneSlice.slice(0, 9)),
+        gridToLayoutNode(2, 1, paneSlice.slice(9, 11)),
+        3 / 4
+      );
+    case 12:
+      return gridToLayoutNode(3, 4, paneSlice);
+    case 13:
+      return splitHorizontally(
+        gridToLayoutNode(3, 4, paneSlice.slice(0, 12)),
+        gridToLayoutNode(1, 1, paneSlice.slice(12, 13)),
+        4 / 5
+      );
+    case 14:
+      return splitHorizontally(
+        gridToLayoutNode(3, 4, paneSlice.slice(0, 12)),
+        gridToLayoutNode(2, 1, paneSlice.slice(12, 14)),
+        4 / 5
+      );
+    case 15:
+      return splitHorizontally(
+        gridToLayoutNode(3, 4, paneSlice.slice(0, 12)),
+        gridToLayoutNode(3, 1, paneSlice.slice(12, 15)),
+        4 / 5
+      );
+    case 16:
+      return gridToLayoutNode(4, 4, paneSlice);
+    default:
+      return buildBalancedTree(paneSlice);
+  }
 }
 
 export function countPanes(node: LayoutNode | null): number {

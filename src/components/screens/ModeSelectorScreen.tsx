@@ -120,8 +120,8 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
           <div className="grid grid-cols-1 gap-4 w-full">
             <motion.div variants={itemVariants} onClick={() => handleSelectMode("normal")}>
               <SpotlightCard
-                className={`group cursor-pointer transition-all duration-300 ${
-                  lastMode === "normal" ? "border-[var(--accent-primary)] shadow-2xl shadow-[var(--accent-primary)]/5" : ""
+                className={`group cursor-pointer transition-all duration-300 ambient-glow-card ${
+                  lastMode === "normal" ? "active-glow" : ""
                 }`}
               >
                 <div className="flex items-start gap-6 relative">
@@ -156,8 +156,8 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
 
             <motion.div variants={itemVariants} onClick={() => handleSelectMode("agents")}>
               <SpotlightCard
-                className={`group cursor-pointer transition-all duration-300 ${
-                  lastMode === "agents" ? "border-[var(--accent-primary)] shadow-2xl shadow-[var(--accent-primary)]/5" : ""
+                className={`group cursor-pointer transition-all duration-300 ambient-glow-card ${
+                  lastMode === "agents" ? "active-glow" : ""
                 }`}
               >
                 <div className="flex items-start gap-6 relative">

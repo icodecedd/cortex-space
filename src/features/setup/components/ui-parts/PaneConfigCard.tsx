@@ -1,4 +1,4 @@
-import { CheckCircle2, Terminal, Code, Cpu, Library, X, CornerDownLeft } from "@/components/ui/icons";
+import { Terminal, Code, Cpu, Library, X, CornerDownLeft } from "@/components/ui/icons";
 import { PaneConfig } from "@/lib/setup-constants";
 import { Snippet, Agent } from "@/types";
 import {

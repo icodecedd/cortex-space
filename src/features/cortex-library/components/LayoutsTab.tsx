@@ -5,12 +5,14 @@ import { Card, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SavedLayout, LayoutConfig } from "@/lib/setup-constants";
-import { getGridCols, getGridRows, getPaneCount } from "@/lib/setup-utils";
+import { getPaneCount } from "@/lib/setup-utils";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ViewMode } from "@/components/ui/view-toggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { LayoutGridPreview } from "@/components/ui/layout-grid-preview";
+
 import {
   Table,
   TableHeader,
@@ -37,6 +39,7 @@ interface LayoutsTabProps {
   setIsAdding: (adding: boolean) => void;
   activeSubTab: string;
   onSubTabChange: (tab: string) => void;
+  layoutCustomMode: "grid" | "count";
 }
 
 export function LayoutsTab({
@@ -55,14 +58,17 @@ export function LayoutsTab({
   isAdding,
   setIsAdding,
   activeSubTab,
-  onSubTabChange
+  onSubTabChange,
+  layoutCustomMode
 }: LayoutsTabProps) {
   const [newLayoutName, setNewLayoutName] = useState("");
+  const newLayoutType = layoutCustomMode; // Alias to keep rest of code unchanged
   const [newLayoutRows, setNewLayoutRows] = useState(2);
   const [newLayoutCols, setNewLayoutCols] = useState(2);
+  const [newLayoutPaneCount, setNewLayoutPaneCount] = useState(3);
 
-  const activeLayouts = savedLayouts.filter(l => !l.isArchived);
-  const archivedLayouts = savedLayouts.filter(l => l.isArchived);
+  const activeLayouts = savedLayouts.filter(l => !l.isArchived && l.config.type === newLayoutType);
+  const archivedLayouts = savedLayouts.filter(l => l.isArchived && l.config.type === newLayoutType);
 
   const filtered = activeLayouts.filter(l =>
     l.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -73,25 +79,37 @@ export function LayoutsTab({
   );
 
   const handleSave = () => {
-    const finalName = newLayoutName.trim()
-      ? newLayoutName.toUpperCase()
-      : `${newLayoutRows}X${newLayoutCols}`;
+    let config: LayoutConfig;
+    let finalName: string;
 
-    onAdd(finalName, { rows: newLayoutRows, cols: newLayoutCols });
+    if (newLayoutType === "grid") {
+      config = { type: "grid", rows: newLayoutRows, cols: newLayoutCols };
+      finalName = newLayoutName.trim()
+        ? newLayoutName.toUpperCase()
+        : `${newLayoutRows}X${newLayoutCols}`;
+    } else {
+      config = { type: "count", value: newLayoutPaneCount };
+      finalName = newLayoutName.trim()
+        ? newLayoutName.toUpperCase()
+        : `${newLayoutPaneCount} PANES`;
+    }
+
+    onAdd(finalName, config);
     setNewLayoutName("");
     setNewLayoutRows(2);
     setNewLayoutCols(2);
+    setNewLayoutPaneCount(3);
     setIsAdding(false);
   };
 
-  const handleNumericInput = (val: string, setter: (n: number) => void) => {
+  const handleNumericInput = (val: string, setter: (n: number) => void, maxVal: number = 4) => {
     if (val === "") {
       setter(0);
       return;
     }
     const parsed = parseInt(val);
     if (!isNaN(parsed)) {
-      setter(Math.min(4, Math.max(0, parsed)));
+      setter(Math.min(maxVal, Math.max(0, parsed)));
     }
   };
 
@@ -106,7 +124,7 @@ export function LayoutsTab({
             : "Define and save your preferred terminal grid arrangements, from simple splits to complex layouts."
           }
           iconColor="text-[var(--accent-primary)]/40"
-          action={!isAdding && !searchQuery && savedLayouts.length === 0 ? {
+          action={!isAdding && !searchQuery && savedLayouts.filter(l => l.config.type === layoutCustomMode).length === 0 ? {
             label: "Install Starter Pack",
             onClick: onRestoreDefaults,
             icon: Zap
@@ -165,22 +183,19 @@ export function LayoutsTab({
                 <span className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">{layout.name}</span>
               </TableCell>
               <TableCell>
-                <span className="text-[11px] font-mono text-[var(--text-primary)]/80 font-bold">{layout.rows}X{layout.cols}</span>
+                <span className="text-[11px] font-mono text-[var(--text-primary)]/80 font-bold">
+                  {layout.config.type === 'grid' ? `${layout.config.rows}X${layout.config.cols}` : `${layout.config.value} PANES`}
+                </span>
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-8 h-6 grid gap-[1px] bg-[var(--text-primary)]/10 p-[1px] rounded-sm shrink-0"
-                    style={{
-                      gridTemplateColumns: getGridCols(layout),
-                      gridTemplateRows: getGridRows(layout)
-                    }}
-                  >
-                    {Array.from({ length: getPaneCount(layout) }).map((_, i) => (
-                      <div key={i} className="bg-[var(--bg-color)]/60" />
-                    ))}
-                  </div>
-                  <span className="text-[10px] text-[var(--text-secondary)]/60">{getPaneCount(layout)} panes</span>
+                <div className="flex items-center gap-2.5">
+                  <LayoutGridPreview
+                    config={layout.config}
+                    className="w-10 h-8 shrink-0"
+                  />
+                  <span className="text-[10px] text-[var(--text-secondary)]/60 font-medium">
+                    {getPaneCount(layout.config)} panes
+                  </span>
                 </div>
               </TableCell>
               <TableCell className="text-right">
@@ -279,22 +294,19 @@ export function LayoutsTab({
                     <span className="text-[12px] font-medium text-[var(--text-primary)]/60 tracking-tight">{layout.name}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[11px] font-mono">{layout.rows}X{layout.cols}</span>
+                    <span className="text-[11px] font-mono">
+                      {layout.config.type === 'grid' ? `${layout.config.rows}X${layout.config.cols}` : `${layout.config.value} PANES`}
+                    </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-8 h-6 grid gap-[1px] bg-[var(--text-primary)]/10 p-[1px] rounded-sm shrink-0 opacity-50"
-                        style={{
-                          gridTemplateColumns: getGridCols(layout),
-                          gridTemplateRows: getGridRows(layout)
-                        }}
-                      >
-                        {Array.from({ length: getPaneCount(layout) }).map((_, i) => (
-                          <div key={i} className="bg-[var(--bg-color)]/60" />
-                        ))}
-                      </div>
-                      <span className="text-[10px] text-[var(--text-secondary)]/40">{getPaneCount(layout)} panes</span>
+                    <div className="flex items-center gap-2.5">
+                      <LayoutGridPreview
+                        config={layout.config}
+                        className="w-10 h-8 shrink-0 opacity-60"
+                      />
+                      <span className="text-[10px] text-[var(--text-secondary)]/40 font-medium">
+                        {getPaneCount(layout.config)} panes
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
@@ -329,33 +341,49 @@ export function LayoutsTab({
   return (
     <div className="space-y-6">
       {isAdding && (
-        <Card className="bg-[var(--accent-primary)]/[0.03] border border-[var(--accent-primary)]/20 ring-0 shadow-none p-5 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-5">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold text-ansi-blue tracking-wider">Rows (1-4)</Label>
-              <Input
-                autoFocus
-                type="number"
-                min={1} max={4}
-                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center font-mono"
-                value={newLayoutRows === 0 ? "" : newLayoutRows}
-                onChange={(e) => handleNumericInput(e.target.value, setNewLayoutRows)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold text-ansi-blue tracking-wider">Cols (1-4)</Label>
-              <Input
-                type="number"
-                min={1} max={4}
-                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center font-mono"
-                value={newLayoutCols === 0 ? "" : newLayoutCols}
-                onChange={(e) => handleNumericInput(e.target.value, setNewLayoutCols)}
-              />
-            </div>
+        <Card className="bg-[var(--accent-primary)]/[0.03] border border-[var(--accent-primary)]/20 ring-0 shadow-none p-5 animate-in fade-in slide-in-from-top-2 duration-300 space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-2">
+            {newLayoutType === "grid" ? (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold text-ansi-blue tracking-wider">Rows (1-4)</Label>
+                  <Input
+                    autoFocus
+                    type="number"
+                    min={1} max={4}
+                    className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center font-mono"
+                    value={newLayoutRows === 0 ? "" : newLayoutRows}
+                    onChange={(e) => handleNumericInput(e.target.value, setNewLayoutRows, 4)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold text-ansi-blue tracking-wider">Cols (1-4)</Label>
+                  <Input
+                    type="number"
+                    min={1} max={4}
+                    className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center font-mono"
+                    value={newLayoutCols === 0 ? "" : newLayoutCols}
+                    onChange={(e) => handleNumericInput(e.target.value, setNewLayoutCols, 4)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-[10px] font-bold text-ansi-blue tracking-wider">Pane Count (1-16)</Label>
+                <Input
+                  autoFocus
+                  type="number"
+                  min={1} max={16}
+                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center font-mono w-24"
+                  value={newLayoutPaneCount === 0 ? "" : newLayoutPaneCount}
+                  onChange={(e) => handleNumericInput(e.target.value, setNewLayoutPaneCount, 16)}
+                />
+              </div>
+            )}
             <div className="space-y-2 md:col-span-1">
-            <Label className="text-[10px] font-bold text-[var(--accent-primary)] tracking-wider">Layout Name (Optional)</Label>
+              <Label className="text-[10px] font-bold text-[var(--accent-primary)] tracking-wider">Layout Name (Optional)</Label>
               <Input
-                placeholder={`Leave blank for "${newLayoutRows}X${newLayoutCols}"`}
+                placeholder={newLayoutType === "grid" ? `Leave blank for "${newLayoutRows}X${newLayoutCols}"` : `Leave blank for "${newLayoutPaneCount} PANES"`}
                 className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9"
                 value={newLayoutName}
                 onChange={(e) => setNewLayoutName(e.target.value)}
@@ -365,27 +393,30 @@ export function LayoutsTab({
 
           <div className="flex items-center justify-between border-t border-[var(--border-color)] pt-4">
             <div className="flex items-center gap-4">
-              <div
-                className="w-10 h-8 grid gap-[1px] bg-[var(--text-primary)]/10 p-[1px] rounded-[2px]"
-                style={{
-                  gridTemplateColumns: `repeat(${newLayoutCols || 1}, 1fr)`,
-                  gridTemplateRows: `repeat(${newLayoutRows || 1}, 1fr)`
-                }}
-              >
-                {Array.from({ length: (newLayoutRows || 1) * (newLayoutCols || 1) }).map((_, i) => (
-                  <div key={i} className="bg-[var(--bg-color)]/60" />
-                ))}
-              </div>
+              <LayoutGridPreview
+                config={newLayoutType === "grid" ? { type: "grid", rows: newLayoutRows, cols: newLayoutCols } : { type: "count", value: newLayoutPaneCount }}
+                isActive={true}
+                className="w-11 h-9 shrink-0"
+              />
               <div className="text-[10px] font-mono text-[var(--text-secondary)]">
-                Identifier: <span className="text-[var(--accent-primary)] font-bold">{newLayoutName.trim() ? newLayoutName.toUpperCase() : `${newLayoutRows || 1}X${newLayoutCols || 1}`}</span>
+                Identifier:{" "}
+                <span className="text-[var(--accent-primary)] font-bold">
+                  {newLayoutName.trim()
+                    ? newLayoutName.toUpperCase()
+                    : newLayoutType === "grid"
+                    ? `${newLayoutRows || 1}X${newLayoutCols || 1}`
+                    : `${newLayoutPaneCount || 1} PANES`}
+                </span>
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)} className="text-[11px] h-8 text-[var(--text-secondary)]">Cancel</Button>
+              <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)} className="text-[11px] h-8 text-[var(--text-secondary)]">
+                Cancel
+              </Button>
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={newLayoutRows < 1 || newLayoutCols < 1}
+                disabled={newLayoutType === "grid" ? (newLayoutRows < 1 || newLayoutCols < 1) : (newLayoutPaneCount < 1)}
                 className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] text-[11px] font-bold h-8 hover:opacity-90 px-6"
               >
                 Save Custom Layout
@@ -443,17 +474,11 @@ function LayoutCard({ layout, isSelected, onToggleSelection, onArchive, onRestor
     >
       <CardHeader className="p-4 pb-2 border-none group/header">
         <div className="flex items-start gap-3 min-w-0">
-          <div
-            className="w-10 h-8 grid gap-[1px] bg-[var(--text-primary)]/10 p-[1px] rounded-sm shrink-0 mt-0.5"
-            style={{
-              gridTemplateColumns: getGridCols(layout),
-              gridTemplateRows: getGridRows(layout)
-            }}
-          >
-            {Array.from({ length: getPaneCount(layout) }).map((_, i) => (
-              <div key={i} className="bg-[var(--bg-color)]/60" />
-            ))}
-          </div>
+          <LayoutGridPreview
+            config={layout.config}
+            isActive={isSelected}
+            className="w-11 h-9 shrink-0 mt-0.5"
+          />
           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
               {onToggleSelection && (
@@ -472,7 +497,9 @@ function LayoutCard({ layout, isSelected, onToggleSelection, onArchive, onRestor
               </CardTitle>
             </div>
             <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
-               <span className="text-[var(--text-primary)] font-bold">{layout.rows}X{layout.cols}</span> LAYOUT
+               <span className="text-[var(--text-primary)] font-bold">
+                 {layout.config.type === 'grid' ? `${layout.config.rows}X${layout.config.cols}` : `${layout.config.value} PANES`}
+               </span> LAYOUT
             </div>
           </div>
         </div>

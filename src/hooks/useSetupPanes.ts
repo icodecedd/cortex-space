@@ -7,31 +7,74 @@ import { Agent } from "@/types";
 
 export function useSetupPanes(agents: Agent[] = []) {
   const [layoutType, setLayoutType] = useState<LayoutType>("2x2");
-  const [customLayout, setCustomLayout] = useState<LayoutConfig>({ rows: 2, cols: 2 });
+  const [customLayout, setCustomLayout] = useState<LayoutConfig>({ type: 'grid', rows: 2, cols: 2 });
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>(INITIAL_LAYOUTS);
   const [semantics, setSemantics] = useState<SemanticsSettings>(SEMANTICS_DEFAULTS);
   const [isInitialized, setIsInitialized] = useState(false);
   
-  const currentLayout = useMemo(() => {
-    if (layoutType === 'custom') return customLayout;
+  const migrateLayout = (l: any): LayoutConfig => {
+    if (l && l.type) return l as LayoutConfig;
+    // Migrate old { rows, cols } structure
+    if (l && typeof l.rows === 'number' && typeof l.cols === 'number') {
+      return { type: 'grid', rows: l.rows, cols: l.cols };
+    }
+    return { type: 'grid', rows: 2, cols: 2 };
+  };
+
+  const currentLayout = useMemo((): LayoutConfig => {
+    if (layoutType === 'custom') return migrateLayout(customLayout);
     const saved = savedLayouts.find(l => l.id === layoutType);
-    if (saved) return { rows: saved.rows, cols: saved.cols };
-    // Fallback to first available or 2x2
-    return savedLayouts[0] || { rows: 2, cols: 2 };
+    if (saved) {
+      if (saved.config) return migrateLayout(saved.config);
+      // Saved layout itself might be the old structure
+      return migrateLayout(saved);
+    }
+    // Fallback
+    const firstSaved = savedLayouts[0];
+    if (firstSaved) return migrateLayout(firstSaved.config || firstSaved);
+    return { type: 'grid', rows: 2, cols: 2 };
   }, [layoutType, customLayout, savedLayouts]);
 
   useEffect(() => {
     async function init() {
       const savedType = await getSetting<LayoutType>("cortex_layout_type", "2x2");
-      const savedCustom = await getSetting<LayoutConfig>("cortex_layout_custom", { rows: 2, cols: 2 });
-      const savedList = await getSetting<SavedLayout[]>("cortex_saved_layouts", INITIAL_LAYOUTS);
+      const savedCustomRaw = await getSetting<any>("cortex_layout_custom", { type: 'grid', rows: 2, cols: 2 });
+      const savedListRaw = await getSetting<any[]>("cortex_saved_layouts", INITIAL_LAYOUTS);
       
       const savedTools = await getSetting<Record<string, string>>("semantics.tools", SEMANTICS_DEFAULTS.tools);
       const savedPatterns = await getSetting<any[]>("semantics.patterns", SEMANTICS_DEFAULTS.patterns);
 
+      // Migrate custom layout
+      let migratedCustom = migrateLayout(savedCustomRaw);
+
+      const savedLayoutMode = await getSetting<"grid" | "count">("focus.customLayoutMode", "grid");
+      if (migratedCustom.type !== savedLayoutMode) {
+        if (savedLayoutMode === 'grid') {
+          const count = (migratedCustom as any).value || 4;
+          const cols = Math.ceil(Math.sqrt(count));
+          const rows = Math.ceil(count / cols);
+          migratedCustom = { type: 'grid', rows, cols };
+        } else {
+          const value = ((migratedCustom as any).rows || 2) * ((migratedCustom as any).cols || 2);
+          migratedCustom = { type: 'count', value };
+        }
+      }
+
+      // Migrate saved list
+      const migratedList = savedListRaw.map(l => {
+        if (l.config) return { ...l, config: migrateLayout(l.config) };
+        // Old structure where SavedLayout extended LayoutConfig
+        const config = migrateLayout(l);
+        return {
+          id: l.id || `layout-${Date.now()}-${Math.random()}`,
+          name: l.name || `${config.type === 'grid' ? `${config.rows}X${config.cols}` : 'Custom'}`,
+          config
+        };
+      });
+
       setLayoutType(savedType);
-      setCustomLayout(savedCustom);
-      setSavedLayouts(savedList);
+      setCustomLayout(migratedCustom);
+      setSavedLayouts(migratedList);
       setSemantics({ tools: savedTools, patterns: savedPatterns });
       setIsInitialized(true);
     }
@@ -72,16 +115,37 @@ export function useSetupPanes(agents: Agent[] = []) {
   };
 
   const updateCustomLayout = (config: Partial<LayoutConfig>) => {
-    setCustomLayout(prev => ({ ...prev, ...config }));
+    setCustomLayout(prev => {
+      // If we're switching types, we need to provide a full valid object
+      if (config.type && config.type !== prev.type) {
+        if (config.type === 'grid') {
+          return { type: 'grid', rows: (config as any).rows || 2, cols: (config as any).cols || 2 };
+        } else {
+          return { type: 'count', value: (config as any).value || 4 };
+        }
+      }
+      // Otherwise, we can merge safely as we're staying within the same variant
+      return { ...prev, ...config } as LayoutConfig;
+    });
     setLayoutType('custom');
   };
 
   const addSavedLayout = (name: string, config: LayoutConfig) => {
     // Validation: Check for duplicate configuration
-    const isDuplicate = savedLayouts.some(l => l.rows === config.rows && l.cols === config.cols);
+    const isDuplicate = savedLayouts.some(l => {
+      if (l.config.type !== config.type) return false;
+      if (config.type === 'grid' && l.config.type === 'grid') {
+        return l.config.rows === config.rows && l.config.cols === config.cols;
+      }
+      if (config.type === 'count' && l.config.type === 'count') {
+        return l.config.value === config.value;
+      }
+      return false;
+    });
+
     if (isDuplicate) {
       toast.error("Layout cannot be added", {
-        description: "This grid configuration already exists in your library."
+        description: "This configuration already exists in your library."
       });
       return;
     }
@@ -89,8 +153,7 @@ export function useSetupPanes(agents: Agent[] = []) {
     const newLayout: SavedLayout = {
       id: `layout-${Date.now()}`,
       name,
-      rows: config.rows,
-      cols: config.cols
+      config
     };
     setSavedLayouts(prev => [...prev, newLayout]);
     setLayoutType(newLayout.id);

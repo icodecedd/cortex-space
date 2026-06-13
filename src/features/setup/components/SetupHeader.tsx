@@ -10,35 +10,34 @@ interface SetupHeaderProps {
 export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
   return (
     <div
-      className="animate-in flex justify-between items-center transition-all duration-500 ease-[var(--ease-out)]"
+      className="animate-in flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 transition-all duration-500 ease-[var(--ease-out)]"
       style={{
-        marginBottom: step > 1 ? '2rem' : '4rem',
+        marginBottom: step > 1 ? '2.5rem' : '4.5rem',
       }}
     >
-      <div className="flex items-center gap-6">
-        <div className="relative group">
-          <div className="absolute inset-0 bg-[var(--accent-primary)] blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
-          <div 
-            className="relative z-10 bg-[var(--accent-primary)] flex items-center justify-center overflow-hidden transition-all duration-500"
-            style={{
-              width: step > 1 ? '32px' : '48px',
-              height: step > 1 ? '32px' : '48px',
-              borderRadius: step > 1 ? '8px' : '12px',
-            }}
-          >
-            <img
-              src={ASSETS.LOGO}
-              alt="Cortex"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = ASSETS.LOGO_FALLBACK;
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-6">
+          <div className="relative">
+            <div 
+              className="relative z-10 bg-[var(--accent-primary)] flex items-center justify-center overflow-hidden transition-all duration-500 shadow-sm"
+              style={{
+                width: step > 1 ? '32px' : '48px',
+                height: step > 1 ? '32px' : '48px',
+                borderRadius: step > 1 ? '8px' : '12px',
               }}
-            />
+            >
+              <img
+                src={ASSETS.LOGO}
+                alt="Cortex"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = ASSETS.LOGO_FALLBACK;
+                }}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-col justify-center transition-all duration-500">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col justify-center transition-all duration-500">
             <h2 
               className="font-bold tracking-tight m-0 leading-tight transition-all duration-500"
               style={{
@@ -47,23 +46,26 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
             >
               {SETUP_CONTENT.TITLE}<span className="text-[var(--accent-primary)]"> {SETUP_CONTENT.SUBTITLE}</span>
             </h2>
-            <span 
-              className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 text-[var(--accent-primary)] transition-all duration-500"
-            >
-              {mode === 'agents' ? 'AI Assisted Mode' : 'Terminal Mode'}
-            </span>
+            {step === 1 && (
+              <p className="animate-in text-[10px] text-[var(--text-secondary)] font-semibold uppercase tracking-[0.2em] mt-2 opacity-60">
+                {SETUP_CONTENT.WORKSPACE_SETUP}
+              </p>
+            )}
           </div>
-          {step === 1 && (
-            <p className="animate-in text-[10px] text-[var(--text-secondary)] font-semibold uppercase tracking-[0.2em] mt-2 opacity-60">
-              {SETUP_CONTENT.WORKSPACE_SETUP}
-            </p>
-          )}
         </div>
 
-        <ConfirmModeChangeDialog step={step} onConfirm={onBack} />
+        <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-700 delay-200">
+          <span 
+            className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 text-[var(--accent-primary)] transition-all duration-500"
+          >
+            {mode === 'agents' ? 'AI Assisted Mode' : 'Terminal Mode'}
+          </span>
+          <div className="w-px h-3 bg-[var(--border-color)]" />
+          <ConfirmModeChangeDialog step={step} onConfirm={onBack} />
+        </div>
       </div>
 
-      <nav className="flex items-center gap-8">
+      <nav className="flex items-center gap-8 self-end sm:self-center">
         {[1, 2, 3].map(i => (
           <div 
             key={i} 

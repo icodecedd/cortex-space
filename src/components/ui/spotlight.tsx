@@ -2,7 +2,7 @@ import * as React from "react";
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
-interface SpotlightProps extends React.HTMLAttributes<divElement> {
+interface SpotlightProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   spotlightColor?: string;
   spotlightSize?: number;
@@ -44,6 +44,7 @@ export function Spotlight({
         style={{
           opacity,
           background: `radial-gradient(${spotlightSize}px circle at ${position.x}px ${position.y}px, ${spotlightColor}, transparent 40%)`,
+          borderRadius: "inherit",
         }}
       />
       {children}
@@ -93,6 +94,7 @@ export function SpotlightCard({
         style={{
           opacity,
           background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, ${spotlightColor}, transparent 40%)`,
+          borderRadius: "inherit",
         }}
       />
       
@@ -106,6 +108,7 @@ export function SpotlightCard({
           maskComposite: 'exclude',
           WebkitMaskComposite: 'xor',
           padding: '1px',
+          borderRadius: "inherit",
         }}
       />
 

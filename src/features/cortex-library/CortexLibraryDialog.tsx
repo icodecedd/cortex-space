@@ -108,6 +108,32 @@ export function CortexLibraryDialog({
   // Asset Management State (Directory Presets & Layouts)
   const [presets, setPresets] = useState<DirectoryPreset[]>([]);
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
+  const [layoutCustomMode, setLayoutCustomMode] = useState<"grid" | "count">("grid");
+  const [activeSettingsMode, setActiveSettingsMode] = useState<"grid" | "count">("grid");
+
+  // Sync layout mode with global settings
+  useEffect(() => {
+    async function loadSettingsMode() {
+      const mode = await getSetting<"grid" | "count">("focus.customLayoutMode", "grid");
+      setActiveSettingsMode(mode);
+      if (isOpen) {
+        setLayoutCustomMode(mode);
+      }
+    }
+    loadSettingsMode();
+
+    const handleSync = () => loadSettingsMode();
+    window.addEventListener("cortex-settings-changed", handleSync);
+    return () => {
+      window.removeEventListener("cortex-settings-changed", handleSync);
+    };
+  }, [isOpen]);
+
+  // Clear layout selections when local customization mode changes
+  useEffect(() => {
+    setSelectedLayoutIds(new Set());
+    setArchivedSelectedLayoutIds(new Set());
+  }, [layoutCustomMode]);
 
   useEffect(() => {
     async function loadAssets() {
@@ -242,7 +268,17 @@ export function CortexLibraryDialog({
   const handleAddLayout = async (name: string, config: LayoutConfig) => {
     const finalName = name.trim();
     
-    if (savedLayouts.some(l => l.rows === config.rows && l.cols === config.cols)) {
+    const isDuplicate = savedLayouts.some(l => {
+      if (l.config.type === 'grid' && config.type === 'grid') {
+        return l.config.rows === config.rows && l.config.cols === config.cols;
+      }
+      if (l.config.type === 'count' && config.type === 'count') {
+        return l.config.value === config.value;
+      }
+      return false;
+    });
+
+    if (isDuplicate) {
       toast.error("Layout cannot be added", {
         description: "An identical configuration already exists in your library."
       });
@@ -252,8 +288,7 @@ export function CortexLibraryDialog({
     const newLayout: SavedLayout = {
       id: `layout-${Date.now()}`,
       name: finalName,
-      rows: config.rows,
-      cols: config.cols
+      config
     };
     const updated = [...savedLayouts, newLayout];
     setSavedLayouts(updated);
@@ -359,6 +394,7 @@ export function CortexLibraryDialog({
     } else if (activeTab === 'layouts') {
       const items = savedLayouts.filter(l => 
         (layoutSubTab === 'active' ? !l.isArchived : l.isArchived) &&
+        l.config.type === layoutCustomMode &&
         (l.name.toLowerCase().includes(searchQuery.toLowerCase()))
       );
       const selectedIds = layoutSubTab === 'active' ? selectedLayoutIds : archivedSelectedLayoutIds;
@@ -481,7 +517,64 @@ export function CortexLibraryDialog({
              </div>
           {/* Main Dynamic View Area */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-            <header className="px-8 py-6 border-b border-[var(--border-color)] flex items-center justify-between shrink-0 bg-[var(--bg-color)]/5">
+            {/* Unified Top Header */}
+            <div className="px-8 py-5 border-b border-[var(--border-color)] flex items-center justify-between shrink-0 bg-[var(--bg-color)]/5">
+               <div className="space-y-0.5">
+                  <h3 className="text-[13px] font-bold text-[var(--text-primary)] tracking-tight">
+                     {activeTab === 'workspaces' && "Workspace Templates"}
+                     {activeTab === 'commands' && "Terminal Snippets"}
+                     {activeTab === 'presets' && "Directory Presets"}
+                     {activeTab === 'layouts' && "Layout Configurations"}
+                  </h3>
+                  <p className="text-[10px] text-[var(--text-secondary)]/75 font-medium">
+                     {activeTab === 'workspaces' && "Capture, launch, and restore workspace environments."}
+                     {activeTab === 'commands' && "Store, run, and inject frequently used command snippets."}
+                     {activeTab === 'presets' && "Favorite frequently accessed directory paths."}
+                     {activeTab === 'layouts' && "Define and customize terminal splits and sizes."}
+                  </p>
+               </div>
+
+               {activeTab === 'layouts' && (
+                  <div className="flex rounded-lg overflow-hidden border border-[var(--border-color)] bg-[var(--text-primary)]/[0.03] p-0.5 shrink-0">
+                     <button
+                        onClick={() => setLayoutCustomMode("grid")}
+                        className={cn(
+                           "text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-md transition-all flex items-center gap-2",
+                           layoutCustomMode === "grid"
+                              ? "bg-[var(--accent-primary)] text-[var(--accent-contrast)] shadow-sm"
+                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/[0.02]"
+                        )}
+                     >
+                        Grid Mode
+                        {activeSettingsMode === "grid" && (
+                           <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                           </span>
+                        )}
+                     </button>
+                     <button
+                        onClick={() => setLayoutCustomMode("count")}
+                        className={cn(
+                           "text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-md transition-all flex items-center gap-2",
+                           layoutCustomMode === "count"
+                              ? "bg-[var(--accent-primary)] text-[var(--accent-contrast)] shadow-sm"
+                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/[0.02]"
+                        )}
+                     >
+                        Flex Mode
+                        {activeSettingsMode === "count" && (
+                           <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                           </span>
+                        )}
+                     </button>
+                  </div>
+               )}
+            </div>
+
+            <header className="px-8 py-4 border-b border-[var(--border-color)] flex items-center justify-between shrink-0 bg-[var(--bg-color)]/5">
                <div className="flex items-center gap-4 flex-1 max-w-xl">
                   {/* View Toggle */}
                   <ViewToggle value={viewMode} onChange={setViewMode} className="mr-2 shrink-0" />
@@ -512,6 +605,7 @@ export function CortexLibraryDialog({
                     } else if (activeTab === 'layouts') {
                       items = savedLayouts.filter(l => 
                         (layoutSubTab === 'active' ? !l.isArchived : l.isArchived) &&
+                        l.config.type === layoutCustomMode &&
                         (l.name.toLowerCase().includes(searchQuery.toLowerCase()))
                       );
                       selectedIds = layoutSubTab === 'active' ? selectedLayoutIds : archivedSelectedLayoutIds;
@@ -636,6 +730,7 @@ export function CortexLibraryDialog({
                     setIsAdding={setIsAddingLayout}
                     activeSubTab={layoutSubTab}
                     onSubTabChange={setLayoutSubTab}
+                    layoutCustomMode={layoutCustomMode}
                   />
                 )}
               </div>
@@ -680,33 +775,37 @@ export function CortexLibraryDialog({
                    isArchivedContext = true;
                  }
                } else if (activeTab === 'layouts') {
-                 if (layoutSubTab === 'active' && selectedLayoutIds.size > 0) {
-                   selectedCount = selectedLayoutIds.size;
-                   entityName = "Layouts";
-                 } else if (layoutSubTab === 'archived' && archivedSelectedLayoutIds.size > 0) {
-                   selectedCount = archivedSelectedLayoutIds.size;
-                   entityName = "Layouts";
-                   isArchivedContext = true;
-                 }
-               }
+                  const activeLayoutsForMode = savedLayouts.filter(l => !l.isArchived && l.config.type === layoutCustomMode);
+                  const archivedLayoutsForMode = savedLayouts.filter(l => l.isArchived && l.config.type === layoutCustomMode);
+                  if (layoutSubTab === 'active' && selectedLayoutIds.size > 0) {
+                    const selectedInMode = Array.from(selectedLayoutIds).filter(id => activeLayoutsForMode.some(l => l.id === id));
+                    selectedCount = selectedInMode.length;
+                    entityName = "Layouts";
+                  } else if (layoutSubTab === 'archived' && archivedSelectedLayoutIds.size > 0) {
+                    const selectedInMode = Array.from(archivedSelectedLayoutIds).filter(id => archivedLayoutsForMode.some(l => l.id === id));
+                    selectedCount = selectedInMode.length;
+                    entityName = "Layouts";
+                    isArchivedContext = true;
+                  }
+                }
 
-               if (selectedCount === 0) return null;
+                if (selectedCount === 0) return null;
 
-               const handleClearCurrentSelection = () => {
-                 if (activeTab === 'commands') {
-                   if (isArchivedContext) setArchivedSelectedSnippetIds(new Set());
-                   else setSelectedSnippetIds(new Set());
-                 } else if (activeTab === 'workspaces') {
-                   if (isArchivedContext) setArchivedSelectedTemplateIds(new Set());
-                   else setSelectedTemplateIds(new Set());
-                 } else if (activeTab === 'presets') {
-                   if (isArchivedContext) setArchivedSelectedPresetIds(new Set());
-                   else setSelectedPresetIds(new Set());
-                 } else if (activeTab === 'layouts') {
-                   if (isArchivedContext) setArchivedSelectedLayoutIds(new Set());
-                   else setSelectedLayoutIds(new Set());
-                 }
-               };
+                const handleClearCurrentSelection = () => {
+                  if (activeTab === 'commands') {
+                    setSelectedSnippetIds(new Set());
+                    setArchivedSelectedSnippetIds(new Set());
+                  } else if (activeTab === 'workspaces') {
+                    setSelectedTemplateIds(new Set());
+                    setArchivedSelectedTemplateIds(new Set());
+                  } else if (activeTab === 'presets') {
+                    setSelectedPresetIds(new Set());
+                    setArchivedSelectedPresetIds(new Set());
+                  } else if (activeTab === 'layouts') {
+                    setSelectedLayoutIds(new Set());
+                    setArchivedSelectedLayoutIds(new Set());
+                  }
+                };
 
                const handleGlobalBulkRestore = () => {
                  if (activeTab === 'commands') {

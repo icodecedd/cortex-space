@@ -13,7 +13,7 @@ import { SetupControls } from "./components/SetupControls";
 import { StepWorkspace } from "./components/steps/StepWorkspace";
 import { StepConfigure } from "./components/steps/StepConfigure";
 import { StepPreview } from "./components/steps/StepPreview";
-import { gridToLayoutNode } from "@/lib/setup-utils";
+import { configToLayoutNode } from "@/lib/setup-utils";
 import { LayoutNode } from "@/types";
 import { PaneConfig } from "@/lib/setup-constants";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -85,7 +85,7 @@ export const SetupView = React.memo(({ mode, onLaunch, onBack }: SetupViewProps)
   const prevStep = () => setStep(s => Math.max(s - 1, INITIAL_STEP));
 
   const handleLaunch = () => {
-    const layoutNode = gridToLayoutNode(currentLayout, activePanes);
+    const layoutNode = configToLayoutNode(currentLayout, activePanes);
     onLaunch({ 
       rootPath: rootPath || defaultDir, 
       layout: layoutNode, 

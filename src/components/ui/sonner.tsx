@@ -35,22 +35,16 @@ const TOAST_VARIANTS = {
     label: "Error",
   },
   loading: {
-    accent: "var(--text-secondary, #A3A3A3)",
-    badgeBg: "rgba(163,163,163,0.1)",
-    badgeBorder: "rgba(163,163,163,0.25)",
+    accent: "var(--accent-primary, #FF66B2)",
+    badgeBg: "rgba(255,102,178,0.12)",
+    badgeBorder: "rgba(255,102,178,0.28)",
     label: "Loading",
   },
 } as const
 
 type ToastVariant = keyof typeof TOAST_VARIANTS
 
-// ── Graph-paper icon box + floating type badge ───────────────────────────────
-//
-// The badge floats above the icon box (absolute, top: -11px, centred).
-// marginTop on the wrapper reserves visual space so it doesn't overlap
-// the toast's own top padding.
-//
-// Grid pattern uses neutral rgba so it reads on both dark and light bg.
+// ── App-style icon box + status dot badge ───────────────────────────────
 function ToastIcon({
   children,
   variant,
@@ -59,65 +53,46 @@ function ToastIcon({
   variant: ToastVariant
 }) {
   const v = TOAST_VARIANTS[variant]
+  const { resolvedScheme } = useColorScheme()
+  const isLight = resolvedScheme === "light"
 
   return (
     <div
       style={{
         position: "relative",
         flexShrink: 0,
-        // Push icon down slightly so the overflowing badge isn't clipped
-        marginTop: 6,
       }}
     >
-      {/* ── Floating type badge ── */}
+      {/* ── Status dot indicator ── */}
       <span
         style={{
           position: "absolute",
-          top: -11,
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "inline-flex",
-          alignItems: "center",
-          whiteSpace: "nowrap",
-          fontSize: 9,
-          fontWeight: 600,
-          letterSpacing: "0.07em",
-          textTransform: "uppercase",
-          padding: "0 6px",
-          height: 15,
-          lineHeight: "15px",
-          borderRadius: 999,
-          backgroundColor: v.badgeBg,
-          color: v.accent,
-          border: `1px solid ${v.badgeBorder}`,
-          fontFamily:
-            "'JetBrains Mono', ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace",
-          zIndex: 1,
+          top: -2,
+          right: -2,
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          backgroundColor: v.accent,
+          boxShadow: `0 0 6px ${v.accent}`,
+          border: `1.5px solid ${isLight ? "#ffffff" : "#0f0f11"}`,
+          zIndex: 2,
           pointerEvents: "none",
           userSelect: "none",
         }}
-      >
-        {v.label}
-      </span>
+      />
 
-      {/* ── Graph-paper icon box ── */}
+      {/* ── iOS-style app icon box ── */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 34,
-          height: 34,
+          width: 36,
+          height: 36,
           flexShrink: 0,
-          borderRadius: "var(--radius-sm, 8px)",
-          border: "1px solid var(--border-color, #262626)",
-          backgroundColor: "var(--surface-color, #161616)",
-          // Subtle crosshatch grid — works in both dark and light themes
-          backgroundImage: [
-            "linear-gradient(rgba(128,128,128,0.09) 1px, transparent 1px)",
-            "linear-gradient(90deg, rgba(128,128,128,0.09) 1px, transparent 1px)",
-          ].join(", "),
-          backgroundSize: "8px 8px",
+          borderRadius: "8px",
+          border: isLight ? "1px solid rgba(0, 0, 0, 0.06)" : "1px solid rgba(255, 255, 255, 0.05)",
+          background: isLight ? "linear-gradient(135deg, #f4f4f5 0%, #e4e4e7 100%)" : "linear-gradient(135deg, #2a2a2a 0%, #161616 100%)",
           color: v.accent,
         }}
       >
@@ -135,6 +110,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={resolvedScheme as ToasterProps["theme"]}
       className="toaster group"
+      closeButton={true}
       icons={{
         success: (
           <ToastIcon variant="success">
@@ -167,10 +143,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
           zIndex: 10000,
           pointerEvents: "auto",
           // Keep Cortex Space's design tokens as Sonner CSS vars
-          "--normal-bg": "var(--surface-color)",
+          "--normal-bg": resolvedScheme === "light" ? "#ffffff" : "#0f0f11",
           "--normal-text": "var(--text-primary)",
-          "--normal-border": "var(--border-color)",
-          "--border-radius": "var(--radius-md)",
+          "--normal-border": resolvedScheme === "light" ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.08)",
+          "--border-radius": "12px",
+          "--toast-padding": "16px",
+          "--toast-gap": "16px",
         } as React.CSSProperties
       }
       toastOptions={{
@@ -181,16 +159,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
           actionButton: "cn-toast-action",
           cancelButton: "cn-toast-cancel",
         },
-        style: {
-          // Extra top padding so the badge floating above the icon box
-          // has breathing room and isn't clipped by the toast boundary
-          paddingTop: "16px",
-          overflow: "visible",
-        },
       }}
       {...props}
     />
   )
 }
+
 
 export { Toaster }
