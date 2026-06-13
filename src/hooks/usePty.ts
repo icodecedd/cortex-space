@@ -74,16 +74,22 @@ export function usePty(
         if (!isMountedRef.current) return;
         setIsReady(false);
 
+        // Clamp dimensions to minimum 1×1 — ConPTY crashes on 0 cols/rows
+        const rows = Math.max(1, spawnConfig.rows || 24);
+        const cols = Math.max(1, spawnConfig.cols || 80);
+
         devLog(`[usePty ${id}] Spawning PTY with config:`, {
           id,
           ...spawnConfig,
+          rows,
+          cols,
         });
         await invoke("spawn_pty", {
           id,
           command: spawnConfig.command || null,
           cwd: spawnConfig.cwd || null,
-          rows: spawnConfig.rows || 24,
-          cols: spawnConfig.cols || 80,
+          rows,
+          cols,
           shell: spawnConfig.shell || null,
         });
         devLog(`[usePty ${id}] PTY spawn succeeded.`);
@@ -133,8 +139,11 @@ export function usePty(
 
   const resize = useCallback(
     async (rows: number, cols: number) => {
+      // Guard against zero or invalid dimensions — ConPTY crashes on 0×0
+      if (rows < 1 || cols < 1 || !Number.isFinite(rows) || !Number.isFinite(cols)) return;
       if (!isReady) {
         pendingResizeRef.current = { rows, cols };
+        return; // Don't send resize IPC to a non-existent PTY
       }
       try {
         await invoke("resize_pty", { id, rows, cols });

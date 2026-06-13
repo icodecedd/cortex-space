@@ -129,7 +129,7 @@ interface TerminalPaneProps {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          background: (isFocused && !isZenMode) ? 'rgba(255,255,255,0.01)' : 'transparent',
+          background: (isFocused && !isZenMode) ? 'rgba(var(--text-primary-rgb),0.01)' : 'transparent',
           transition: 'background var(--duration-normal) var(--ease-out)'
         }}
       >

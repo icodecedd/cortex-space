@@ -255,7 +255,7 @@ export function AgentsTab() {
                     <Button type="button" variant="ghost" size="xs" className="h-7 text-[10px] font-bold px-3" onClick={handleCancel}>
                       Cancel
                     </Button>
-                    <Button type="submit" size="xs" className="h-7 px-5 bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 font-bold tracking-tight text-[10px]">
+                    <Button type="submit" size="xs" className="h-7 px-5 bg-[var(--accent-primary)] text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/90 font-bold tracking-tight text-[10px]">
                       Register Agent
                     </Button>
                   </div>

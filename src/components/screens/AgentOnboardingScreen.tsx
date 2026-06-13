@@ -283,7 +283,7 @@ export const AgentOnboardingScreen = React.memo(({ onComplete, onBack, agents, i
         <m.div variants={itemVariants} className="w-full flex flex-col gap-3">
           <Button 
             onClick={onComplete}
-            className="w-full h-12 text-xs font-bold bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 transition-all flex items-center justify-center gap-2 overflow-hidden active:scale-[0.97] active:translate-y-0 duration-150"
+            className="w-full h-12 text-xs font-bold bg-[var(--accent-primary)] text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/90 transition-all flex items-center justify-center gap-2 overflow-hidden active:scale-[0.97] active:translate-y-0 duration-150"
           >
             <AnimatePresence mode="wait" initial={false}>
               <m.span

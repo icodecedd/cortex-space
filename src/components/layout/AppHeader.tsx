@@ -149,7 +149,7 @@ export const AppHeader = React.memo(({
   return (
     <div
       data-tauri-drag-region
-      className="h-9 bg-[var(--header-bg)] flex items-center justify-between border-b border-[var(--border-color)]/30 select-none flex-shrink-0 z-50 cursor-default [-webkit-app-region:drag]"
+      className="h-10 bg-[var(--bg-color)] flex items-center justify-between border-b border-[var(--border-color)] select-none flex-shrink-0 z-50 cursor-default [-webkit-app-region:drag]"
       style={{
         paddingLeft: "8px",
         paddingRight: "8px",
@@ -166,7 +166,7 @@ export const AppHeader = React.memo(({
               axis="x" 
               values={workspaces} 
               onReorder={onReorderWorkspaces}
-              className="flex items-center gap-0.5 px-1 h-full"
+              className="flex items-center gap-1 px-1 h-full"
             >
                 {workspaces.map((ws, idx) => {
                   const isActive = activeWorkspaceId === ws.id;
@@ -180,13 +180,13 @@ export const AppHeader = React.memo(({
                       key={ws.id} 
                       value={ws}
                       data-active={isActive}
-                      className="h-full flex items-center"
+                      className="h-[80%] flex items-center"
                       onDragStart={() => setIsDragging(true)}
                       onDragEnd={() => setIsDragging(false)}
                     >
                       <ContextMenu onOpenChange={(open) => { if (open) setContextWorkspaceId(ws.id); }}>
                         <ContextMenuTrigger asChild>
-                          <div>
+                          <div className="h-full flex items-center">
                             <InteractiveTab
                               id={ws.id}
                               name={ws.name ? ws.name : getWorkspacePlaceholder(idx)}
@@ -219,104 +219,104 @@ export const AppHeader = React.memo(({
                           </div>
                         </ContextMenuTrigger>
 
-                        <ContextMenuContent className="w-56 bg-[var(--surface-color)] border-[var(--border-color)] p-1 text-[var(--text-primary)]">
+                        <ContextMenuContent className="w-56 bg-[var(--surface-color)]/95 backdrop-blur-xl border-[var(--border-color)] p-1 text-[var(--text-primary)] shadow-2xl rounded-lg">
                           <ContextMenuItem 
                             onClick={() => handleRenameClick(ws)}
-                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)] rounded-md cursor-pointer"
                           >
                             <Edit2 size={14} className="text-[var(--text-secondary)]" />
-                            <span className="font-bold">Rename</span>
+                            <span className="font-bold text-xs tracking-tight">Rename</span>
                           </ContextMenuItem>
 
                           <ContextMenuItem 
                             onClick={() => onPinWorkspace(ws.id, !ws.isPinned)}
-                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)] rounded-md cursor-pointer"
                           >
                             {ws.isPinned ? (
                               <>
                                 <PinOff size={14} className="text-[var(--text-secondary)]" />
-                                <span className="font-bold">Unpin</span>
+                                <span className="font-bold text-xs tracking-tight">Unpin</span>
                               </>
                             ) : (
                               <>
                                 <Pin size={14} className="text-[var(--text-secondary)]" />
-                                <span className="font-bold">Pin</span>
+                                <span className="font-bold text-xs tracking-tight">Pin</span>
                               </>
                             )}
                           </ContextMenuItem>
 
                           <ContextMenuSub>
-                            <ContextMenuSubTrigger className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]">
+                            <ContextMenuSubTrigger className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)] rounded-md cursor-pointer">
                               <Palette size={14} className="text-[var(--text-secondary)]" />
-                              <span className="font-bold">Color</span>
+                              <span className="font-bold text-xs tracking-tight">Color Label</span>
                             </ContextMenuSubTrigger>
-                            <ContextMenuSubContent className="w-48 bg-[var(--surface-color)] border-[var(--border-color)] p-1 text-[var(--text-primary)]">
+                            <ContextMenuSubContent className="w-48 bg-[var(--surface-color)]/95 backdrop-blur-xl border-[var(--border-color)] p-1 text-[var(--text-primary)] shadow-2xl rounded-lg">
                               <ContextMenuItem
                                 onClick={() => onColorWorkspace(ws.id, undefined)}
-                                className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                                className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)] rounded-md cursor-pointer"
                               >
                                 <Ban size={14} className="text-[var(--text-secondary)]" />
-                                <span>Default Slate</span>
+                                <span className="text-xs font-bold tracking-tight">Default Slate</span>
                               </ContextMenuItem>
-                              <ContextMenuSeparator className="bg-[var(--border-color)]/50" />
+                              <ContextMenuSeparator className="bg-[var(--text-primary)]/10 my-1" />
                               {(Object.keys(COLOR_MAP) as TabColor[]).map((c) => {
                                 const item = COLOR_MAP[c];
                                 return (
                                   <ContextMenuItem
                                     key={c}
                                     onClick={() => onColorWorkspace(ws.id, c)}
-                                    className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                                    className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)] rounded-md cursor-pointer"
                                   >
                                     <div 
-                                      className="w-3 h-3 rounded-full border border-black/20" 
+                                      className="w-3 h-3 rounded-full shadow-inner" 
                                       style={{ backgroundColor: item.hex }} 
                                     />
-                                    <span>{item.label}</span>
+                                    <span className="text-xs font-bold tracking-tight">{item.label}</span>
                                   </ContextMenuItem>
                                 );
                               })}
                             </ContextMenuSubContent>
                           </ContextMenuSub>
 
-                          <ContextMenuSeparator className="bg-[var(--border-color)]/50" />
+                          <ContextMenuSeparator className="bg-[var(--text-primary)]/10 my-1" />
 
                           <ContextMenuItem
                             onClick={() => onNewWorkspaceToRight(ws.id)}
-                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)] rounded-md cursor-pointer"
                           >
                             <Plus size={14} className="text-[var(--text-secondary)]" />
-                            <span className="font-bold">New to Right</span>
+                            <span className="font-bold text-xs tracking-tight">New Space to Right</span>
                           </ContextMenuItem>
 
                           <ContextMenuItem
                             onClick={() => handleCloseOthers(ws.id)}
                             disabled={!canCloseOthers}
-                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)] rounded-md cursor-pointer"
                           >
                             <Layers size={14} className={cn("text-[var(--text-secondary)]", !canCloseOthers && "opacity-50")} />
-                            <span className="font-bold">Close Others</span>
+                            <span className="font-bold text-xs tracking-tight">Close Others</span>
                           </ContextMenuItem>
 
                           <ContextMenuItem
                             onClick={() => handleCloseToRight(ws.id)}
                             disabled={isLast}
-                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--text-primary)]"
+                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)] rounded-md cursor-pointer"
                           >
                             <ArrowRight size={14} className={cn("text-[var(--text-secondary)]", isLast && "opacity-50")} />
-                            <span className="font-bold">Close to Right</span>
+                            <span className="font-bold text-xs tracking-tight">Close to Right</span>
                           </ContextMenuItem>
 
-                          <ContextMenuSeparator className="bg-[var(--border-color)]/50" />
+                          <ContextMenuSeparator className="bg-[var(--text-primary)]/10 my-1" />
                           <ContextMenuItem 
                             onClick={() => onCloseWorkspace(ws.id)}
                             disabled={workspaces.length <= 1}
-                            className="flex items-center justify-between gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
+                            className="flex items-center justify-between gap-2 text-red-400 focus:bg-red-500/10 focus:text-red-400 rounded-md cursor-pointer"
                           >
                             <div className="flex items-center gap-2">
                               <X size={14} />
-                              <span className="font-bold">Close</span>
+                              <span className="font-bold text-xs tracking-tight">Close Space</span>
                             </div>
-                            <span className="text-[10px] opacity-50 font-mono">Ctrl+W</span>
+                            <span className="text-[10px] opacity-60 font-mono font-bold tracking-widest uppercase">Ctrl+W</span>
                           </ContextMenuItem>
                         </ContextMenuContent>
                       </ContextMenu>
@@ -331,12 +331,12 @@ export const AppHeader = React.memo(({
                       variant="ghost"
                       size="icon-sm"
                       onClick={onNewWorkspaceFlow}
-                      className="w-7 h-7 flex-shrink-0 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-md transition-all cursor-pointer [-webkit-app-region:no-drag] ml-0.5"
+                      className="w-7 h-7 flex-shrink-0 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-md transition-all cursor-pointer [-webkit-app-region:no-drag] ml-1"
                     >
                       <Plus size={14} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+                  <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
                     {HEADER_CONTENT.NEW_WORKSPACE} {HEADER_CONTENT.NEW_WORKSPACE_SHORTCUT}
                   </TooltipContent>
                 </Tooltip>
@@ -345,11 +345,11 @@ export const AppHeader = React.memo(({
         )}
 
         {/* Global Separator */}
-        {showWorkspacesTab && <div className="w-[1px] h-4 bg-[var(--border-color)]/30 mx-2" />}
+        {showWorkspacesTab && <div className="w-px h-5 bg-[var(--text-primary)]/10 mx-2" />}
       </div>
 
       {/* Right Area: Workspace Configuration, Settings & OS Window Buttons */}
-      <div className="flex items-center gap-1 flex-shrink-0 h-full [-webkit-app-region:no-drag] ml-1">
+      <div className="flex items-center gap-1.5 flex-shrink-0 h-full [-webkit-app-region:no-drag] ml-1">
 
         {/* Space Templates Dialog Trigger */}
         {showTemplatesButton && (
@@ -359,12 +359,12 @@ export const AppHeader = React.memo(({
                 variant="ghost"
                 size="icon-sm"
                 onClick={onOpenTemplates}
-                className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-ansi-green hover:bg-ansi-green/10 rounded transition-all cursor-pointer"
+                className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-md transition-all cursor-pointer"
               >
-                <Rocket size={15} />
+                <Rocket size={14} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+            <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
               {HEADER_CONTENT.TEMPLATES} {HEADER_CONTENT.TEMPLATES_SHORTCUT}
             </TooltipContent>
           </Tooltip>
@@ -378,12 +378,12 @@ export const AppHeader = React.memo(({
                 variant="ghost"
                 size="icon-sm"
                 onClick={onOpenShortcuts}
-                className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded transition-all cursor-pointer"
+                className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-md transition-all cursor-pointer"
               >
-                <Keyboard size={15} />
+                <Keyboard size={14} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+            <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
               {HEADER_CONTENT.SHORTCUTS} {HEADER_CONTENT.SHORTCUTS_SHORTCUT}
             </TooltipContent>
           </Tooltip>
@@ -396,31 +396,31 @@ export const AppHeader = React.memo(({
               variant="ghost"
               size="icon-sm"
               onClick={onOpenSettings}
-              className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded transition-all cursor-pointer"
+              className="w-7 h-7 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-md transition-all cursor-pointer"
             >
-              <Settings size={15} />
+              <Settings size={14} />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+          <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
             {HEADER_CONTENT.PREFERENCES}
           </TooltipContent>
         </Tooltip>
 
         {/* Global Separator */}
-        <div className="w-[1px] h-4 bg-[var(--border-color)]/30 mx-1.5" />
+        <div className="w-px h-5 bg-[var(--text-primary)]/10 mx-2" />
 
         {/* Standard Window controls */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 pr-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={onMinimize}
-                className="w-7 h-7 flex items-center justify-center hover:bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-all cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center hover:bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-md transition-all cursor-pointer"
               >
-                <Minus size={15} />
+                <Minus size={14} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+            <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
               {HEADER_CONTENT.MINIMIZE}
             </TooltipContent>
           </Tooltip>
@@ -429,16 +429,16 @@ export const AppHeader = React.memo(({
             <TooltipTrigger asChild>
               <button
                 onClick={onMaximize}
-                className="w-7 h-7 flex items-center justify-center hover:bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded transition-all cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center hover:bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-md transition-all cursor-pointer"
               >
                 {isWindowMaximized ? (
-                  <Copy size={13} />
+                  <Copy size={12} />
                 ) : (
-                  <Square size={13} />
+                  <Square size={12} />
                 )}
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+            <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
               {isWindowMaximized ? HEADER_CONTENT.RESTORE : HEADER_CONTENT.MAXIMIZE}
             </TooltipContent>
           </Tooltip>
@@ -447,12 +447,12 @@ export const AppHeader = React.memo(({
             <TooltipTrigger asChild>
               <button
                 onClick={onClose}
-                className="w-7 h-7 flex items-center justify-center hover:bg-[#E81123] hover:text-white text-[var(--text-secondary)] rounded transition-all cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center hover:bg-red-500 hover:text-[var(--text-primary)] text-[var(--text-secondary)] rounded-md transition-all cursor-pointer"
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+            <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-red-400">
               {HEADER_CONTENT.CLOSE}
             </TooltipContent>
           </Tooltip>
@@ -463,19 +463,19 @@ export const AppHeader = React.memo(({
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
         <DialogContent className="sm:max-w-[425px] bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Rename Workspace</DialogTitle>
+            <DialogTitle className="text-lg font-bold tracking-tight">Rename Workspace</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleRenameSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="flex flex-col gap-2">
+            <div className="grid gap-4 py-6">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
-                  <label htmlFor="name" className="text-xs font-bold text-[var(--text-secondary)] tracking-wider">
+                  <label htmlFor="name" className="text-[10px] font-bold text-[var(--text-secondary)] tracking-widest uppercase">
                     Workspace Name
                   </label>
                   <button
                     type="button"
                     onClick={() => setTempName("")}
-                    className="flex items-center gap-1 text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors tracking-tight"
+                    className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors"
                   >
                     <RotateCcw size={10} />
                     Reset to Default
@@ -486,7 +486,7 @@ export const AppHeader = React.memo(({
                   ref={renameInputRef}
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
-                  className="bg-[var(--bg-color)]/25 border-[var(--border-color)] focus:border-[var(--accent-primary)]"
+                  className="h-10 bg-[var(--text-primary)]/5 border-[var(--border-color)] focus:border-[var(--accent-primary)]/50 rounded-lg text-sm font-bold"
                   placeholder={contextWorkspace?.name || "New Workspace"}
                   autoFocus
                 />
@@ -497,13 +497,13 @@ export const AppHeader = React.memo(({
                 type="button" 
                 variant="ghost" 
                 onClick={() => setIsRenameDialogOpen(false)}
-                className="hover:bg-[var(--text-primary)]/5"
+                className="hover:bg-[var(--text-primary)]/5 text-xs font-bold"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
-                className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:brightness-110"
+                className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:brightness-110 text-xs font-bold px-6 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.3)]"
               >
                 Save Changes
               </Button>

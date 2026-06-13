@@ -16,6 +16,7 @@ import { useState, useRef } from "react";
 import { Kbd } from "@/components/ui/kbd";
 import { extractVariables, resolveVariables } from "@/lib/snippet-utils";
 import { toTitleCase } from "@/lib/utils";
+import { Spotlight } from "@/components/ui/spotlight";
 
 interface PendingSnippet {
   originalCommand: string;
@@ -87,255 +88,228 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-      className={`
-        group relative overflow-hidden flex flex-col p-5 rounded-md border transition-all duration-300
-        ${isPopulated 
-          ? "bg-[var(--text-primary)]/[0.03] border-[var(--border-color)] shadow-lg" 
-          : "bg-[var(--text-primary)]/[0.01] border-[var(--border-color)] hover:border-[var(--text-primary)]/10"}
-      `}
+      transition={{ delay: index * 0.05, duration: 0.6, ease: [0.22, 1, 0.36, 1] as any }}
+      className="relative"
     >
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <div className={`
-            w-8 h-8 rounded-md flex items-center justify-center transition-colors
-            ${isPopulated ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]" : "bg-[var(--text-primary)]/5 text-[var(--text-secondary)]"}
-          `}>
-            {mode === 'agents' ? <Cpu size={14} /> : <Terminal size={14} />}
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-mono font-bold text-[var(--accent-primary)] opacity-80 tracking-widest">
-              Pane 0{pane.id}
-            </span>
-            {isEditingName ? (
-              <input
-                autoFocus
-                className="text-[11px] font-bold text-[var(--text-primary)] bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
-                value={pane.name}
-                onChange={(e) => onNameUpdate?.(pane.id, e.target.value)}
-                onBlur={() => setIsEditingName(false)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === 'Escape') {
-                    e.stopPropagation();
+      <Spotlight
+        className={`
+          group relative overflow-hidden flex flex-col p-6 rounded-xl border transition-all duration-500
+          ${isPopulated 
+            ? "bg-[var(--text-primary)]/[0.03] border-[var(--border-color)] shadow-2xl shadow-black/40" 
+            : "bg-[var(--text-primary)]/[0.01] border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"}
+        `}
+        spotlightColor="rgba(var(--text-primary-rgb), 0.03)"
+      >
+        <div className="flex items-center justify-between mb-8 relative z-20">
+          <div className="flex items-center gap-3">
+            <div className={`
+              w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300
+              ${isPopulated ? "bg-[var(--accent-primary)] text-[var(--accent-contrast)] shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.3)]" : "bg-[var(--text-primary)]/5 text-[var(--text-secondary)]"}
+            `}>
+              {mode === 'agents' ? <Cpu size={18} /> : <Terminal size={18} />}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-[0.15em] opacity-80 mb-0.5">
+                Terminal Pane 0{pane.id}
+              </span>
+              {isEditingName ? (
+                <input
+                  autoFocus
+                  className="text-xs font-bold text-[var(--text-primary)] bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
+                  value={pane.name}
+                  onChange={(e) => onNameUpdate?.(pane.id, e.target.value)}
+                  onBlur={() => setIsEditingName(false)}
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') setIsEditingName(false);
                     if (e.key === 'Escape') setIsEditingName(false);
-                  }
-                }}
-              />
-            ) : (
-              <span 
-                className="text-[11px] font-bold text-[var(--text-primary)] truncate max-w-[120px] cursor-text hover:text-[var(--accent-primary)] transition-colors"
-                onClick={() => setIsEditingName(true)}
-                title="Click to rename"
-              >
-                {pane.name}
-              </span>
-            )}
-          </div>
-        </div>
-        
-        {isPopulated && (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-ansi-green/10 border border-ansi-green/20"
-          >
-            <CheckCircle2 size={10} className="text-ansi-green" />
-            <span className="text-[8px] font-bold text-ansi-green tracking-tighter">Ready</span>
-          </motion.div>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-[0.1em]">
-            {mode === 'agents' 
-              ? (pane.isCustom ? 'Custom Command' : 'Agent Selection') 
-              : 'Input Command'}
-          </label>
-          <div className="flex items-center gap-1">
-            {mode === 'agents' && (
-              <Button
-                variant="ghost"
-                size="xs"
-                className="h-5 px-2 gap-1.5 border border-[var(--border-color)] bg-[var(--text-primary)]/[0.02] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--accent-primary)]/30 hover:bg-[var(--accent-primary)]/5 transition-all"
-                onClick={() => onUpdate(pane.id, "", !pane.isCustom)}
-                title={pane.isCustom ? "Return to Agent Selection" : "Enter Manual Command"}
-              >
-                {pane.isCustom ? <Cpu size={10} /> : <Code size={10} />}
-                <span className="text-[9px] font-bold tracking-tight whitespace-nowrap">
-                  {pane.isCustom ? 'Switch to AI' : 'Switch to Custom'}
+                  }}
+                />
+              ) : (
+                <span 
+                  className="text-xs font-bold text-[var(--text-primary)] truncate max-w-[140px] cursor-text hover:text-[var(--accent-primary)] transition-colors"
+                  onClick={() => setIsEditingName(true)}
+                >
+                  {pane.name}
                 </span>
-              </Button>
-            )}
-            {mode === 'normal' && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="xs" 
-                    className="h-5 px-2 gap-1.5 border border-[var(--border-color)] bg-[var(--text-primary)]/[0.02] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:border-[var(--accent-primary)]/30 hover:bg-[var(--accent-primary)]/5 transition-all"
-                  >
-                    <Library size={10} />
-                    <span className="text-[9px] font-bold tracking-tight whitespace-nowrap">
-                      Snippets
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-2 bg-[var(--surface-color)] border-[var(--border-color)] shadow-xl rounded-md" align="end">
-                  <div className="flex flex-col gap-1">
-                    <div className="px-2 py-1.5 text-[9px] font-bold text-[var(--text-secondary)] tracking-widest border-b border-[var(--border-color)] mb-1">
-                      Quick Snippets
-                    </div>
-                    {snippets.length === 0 ? (
-                      <div className="mx-1 my-2 p-4 flex flex-col items-center justify-center gap-1 text-center rounded-lg border border-dashed border-[var(--border-color)] bg-[var(--text-primary)]/[0.01]">
-                        <div className="w-8 h-8 rounded-lg bg-[var(--text-primary)]/[0.03] border border-[var(--border-color)]/50 flex items-center justify-center mb-1 shadow-sm relative overflow-hidden">
-                           <div className="absolute inset-0 bg-gradient-to-br from-[var(--text-primary)]/5 via-transparent to-transparent opacity-50" />
-                           <Library size={14} className="text-[var(--text-secondary)] opacity-70 z-10" />
-                        </div>
-                        <span className="text-[10px] font-semibold text-[var(--text-primary)]">No Snippets Yet</span>
-                        <span className="text-[9px] text-[var(--text-secondary)] font-medium max-w-[140px] leading-snug">
-                          Open the Cortex Library to add commands.
-                        </span>
-                      </div>
-                    ) : (
-                      snippets.map((snippet) => (
-                        <button
-                          key={snippet.id}
-                          onClick={() => handleSnippetSelect(snippet)}
-                          className="flex flex-col gap-0.5 text-left px-2 py-1.5 rounded hover:bg-[var(--text-primary)]/5 transition-colors group/snippet"
-                        >
-                          <span className="text-[10px] font-bold text-[var(--text-primary)] group-hover/snippet:text-[var(--accent-primary)]">{snippet.label}</span>
-                          <span className="text-[9px] font-mono text-[var(--text-secondary)] truncate opacity-70">{snippet.command}</span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-        </div>
-
-        {mode === 'agents' && !pane.isCustom ? (
-          <Combobox
-            items={agents.filter(p => p.status === 'installed').map(p => ({ label: toTitleCase(p.label), value: p.command }))}
-            value={pane.command || ""}
-            onValueChange={(val) => {
-              const isPreset = agents.some(p => p.command === val);
-              onUpdate(pane.id, val, !isPreset);
-            }}
-            placeholder="Select AI agent..."
-            triggerClassName="font-mono h-9 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/30 text-[11px] transition-all rounded-md placeholder:text-[var(--text-secondary)]/40 shadow-none"
-            emptyText="No results found."
-          />
-        ) : (
-          <div className="relative group/input">
-            <Input
-              type="text"
-              value={pane.command || ""}
-              onChange={(e) => {
-                onUpdate(pane.id, e.target.value, true);
-              }}
-              placeholder={
-                mode === 'agents' ? "Enter custom command..." :
-                pane.id === 1 ? "npm run dev" :
-                pane.id === 2 ? "docker-compose up" :
-                pane.id === 3 ? "git status" :
-                "Enter command..."
-              }
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === 'Escape') {
-                  e.stopPropagation();
-                }
-              }}
-              className="w-full font-mono h-9 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-visible:bg-[var(--bg-color)] focus-visible:border-[var(--accent-primary)]/30 text-[11px] placeholder:text-[var(--text-secondary)]/40 transition-all rounded-md shadow-none focus-visible:ring-0"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none">
-              <div className="w-1 h-3 bg-[var(--accent-primary)] animate-pulse rounded-full" />
+              )}
             </div>
           </div>
-        )}
-      </div>
-
-      <AnimatePresence>
-        {pendingSnippet && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-center justify-center p-3 bg-black/40 backdrop-blur-md"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
+          
+          {isPopulated && (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full bg-[var(--surface-color)]/90 backdrop-blur-xl border border-[var(--border-color)] rounded-lg shadow-2xl overflow-hidden flex flex-col"
+              className="flex items-center gap-2 px-3 py-1 rounded-full bg-ansi-green/10 border border-ansi-green/20"
             >
-              <div className="p-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-[var(--accent-primary)] tracking-widest">Variable Required</span>
-                  <button onClick={handleVariableCancel} className="p-1 hover:bg-[var(--text-primary)]/5 rounded text-[var(--text-secondary)]">
-                    <X size={12} />
-                  </button>
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[var(--text-primary)]">
-                    Value for <span className="text-[var(--accent-primary)] font-mono">{pendingSnippet.variables[pendingSnippet.currentIndex]}</span>
-                  </label>
-                  <div className="relative">
-                    <Input 
-                      ref={promptInputRef}
-                      autoFocus
-                      value={currentVarValue}
-                      onChange={(e) => setCurrentVarValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.stopPropagation();
-                          handleVariableSubmit();
-                        }
-                        if (e.key === 'Escape') {
-                          e.stopPropagation();
-                          handleVariableCancel();
-                        }
-                      }}
-                      placeholder={`Enter ${pendingSnippet.variables[pendingSnippet.currentIndex].toLowerCase()}...`}
-                      className="h-8 text-[11px] bg-[var(--text-primary)]/5 border-[var(--border-color)] pr-8"
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-30">
-                      <CornerDownLeft size={12} />
+              <div className="w-1.5 h-1.5 rounded-full bg-ansi-green animate-pulse" />
+              <span className="text-[9px] font-bold text-ansi-green uppercase tracking-wider">Ready</span>
+            </motion.div>
+          )}
+        </div>
+
+        <div className="space-y-4 relative z-20">
+          <div className="flex items-center justify-between px-1">
+            <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-50">
+              {mode === 'agents' 
+                ? (pane.isCustom ? 'Manual Command' : 'Agent Identity') 
+                : 'Execution Command'}
+            </label>
+            <div className="flex items-center gap-2">
+              {mode === 'agents' && (
+                <Button
+                  variant="ghost"
+                  onClick={() => onUpdate(pane.id, "", !pane.isCustom)}
+                  className="h-6 px-3 gap-2 bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all"
+                >
+                  {pane.isCustom ? <Cpu size={12} /> : <Code size={12} />}
+                  <span>{pane.isCustom ? 'AI Agent' : 'Manual'}</span>
+                </Button>
+              )}
+              {mode === 'normal' && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      className="h-6 px-3 gap-2 bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all"
+                    >
+                      <Library size={12} />
+                      <span>Snippets</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2 bg-[var(--surface-color)]/95 backdrop-blur-xl border-[var(--border-color)] shadow-2xl rounded-xl" align="end">
+                    <div className="flex flex-col gap-1">
+                      <div className="px-3 py-2 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest border-b border-[var(--border-color)] mb-1">
+                        Workspace Library
+                      </div>
+                      {snippets.length === 0 ? (
+                        <div className="mx-1 my-2 p-6 flex flex-col items-center justify-center gap-2 text-center rounded-lg border border-dashed border-[var(--border-color)] bg-[var(--text-primary)]/[0.01]">
+                          <Library size={18} className="text-[var(--text-secondary)] opacity-40 mb-1" />
+                          <span className="text-[11px] font-bold text-[var(--text-primary)]/80">Empty Library</span>
+                          <span className="text-[10px] text-[var(--text-secondary)] font-medium leading-relaxed opacity-60">
+                            Add commands in the Cortex Library to see them here.
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="max-h-[280px] overflow-y-auto pr-1">
+                          {snippets.map((snippet) => (
+                            <button
+                              key={snippet.id}
+                              onClick={() => handleSnippetSelect(snippet)}
+                              className="w-full flex flex-col gap-1 text-left px-3 py-2 rounded-lg hover:bg-[var(--text-primary)]/5 transition-colors group/snippet"
+                            >
+                              <span className="text-xs font-bold text-[var(--text-primary)] group-hover/snippet:text-[var(--accent-primary)] transition-colors">{snippet.label}</span>
+                              <span className="text-[10px] font-mono text-[var(--text-secondary)] truncate opacity-50 group-hover/snippet:opacity-80 transition-opacity">{snippet.command}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+          </div>
+
+          {mode === 'agents' && !pane.isCustom ? (
+            <Combobox
+              items={agents.filter(p => p.status === 'installed').map(p => ({ label: toTitleCase(p.label), value: p.command }))}
+              value={pane.command || ""}
+              onValueChange={(val) => {
+                const isPreset = agents.some(p => p.command === val);
+                onUpdate(pane.id, val, !isPreset);
+              }}
+              placeholder="Select AI agent..."
+              triggerClassName="h-10 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/40 text-xs transition-all rounded-lg placeholder:text-[var(--text-secondary)]/40 shadow-none font-medium"
+              emptyText="No agents found."
+            />
+          ) : (
+            <div className="relative group/input">
+              <Input
+                type="text"
+                value={pane.command || ""}
+                onChange={(e) => onUpdate(pane.id, e.target.value, true)}
+                placeholder={
+                  mode === 'agents' ? "Enter custom command..." :
+                  pane.id === 1 ? "npm run dev" :
+                  pane.id === 2 ? "docker-compose up" :
+                  "Enter command..."
+                }
+                className="w-full h-10 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-visible:bg-[var(--bg-color)] focus-visible:border-[var(--accent-primary)]/40 text-xs font-mono placeholder:text-[var(--text-secondary)]/30 transition-all rounded-lg shadow-none focus-visible:ring-0"
+              />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none">
+                <div className="w-1 h-3.5 bg-[var(--accent-primary)] animate-pulse rounded-full" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <AnimatePresence>
+          {pendingSnippet && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            >
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="w-full bg-[var(--surface-color)]/90 backdrop-blur-2xl border border-[var(--border-color)] rounded-xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
+              >
+                <div className="p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-[0.2em]">Variable Entry</span>
+                    <button onClick={handleVariableCancel} className="p-1.5 hover:bg-[var(--text-primary)]/5 rounded-lg text-[var(--text-secondary)] transition-colors">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-[var(--text-primary)]/90">
+                      Value for <span className="text-[var(--accent-primary)] font-mono">{pendingSnippet.variables[pendingSnippet.currentIndex]}</span>
+                    </label>
+                    <div className="relative">
+                      <Input 
+                        ref={promptInputRef}
+                        autoFocus
+                        value={currentVarValue}
+                        onChange={(e) => setCurrentVarValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.stopPropagation(); handleVariableSubmit(); }
+                          if (e.key === 'Escape') { e.stopPropagation(); handleVariableCancel(); }
+                        }}
+                        placeholder={`Enter ${pendingSnippet.variables[pendingSnippet.currentIndex].toLowerCase()}...`}
+                        className="h-10 text-xs bg-[var(--text-primary)]/5 border-[var(--border-color)] pr-10 focus:border-[var(--accent-primary)]/50 rounded-lg"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-20">
+                        <CornerDownLeft size={14} />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between text-[9px] text-[var(--text-secondary)] font-bold">
-                  <div className="flex gap-2">
-                    <div className="flex items-center gap-1"><Kbd className="text-[8px]">Enter</Kbd> Ok</div>
-                    <div className="flex items-center gap-1"><Kbd className="text-[8px]">Esc</Kbd> Cancel</div>
+                  <div className="flex items-center justify-between text-[10px] text-[var(--text-secondary)] font-bold">
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2 uppercase tracking-wider opacity-60"><Kbd className="text-[9px]">Enter</Kbd> Confirm</div>
+                      <div className="flex items-center gap-2 uppercase tracking-wider opacity-60"><Kbd className="text-[9px]">Esc</Kbd> Skip</div>
+                    </div>
+                    <div className="font-mono text-[var(--accent-primary)]">{pendingSnippet.currentIndex + 1} / {pendingSnippet.variables.length}</div>
                   </div>
-                  <div>{pendingSnippet.currentIndex + 1}/{pendingSnippet.variables.length}</div>
                 </div>
-              </div>
-              <div className="h-0.5 w-full bg-[var(--text-primary)]/5">
-                <motion.div 
-                  className="h-full bg-[var(--accent-primary)]"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${((pendingSnippet.currentIndex) / pendingSnippet.variables.length) * 100}%` }}
-                />
-              </div>
+                <div className="h-1 w-full bg-[var(--text-primary)]/5">
+                  <motion.div 
+                    className="h-full bg-[var(--accent-primary)] shadow-[0_0_10px_rgba(var(--accent-primary-rgb),0.5)]"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${((pendingSnippet.currentIndex + 1) / pendingSnippet.variables.length) * 100}%` }}
+                    transition={{ duration: 0.5, ease: "circOut" }}
+                  />
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Decorative corner accent */}
-      <div className={`
-        absolute -right-4 -bottom-4 w-12 h-12 bg-gradient-to-br from-transparent to-[var(--text-primary)]/5 rounded-full transition-opacity
-        ${isPopulated ? "opacity-100" : "opacity-0"}
-      `} />
+          )}
+        </AnimatePresence>
+      </Spotlight>
     </motion.div>
   );
 }

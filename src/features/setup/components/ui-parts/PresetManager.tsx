@@ -18,19 +18,18 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
 
   return (
     <div className="mt-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider">
-          Quick Access Paths
+      <div className="flex items-center justify-between mb-5">
+        <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-50">
+          Quick Access Library
         </div>
         {(rootPath && !isDuplicate) && (
           <Button
             variant="ghost"
-            size="xs"
             onClick={onAdd}
-            className="h-6 px-2 text-[9px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 tracking-wider rounded"
+            className="h-8 px-4 text-[10px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 tracking-wider rounded-lg border border-transparent hover:border-[var(--accent-primary)]/20 transition-all"
           >
-            <Plus size={10} className="mr-1" />
-            Save Current
+            <Plus size={12} className="mr-2" />
+            Pin Current Directory
           </Button>
         )}
       </div>
@@ -41,26 +40,26 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
           compact
           title="No Presets Saved"
           description="Save your current directory as a favorite to quickly switch between projects later."
-          iconColor="text-green-600 dark:text-ansi-green/40"
+          iconColor="text-[var(--accent-primary)]/40"
         />
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {presets.map((preset, index) => {
             const isCurrent = preset.path === rootPath;
             return (
               <div 
                 key={preset.id} 
                 className={cn(
-                  "group animate-in fade-in slide-in-from-left-2 duration-300 flex items-center bg-[var(--text-primary)]/[0.03] hover:bg-[var(--text-primary)]/[0.06] border rounded-full pl-3.5 pr-1 py-1 transition-all cursor-default",
-                  isCurrent ? "border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/10" : "border-[var(--border-color)]"
+                  "group animate-in fade-in slide-in-from-left-4 duration-500 flex items-center bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.05] border rounded-xl pl-4 pr-1.5 py-1.5 transition-all cursor-default",
+                  isCurrent ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.05)]" : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                 )}
-                style={{ transitionDelay: `${index * 40}ms` }}
+                style={{ transitionDelay: `${index * 50}ms` }}
               >
                 <button
                   onClick={() => onSelect(preset.path)}
                   className={cn(
-                    "text-[11px] font-bold transition-colors pr-2 border-r border-[var(--border-color)]",
-                    isCurrent ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)] hover:text-[var(--accent-primary)]"
+                    "text-[12px] font-bold tracking-tight transition-colors pr-3 border-r border-[var(--border-color)]",
+                    isCurrent ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)] opacity-60 group-hover:opacity-100"
                   )}
                 >
                   {preset.label}
@@ -68,10 +67,10 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className="ml-1 text-[var(--text-secondary)] hover:text-red-500 hover:bg-transparent opacity-60 group-hover:opacity-100 transition-opacity"
+                  className="ml-1.5 text-[var(--text-secondary)] hover:text-red-400 hover:bg-[var(--text-primary)]/5 opacity-40 group-hover:opacity-100 transition-all rounded-lg"
                   onClick={() => onRemove(preset.path)}
                 >
-                  <X size={12} />
+                  <X size={14} />
                 </Button>
               </div>
             );

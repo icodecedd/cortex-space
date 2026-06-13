@@ -336,7 +336,7 @@ export function AboutTab() {
                           </Button>
                           <Button 
                             size="xs" 
-                            className="h-7 px-4 bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary)]/90 font-bold tracking-tight text-[10px] gap-1.5"
+                            className="h-7 px-4 bg-[var(--accent-primary)] text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/90 font-bold tracking-tight text-[10px] gap-1.5"
                             onClick={handleInstallUpdate}
                           >
                             <Download size={10} /> Install Update

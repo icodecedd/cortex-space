@@ -153,7 +153,7 @@ export function LayoutsTab({
                     "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                     selectedIds.has(layout.id)
                       ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                      : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                      : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                   )}
                 >
                     {selectedIds.has(layout.id) && (
@@ -267,7 +267,7 @@ export function LayoutsTab({
                         "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                         archivedSelectedIds.has(layout.id)
                           ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                          : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                          : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                       )}
                     >
                       {archivedSelectedIds.has(layout.id) && (
@@ -461,7 +461,7 @@ function LayoutCard({ layout, isSelected, onToggleSelection, onArchive, onRestor
                   onClick={onToggleSelection}
                   className={cn(
                     "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer shrink-0",
-                    isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                    isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                   )}
                 >
                   {isSelected && <Plus size={10} className="text-black rotate-45" />}

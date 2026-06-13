@@ -511,7 +511,7 @@ export function XtermTerminal({
           background: getThemePalette(theme, resolvedScheme).bg || '#000000',
           foreground: getThemePalette(theme, resolvedScheme).textPrimary || '#ffffff',
           cursor: getThemePalette(theme, resolvedScheme).accent || '#ffffff',
-          selectionBackground: resolvedScheme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+          selectionBackground: resolvedScheme === 'dark' ? 'rgba(var(--text-primary-rgb), 0.3)' : 'rgba(0, 0, 0, 0.2)',
           ...getActiveAnsiColors(theme, resolvedScheme)
         },
         allowTransparency: true,
@@ -594,52 +594,114 @@ export function XtermTerminal({
     xtermRef.current = activeTerm;
     fitAddonRef.current = activeFit;
 
-    const performInitialFit = () => {
-      if (fitAddonRef.current && xtermRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
-        try {
-          fitAddonRef.current.fit();
-          setDimensions({ rows: xtermRef.current.rows, cols: xtermRef.current.cols });
-          setIsMeasured(true);
-        } catch (e) {}
-      }
-    };
-
-    if ('fonts' in document) {
-      document.fonts.ready.then(() => performInitialFit());
-    } else {
-      performInitialFit();
+    // -----------------------------------------------------------------------
+    // Reconnect dimension handshake: when re-mounting an existing terminal,
+    // the container may have changed size while it was detached (tab switch,
+    // panel resize). Force a fit + PTY sync to prevent stale dimensions.
+    // -----------------------------------------------------------------------
+    if (!isNew) {
+      requestAnimationFrame(() => {
+        if (fitAddonRef.current && terminalRef.current &&
+            terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
+          try {
+            fitAddonRef.current.fit();
+            if (xtermRef.current) {
+              const { cols, rows } = xtermRef.current;
+              if (cols > 0 && rows > 0) {
+                setDimensions({ rows, cols });
+                const delegate = terminalSessionManager.getResizeDelegate(id);
+                if (delegate) delegate(rows, cols);
+              }
+            }
+          } catch {}
+        }
+      });
     }
 
-    const rafId = requestAnimationFrame(() => {
-      if (fitAddonRef.current && xtermRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
-        try {
-          fitAddonRef.current.fit();
-          setDimensions({ rows: xtermRef.current.rows, cols: xtermRef.current.cols });
-          setIsMeasured(true);
-        } catch (e) {}
-        xtermRef.current.focus();
-      }
-    });
+    // -----------------------------------------------------------------------
+    // Initial measurement gate: use a one-shot ResizeObserver to detect when
+    // the container first achieves non-zero dimensions. This replaces the old
+    // dual fonts.ready + rAF pattern that caused race conditions.
+    // -----------------------------------------------------------------------
+    let measureObserver: ResizeObserver | null = null;
+    if (isNew || !isMeasured) {
+      measureObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0 && fitAddonRef.current && xtermRef.current) {
+          // Container is ready — perform the authoritative initial fit
+          measureObserver?.disconnect();
+          measureObserver = null;
 
+          const doFit = () => {
+            try {
+              fitAddonRef.current!.fit();
+              const { cols, rows } = xtermRef.current!;
+              if (cols > 0 && rows > 0) {
+                setDimensions({ rows, cols });
+                setIsMeasured(true);
+              }
+            } catch {}
+            // Focus the terminal after initial measurement
+            xtermRef.current?.focus();
+          };
+
+          // Wait for fonts to be ready before measuring character dimensions
+          if ('fonts' in document) {
+            document.fonts.ready.then(doFit);
+          } else {
+            doFit();
+          }
+        }
+      });
+      if (terminalRef.current) measureObserver.observe(terminalRef.current);
+    }
+
+    // -----------------------------------------------------------------------
+    // Production-grade ResizeObserver: fires on every container dimension
+    // change (pane splits, panel drags, window resizes). Propagates new
+    // dimensions to the PTY backend with dedup tracking.
+    // -----------------------------------------------------------------------
     let resizeTimeout: ReturnType<typeof setTimeout>;
+    let lastSyncCols = 0;
+    let lastSyncRows = 0;
+
     const handleResize = () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
-        if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
-          try { fitAddonRef.current.fit(); } catch (e) {}
+        if (!fitAddonRef.current || !terminalRef.current) return;
+        const { offsetWidth, offsetHeight } = terminalRef.current;
+        // Guard against zero-dimension containers (hidden tabs, animating panes)
+        if (offsetWidth === 0 || offsetHeight === 0) return;
+        try {
+          fitAddonRef.current.fit();
+        } catch {
+          return; // Terminal may have been disposed
+        }
+        const term = xtermRef.current;
+        if (!term) return;
+        const { cols, rows } = term;
+        // Only propagate if dimensions actually changed — prevents redundant IPC
+        if (cols > 0 && rows > 0 && (cols !== lastSyncCols || rows !== lastSyncRows)) {
+          lastSyncCols = cols;
+          lastSyncRows = rows;
+          const delegate = terminalSessionManager.getResizeDelegate(id);
+          if (delegate) delegate(rows, cols);
         }
       }, 50);
     };
 
     const resizeObserver = new ResizeObserver(handleResize);
     if (terminalRef.current) resizeObserver.observe(terminalRef.current);
-    window.addEventListener('resize', handleResize);
+    // window.addEventListener('resize') is NOT needed — ResizeObserver on the
+    // container element already fires for window resizes, pane splits, and
+    // panel drags. Adding it would cause double-fire on every window resize.
 
     return () => {
-      cancelAnimationFrame(rafId);
       clearTimeout(resizeTimeout);
-      window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
+      measureObserver?.disconnect();
     };
   }, [id, relaunchKey]);
 
@@ -681,8 +743,19 @@ export function XtermTerminal({
 
       if ('fonts' in document) {
         document.fonts.ready.then(() => {
-          if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
-            try { fitAddonRef.current.fit(); } catch (e) {}
+          if (fitAddonRef.current && terminalRef.current &&
+              terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
+            try {
+              fitAddonRef.current.fit();
+              // Font changes alter character cell size → cols/rows change → sync PTY
+              if (xtermRef.current) {
+                const { cols, rows } = xtermRef.current;
+                if (cols > 0 && rows > 0) {
+                  const delegate = terminalSessionManager.getResizeDelegate(id);
+                  if (delegate) delegate(rows, cols);
+                }
+              }
+            } catch {}
           }
         });
       }
@@ -723,16 +796,41 @@ export function XtermTerminal({
   }, []);
 
   useEffect(() => {
-    const fit = () => {
-      if (fitAddonRef.current && terminalRef.current && terminalRef.current.offsetWidth > 0) {
-        try { fitAddonRef.current.fit(); } catch (e) {}
+    // The ResizeObserver already handles dimension changes from layout shifts.
+    // We only need one extra fit after CSS transitions complete to catch
+    // animations that the ResizeObserver might miss or fire early on.
+    const el = terminalRef.current;
+    if (!el) return;
+
+    const fitAfterTransition = () => {
+      requestAnimationFrame(() => {
+        if (fitAddonRef.current && el.offsetWidth > 0 && el.offsetHeight > 0) {
+          try { fitAddonRef.current.fit(); } catch {}
+        }
+      });
+    };
+
+    // Immediate fit for the new layout
+    fitAfterTransition();
+
+    // Catch CSS transitions on ancestor elements (maximize/zen mode animations)
+    const onTransitionEnd = (e: TransitionEvent) => {
+      if (e.propertyName === 'width' || e.propertyName === 'height' ||
+          e.propertyName === 'flex' || e.propertyName === 'flex-basis' ||
+          e.propertyName === 'padding' || e.propertyName === 'inset') {
+        fitAfterTransition();
       }
     };
-    fit();
-    const t1 = setTimeout(fit, 50);
-    const t2 = setTimeout(fit, 150);
-    const t3 = setTimeout(fit, 350);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    el.addEventListener('transitionend', onTransitionEnd);
+
+    // Safety fallback: one delayed fit to catch edge cases where transitionend
+    // doesn't fire (e.g., no CSS transition defined, instant layout change)
+    const fallbackTimer = setTimeout(fitAfterTransition, 300);
+
+    return () => {
+      el.removeEventListener('transitionend', onTransitionEnd);
+      clearTimeout(fallbackTimer);
+    };
   }, [isMaximized, isZenMode, showFloatingHeader, headerVisibility]);
 
   useEffect(() => {

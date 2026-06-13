@@ -150,7 +150,7 @@ export function SnippetsTab({
                     "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                     selectedIds.has(snippet.id)
                       ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                      : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                      : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                   )}
                 >
                   {selectedIds.has(snippet.id) && (
@@ -270,7 +270,7 @@ export function SnippetsTab({
                       "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                       archivedSelectedIds.size > 0
                         ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                        : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                        : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                     )}
                   >
                     {archivedSelectedIds.size === archivedFiltered.length && archivedSelectedIds.size > 0 && (
@@ -301,7 +301,7 @@ export function SnippetsTab({
                     "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                     archivedSelectedIds.has(snippet.id)
                       ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                      : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                      : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                   )}
                 >
                   {archivedSelectedIds.has(snippet.id) && (
@@ -463,7 +463,7 @@ function SnippetCard({ snippet, isSelected, onToggleSelection, onArchive, onExec
                 onClick={onToggleSelection}
                 className={cn(
                   "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer shrink-0",
-                  isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                  isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                 )}
               >
                 {isSelected && <Plus size={10} className="text-black rotate-45" />}

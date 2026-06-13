@@ -6,6 +6,7 @@ import { Mode } from "@/types";
 import { setSetting, getSetting } from "@/lib/store";
 import { Kbd } from "@/components/ui/kbd";
 import { MODE_SELECTOR_CONTENT, ASSETS } from "@/lib/content";
+import { SpotlightCard } from "@/components/ui/spotlight";
 
 interface ModeSelectorScreenProps {
   onSelectMode: (mode: Mode) => void;
@@ -43,8 +44,8 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08,
-        delayChildren: 0.05
+        staggerChildren: 0.1,
+        delayChildren: 0.1
       }
     }
   };
@@ -52,314 +53,171 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
   const itemVariants: Variants = {
     hidden: {
       opacity: 0,
-      y: shouldReduceMotion ? 0 : 8,
-      scale: shouldReduceMotion ? 1 : 0.99
+      y: shouldReduceMotion ? 0 : 20,
     },
     visible: {
       opacity: 1,
       y: 0,
-      scale: 1,
       transition: {
-        duration: 0.4,
-        ease: [0.22, 1, 0.36, 1] as any // Quintic ease-out: professional & snappy
+        duration: 0.8,
+        ease: [0.22, 1, 0.36, 1] as any
       }
     }
   };
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      style={{
-        display: "flex",
-        width: "100%",
-        maxWidth: "600px",
-        padding: "2rem",
-        margin: "0 auto",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          margin: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: "3rem",
-          alignItems: "center",
-          width: "100%",
-        }}
+    <div className="w-full h-full flex items-center justify-center relative overflow-hidden">
+      {/* Background ambient detail */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(255,102,178,0.03)_0%,transparent_70%)]" />
+        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(var(--border-color) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+      </div>
+
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative z-10 w-full max-w-[640px] px-8 flex flex-col items-center"
       >
-        <div
-          style={{
-            textAlign: "center",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "1.5rem",
-          }}
-        >
-          <motion.div
-            variants={itemVariants}
-            style={{
-              background: "var(--accent-primary)",
-              width: "64px",
-              height: "64px",
-              borderRadius: "16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
-          >
-            <img
-              src={ASSETS.LOGO}
-              alt="Cortex Logo"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              onError={(e) => {
-                e.currentTarget.src = ASSETS.LOGO_FALLBACK;
-              }}
-            />
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <h1
-              style={{
-                fontSize: "2.5rem",
-                marginBottom: "0.5rem",
-                letterSpacing: "0.05em",
-                color: "var(--text-primary)",
-              }}
+        <div className="flex flex-col items-center gap-12 w-full">
+          <div className="text-center flex flex-col items-center gap-6">
+            <motion.div
+              variants={itemVariants}
+              className="w-16 h-16 rounded-2xl bg-[var(--accent-primary)] flex items-center justify-center overflow-hidden shadow-2xl shadow-[var(--accent-primary)]/20"
             >
-              {MODE_SELECTOR_CONTENT.TITLE}<span style={{ color: "var(--accent-primary)" }}> {MODE_SELECTOR_CONTENT.SUBTITLE}</span>
-            </h1>
-            <p
-              style={{
-                color: "var(--text-secondary)",
-                fontSize: "0.85rem",
-                letterSpacing: "0.05em",
-                opacity: 0.7,
-                maxWidth: "400px",
-                lineHeight: "1.4",
-              }}
-            >
-              {MODE_SELECTOR_CONTENT.DESCRIPTION}
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={itemVariants}
-            style={{
-              width: "30px",
-              height: "1px",
-              background: "var(--border-color)",
-            }}
-          />
-
-          <motion.p
-            variants={itemVariants}
-            style={{
-              color: "var(--text-primary)",
-              fontSize: "1rem",
-              fontWeight: 500,
-              letterSpacing: "0.02em",
-            }}
-          >
-            {MODE_SELECTOR_CONTENT.PROMPT}
-          </motion.p>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            width: "100%",
-          }}
-        >
-          <motion.div
-            variants={itemVariants}
-            onClick={() => handleSelectMode("normal")}
-            className="mode-card"
-            style={{
-              position: "relative",
-              flexDirection: "row",
-              padding: "1.5rem 2rem",
-              justifyContent: "flex-start",
-              gap: "1.5rem",
-              borderRadius: "var(--radius-md)",
-              cursor: "pointer",
-              borderColor: lastMode === "normal" ? "var(--accent-primary)" : "var(--border-color)",
-              boxShadow: lastMode === "normal" ? "0 0 12px rgba(var(--accent-primary-rgb), 0.05)" : undefined,
-            }}
-          >
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              {lastMode === "normal" && (
-                <span className="text-[9px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2 py-0.5 rounded-full">
-                  Last Used
-                </span>
-              )}
-              {showShortcutHints && (
-                <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">
-                  {MODE_SELECTOR_CONTENT.NORMAL_MODE.SHORTCUT_LABEL}
-                </Kbd>
-              )}
-            </div>
-            <Terminal size={32} color="var(--text-secondary)" />
-            <div style={{ textAlign: "left", flex: 1 }}>
-              <h3
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  fontSize: "1.1rem",
-                  color: "var(--text-primary)",
-                }}
-              >
-                <span>{MODE_SELECTOR_CONTENT.NORMAL_MODE.TITLE}</span>
-              </h3>
-              <p
-                style={{
-                  fontSize: "0.65rem",
-                  color: "var(--text-secondary)",
-                  marginTop: "0.25rem",
-                  fontFamily: "JetBrains Mono",
-                }}
-              >
-                {MODE_SELECTOR_CONTENT.NORMAL_MODE.DESCRIPTION}
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            variants={itemVariants}
-            onClick={() => handleSelectMode("agents")}
-            className="mode-card"
-            style={{
-              position: "relative",
-              flexDirection: "row",
-              padding: "1.5rem 2rem",
-              justifyContent: "flex-start",
-              gap: "1.5rem",
-              borderRadius: "var(--radius-md)",
-              cursor: "pointer",
-              borderColor: lastMode === "agents" ? "var(--accent-primary)" : "var(--border-color)",
-              boxShadow: lastMode === "agents" ? "0 0 12px rgba(var(--accent-primary-rgb), 0.05)" : undefined,
-            }}
-          >
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              {lastMode === "agents" && (
-                <span className="text-[9px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2 py-0.5 rounded-full">
-                  Last Used
-                </span>
-              )}
-              {showShortcutHints && (
-                <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">
-                  {MODE_SELECTOR_CONTENT.AGENTS_MODE.SHORTCUT_LABEL}
-                </Kbd>
-              )}
-            </div>
-            <div style={{ position: "relative" }}>
-              <Users size={32} color="var(--text-secondary)" />
-              <Cpu
-                size={16}
-                color="var(--text-secondary)"
-                style={{
-                  position: "absolute",
-                  bottom: -2,
-                  right: -2,
-                  background: "var(--bg-color)",
-                  borderRadius: "50%",
-                  padding: "1px",
+              <img
+                src={ASSETS.LOGO}
+                alt="Cortex Logo"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = ASSETS.LOGO_FALLBACK;
                 }}
               />
-            </div>
-            <div style={{ textAlign: "left", flex: 1 }}>
-              <h3
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  fontSize: "1.1rem",
-                  color: "var(--text-primary)",
-                }}
-              >
-                <span>{MODE_SELECTOR_CONTENT.AGENTS_MODE.TITLE}</span>
-              </h3>
-              <p
-                style={{
-                  fontSize: "0.65rem",
-                  color: "var(--text-secondary)",
-                  marginTop: "0.25rem",
-                  fontFamily: "JetBrains Mono",
-                }}
-              >
-                {MODE_SELECTOR_CONTENT.AGENTS_MODE.DESCRIPTION}
-              </p>
-            </div>
-          </motion.div>
-        </div>
+            </motion.div>
 
-        {showShortcutHints && (
-          <motion.div
-            variants={itemVariants}
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "2rem",
-              marginTop: "2rem",
-              flexWrap: "wrap",
-            }}
-          >
-            {showTemplatesHint && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  color: "var(--text-secondary)",
-                  fontSize: "0.75rem",
-                }}
+            <motion.div variants={itemVariants} className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-tight">
+                {MODE_SELECTOR_CONTENT.TITLE}<span className="text-[var(--accent-primary)]"> {MODE_SELECTOR_CONTENT.SUBTITLE}</span>
+              </h1>
+              <p className="text-[var(--text-secondary)] text-sm max-w-[420px] mx-auto leading-relaxed opacity-80">
+                {MODE_SELECTOR_CONTENT.DESCRIPTION}
+              </p>
+            </motion.div>
+
+            <motion.div
+              variants={itemVariants}
+              className="w-8 h-px bg-[var(--border-color)]"
+            />
+
+            <motion.p
+              variants={itemVariants}
+              className="text-[var(--text-primary)] text-lg font-medium tracking-tight"
+            >
+              {MODE_SELECTOR_CONTENT.PROMPT}
+            </motion.p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 w-full">
+            <motion.div variants={itemVariants} onClick={() => handleSelectMode("normal")}>
+              <SpotlightCard
+                className={`group cursor-pointer transition-all duration-300 ${
+                  lastMode === "normal" ? "border-[var(--accent-primary)] shadow-2xl shadow-[var(--accent-primary)]/5" : ""
+                }`}
               >
-                <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
-                  Ctrl + Shift + T
-                </Kbd>
-                <span>{MODE_SELECTOR_CONTENT.HINTS.TEMPLATES}</span>
+                <div className="flex items-start gap-6 relative">
+                  <div className="absolute top-0 right-0 flex items-center gap-2">
+                    {lastMode === "normal" && (
+                      <span className="text-[10px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Last Used
+                      </span>
+                    )}
+                    {showShortcutHints && (
+                      <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">
+                        {MODE_SELECTOR_CONTENT.NORMAL_MODE.SHORTCUT_LABEL}
+                      </Kbd>
+                    )}
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[var(--text-primary)]/5 border border-[var(--border-color)] group-hover:border-[var(--accent-primary)]/50 group-hover:bg-[var(--text-primary)]/10 transition-colors">
+                    <Terminal size={32} className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
+                  </div>
+
+                  <div className="flex-1 pt-1">
+                    <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-1 group-hover:text-[var(--accent-primary)] transition-colors">
+                      {MODE_SELECTOR_CONTENT.NORMAL_MODE.TITLE}
+                    </h3>
+                    <p className="text-xs font-mono text-[var(--text-secondary)] leading-relaxed opacity-70">
+                      {MODE_SELECTOR_CONTENT.NORMAL_MODE.DESCRIPTION}
+                    </p>
+                  </div>
+                </div>
+              </SpotlightCard>
+            </motion.div>
+
+            <motion.div variants={itemVariants} onClick={() => handleSelectMode("agents")}>
+              <SpotlightCard
+                className={`group cursor-pointer transition-all duration-300 ${
+                  lastMode === "agents" ? "border-[var(--accent-primary)] shadow-2xl shadow-[var(--accent-primary)]/5" : ""
+                }`}
+              >
+                <div className="flex items-start gap-6 relative">
+                  <div className="absolute top-0 right-0 flex items-center gap-2">
+                    {lastMode === "agents" && (
+                      <span className="text-[10px] font-bold text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Last Used
+                      </span>
+                    )}
+                    {showShortcutHints && (
+                      <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-normal text-[10px]">
+                        {MODE_SELECTOR_CONTENT.AGENTS_MODE.SHORTCUT_LABEL}
+                      </Kbd>
+                    )}
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[var(--text-primary)]/5 border border-[var(--border-color)] group-hover:border-[var(--accent-primary)]/50 group-hover:bg-[var(--text-primary)]/10 transition-colors relative">
+                    <Users size={32} className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors" />
+                    <Cpu
+                      size={16}
+                      className="absolute -bottom-1 -right-1 bg-[var(--bg-color)] rounded-full p-0.5 text-[var(--accent-primary)] border border-[var(--border-color)]"
+                    />
+                  </div>
+
+                  <div className="flex-1 pt-1">
+                    <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-1 group-hover:text-[var(--accent-primary)] transition-colors">
+                      {MODE_SELECTOR_CONTENT.AGENTS_MODE.TITLE}
+                    </h3>
+                    <p className="text-xs font-mono text-[var(--text-secondary)] leading-relaxed opacity-70">
+                      {MODE_SELECTOR_CONTENT.AGENTS_MODE.DESCRIPTION}
+                    </p>
+                  </div>
+                </div>
+              </SpotlightCard>
+            </motion.div>
+          </div>
+
+          {showShortcutHints && (
+            <motion.div
+              variants={itemVariants}
+              className="flex justify-center gap-8 pt-4 flex-wrap"
+            >
+              {showTemplatesHint && (
+                <div className="flex items-center gap-3 text-[var(--text-secondary)] text-xs font-medium opacity-60 hover:opacity-100 transition-opacity">
+                  <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)]">Ctrl + Shift + T</Kbd>
+                  <span>{MODE_SELECTOR_CONTENT.HINTS.TEMPLATES}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3 text-[var(--text-secondary)] text-xs font-medium opacity-60 hover:opacity-100 transition-opacity">
+                <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)]">Ctrl + T</Kbd>
+                <span>{MODE_SELECTOR_CONTENT.HINTS.NEW_SPACE}</span>
               </div>
-            )}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                color: "var(--text-secondary)",
-                fontSize: "0.75rem",
-              }}
-            >
-              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
-                Ctrl + T
-              </Kbd>
-              <span>{MODE_SELECTOR_CONTENT.HINTS.NEW_SPACE}</span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                color: "var(--text-secondary)",
-                fontSize: "0.75rem",
-              }}
-            >
-              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-primary)]/70">
-                Ctrl + ,
-              </Kbd>
-              <span>{MODE_SELECTOR_CONTENT.HINTS.SETTINGS}</span>
-            </div>
-          </motion.div>
-        )}
-      </div>
-    </motion.div>
+              <div className="flex items-center gap-3 text-[var(--text-secondary)] text-xs font-medium opacity-60 hover:opacity-100 transition-opacity">
+                <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)]">Ctrl + ,</Kbd>
+                <span>{MODE_SELECTOR_CONTENT.HINTS.SETTINGS}</span>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </div>
   );
 });

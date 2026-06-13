@@ -162,7 +162,7 @@ export function WorkspaceSwitcherDialog({
           boxShadow: '0 30px 60px rgba(0, 0, 0, 0.4), 0 0 20px rgba(var(--accent-primary-rgb), 0.1)'
         }}
       >
-        <div className="relative border-b border-[var(--text-primary)]/5 bg-[var(--text-primary)]/[0.02] shrink-0">
+        <div className="relative border-b border-[var(--border-color)] bg-[var(--text-primary)]/[0.02] shrink-0">
           <Search 
             className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]"
           />

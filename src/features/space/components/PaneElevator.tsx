@@ -148,8 +148,8 @@ export function PaneElevator({
           border: isDragging ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
           borderRadius: '8px',
           boxShadow: isDragging 
-            ? '0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1)' 
-            : '0 8px 32px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+            ? '0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(var(--text-primary-rgb), 0.1)' 
+            : '0 8px 32px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(var(--text-primary-rgb), 0.05)',
           height: '32px',
           width: '100%',
           pointerEvents: isVisible ? 'auto' : 'none',

@@ -147,7 +147,7 @@ export function WorkspacesTab({
                     "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                     selectedIds.has(template.id)
                       ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                      : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                      : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                   )}
                 >
                   {selectedIds.has(template.id) && (
@@ -269,7 +269,7 @@ export function WorkspacesTab({
                         "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                         archivedSelectedIds.has(template.id)
                           ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                          : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                          : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                       )}
                     >
                       {archivedSelectedIds.has(template.id) && (
@@ -384,7 +384,7 @@ function TemplateCard({ template, isSelected, onToggleSelection, onLaunch, onArc
                 onClick={(e) => { e.stopPropagation(); onToggleSelection(); }}
                 className={cn(
                   "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer shrink-0",
-                  isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                  isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                 )}
               >
                 {isSelected && <Plus size={10} className="text-black rotate-45" />}

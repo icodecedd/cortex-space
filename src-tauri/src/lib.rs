@@ -100,6 +100,10 @@ async fn spawn_pty<R: Runtime>(
     cols: u16,
     shell: Option<String>,
 ) -> Result<(), String> {
+    // Clamp dimensions to minimum 1×1 — ConPTY crashes on 0 cols/rows
+    let rows = rows.max(1);
+    let cols = cols.max(1);
+
     let app_handle = app.clone();
     let id_clone = id.clone();
 
@@ -355,8 +359,17 @@ async fn write_pty(id: String, data: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn resize_pty(id: String, rows: u16, cols: u16) -> Result<(), String> {
+    // Dimension validation: ConPTY crashes on 0 cols/rows; Unix produces undefined behavior
+    if rows == 0 || cols == 0 {
+        return Err(format!(
+            "Invalid dimensions: {}x{} — cols and rows must be >= 1",
+            cols, rows
+        ));
+    }
     if let Some(session_ref) = pty_sessions().get(&id) {
-        let session = session_ref.lock().unwrap();
+        let session = session_ref
+            .lock()
+            .map_err(|e| format!("Session {} lock poisoned: {}", id, e))?;
         session
             .master
             .resize(PtySize {
@@ -365,10 +378,12 @@ async fn resize_pty(id: String, rows: u16, cols: u16) -> Result<(), String> {
                 pixel_width: 0,
                 pixel_height: 0,
             })
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("Resize failed for session {}: {}", id, e))?;
         Ok(())
     } else {
-        Err(format!("Session {} not found", id))
+        // Session not found is not necessarily an error — it may have exited
+        // between the frontend sending the resize and it arriving here
+        Ok(())
     }
 }
 

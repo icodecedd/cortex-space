@@ -9,6 +9,7 @@ import { PresetManager } from "../ui-parts/PresetManager";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Spotlight } from "@/components/ui/spotlight";
 
 import { DirectoryPreset } from "@/types";
 
@@ -80,7 +81,7 @@ export function StepWorkspace({
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] as any }
+      transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as any }
     }
   };
 
@@ -93,93 +94,91 @@ export function StepWorkspace({
     >
       {/* SECTION 01: DIRECTORY */}
       <motion.section variants={itemVariants} className="mb-16">
-        <div className="flex flex-col gap-1 mb-8">
-          <div className="flex items-center gap-2 mb-1">
-            <Database size={16} className="text-[var(--accent-primary)]" />
-            <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
+        <div className="flex flex-col gap-1 mb-10">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]">
+              <Database size={16} />
+            </div>
+            <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
               Workspace Directory
             </h3>
           </div>
-          <p className="text-sm text-[var(--text-secondary)] font-medium">
-            Select the main folder for your terminal sessions.
+          <p className="text-sm text-[var(--text-secondary)] font-medium opacity-70">
+            Select the main folder for your terminal sessions. All subprocesses will spawn relative to this path.
           </p>
         </div>
 
-        <div className={cn(
-          "group relative flex items-center gap-4 rounded-md border bg-[var(--text-primary)]/[0.02] p-2 pr-4 transition-all duration-300",
-          isValidDir === false ? "border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]" : "border-[var(--text-primary)]/10 focus-within:border-[var(--text-primary)]/20 focus-within:bg-[var(--text-primary)]/[0.04] shadow-sm"
-        )}>
-          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-[var(--text-primary)]/5 text-[var(--text-secondary)] group-focus-within:text-[var(--accent-primary)] transition-colors">
-            <FolderOpen size={18} />
+        <Spotlight 
+          className={cn(
+            "group relative flex items-center gap-4 rounded-xl border bg-[var(--text-primary)]/[0.01] p-2 pr-4 transition-all duration-300",
+            isValidDir === false ? "border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.1)]" : "border-[var(--border-color)] focus-within:border-[var(--accent-primary)] focus-within:bg-[var(--text-primary)]/[0.03] focus-within:shadow-[0_0_20px_rgba(var(--accent-primary-rgb),0.05)]"
+          )}
+          spotlightColor="rgba(var(--accent-primary-rgb), 0.05)"
+        >
+          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[var(--text-primary)]/5 text-[var(--text-secondary)] group-focus-within:text-[var(--accent-primary)] transition-colors">
+            <FolderOpen size={20} />
           </div>
           
-          <div className="flex-1 flex flex-col">
-            <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-[0.1em] mb-0.5 ml-0.5">
-              Selected Path
+          <div className="flex-1 flex flex-col pt-1">
+            <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 ml-0.5 opacity-60">
+              Target Path
             </label>
             <Input
               type="text"
               value={rootPath}
               onChange={(e) => setRootPath(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === 'Escape') {
-                  e.stopPropagation();
-                }
-              }}
               placeholder={defaultDir || "Select a target directory"}
-              className="h-7 border-none bg-transparent px-0.5 font-mono text-[13px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/50"
+              className="h-8 border-none bg-transparent px-0.5 font-mono text-[14px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/40"
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {rootPath && (
               <Button
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setRootPath("")}
-                className="h-8 w-8 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-md"
+                className="h-8 w-8 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-lg"
               >
                 <X size={14} />
               </Button>
             )}
-            <div className="w-px h-6 bg-[var(--border-color)] mx-1" />
+            <div className="w-px h-8 bg-[var(--border-color)] mx-1" />
             <Button
-              variant="outline"
-              size="sm"
               onClick={handleBrowse}
-              className="h-9 px-4 bg-[var(--text-primary)]/5 border-[var(--border-color)] hover:bg-[var(--text-primary)]/10 hover:border-[var(--text-primary)]/20 text-[10px] font-bold tracking-wider text-[var(--text-primary)] rounded-md transition-all"
+              className="btn-tactile h-10 px-6 font-bold text-[11px] tracking-wider"
             >
               Browse
             </Button>
           </div>
-        </div>
+        </Spotlight>
 
         {currentPath && (
-          <div className="animate-in fade-in mt-6 flex flex-wrap items-center gap-1.5 font-mono text-[10px] px-2">
-            <Lock size={10} className="text-[var(--text-secondary)] mr-1 opacity-80" />
+          <div className="animate-in fade-in slide-in-from-top-2 mt-8 flex flex-wrap items-center gap-1 font-mono text-[11px] px-2">
+            <Lock size={12} className="text-[var(--text-secondary)] mr-2 opacity-50" />
             {currentPath.split(/[\\/]/).filter(Boolean).map((part, i, arr) => (
-              <span key={i} className="flex items-center gap-1.5">
+              <span key={i} className="flex items-center gap-1">
                 <button
                   onClick={() => handleBreadcrumbClick(i)}
                   className={cn(
-                    "rounded-md px-2 py-1 transition-all hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)]",
-                    i === arr.length - 1 ? "text-[var(--accent-primary)] font-bold bg-[var(--accent-primary)]/5" : "text-[var(--text-secondary)] font-bold"
+                    "rounded-md px-2.5 py-1 transition-all hover:bg-[var(--text-primary)]/5 hover:text-[var(--text-primary)]",
+                    i === arr.length - 1 ? "text-[var(--accent-primary)] font-bold bg-[var(--accent-primary)]/10" : "text-[var(--text-secondary)] font-medium"
                   )}
                 >
                   {part}
                 </button>
-                {i < arr.length - 1 && <span className="text-[var(--text-secondary)]/30 font-bold">/</span>}
+                {i < arr.length - 1 && <span className="text-[var(--text-secondary)] opacity-30 font-bold px-1">/</span>}
               </span>
             ))}
             {!rootPath && (
-              <Badge variant="outline" className="ml-3 h-5 px-2 text-[8px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30 tracking-tighter rounded-full">
-                System Default
+              <Badge variant="outline" className="ml-4 h-6 px-3 text-[9px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30 tracking-wider rounded-full uppercase">
+                Default
               </Badge>
             )}
           </div>
         )}
 
-        <div className="mt-8">
+        <div className="mt-12">
           <PresetManager
             presets={presets}
             onSelect={setRootPath}
@@ -192,15 +191,17 @@ export function StepWorkspace({
 
       {/* SECTION 02: LAYOUT */}
       <motion.section variants={itemVariants}>
-        <div className="flex flex-col gap-1 mb-8">
-          <div className="flex items-center gap-2 mb-1">
-            <Layout size={16} className="text-[var(--accent-primary)]" />
-            <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
+        <div className="flex flex-col gap-1 mb-10">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]">
+              <Layout size={16} />
+            </div>
+            <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
               Grid Layout
             </h3>
           </div>
-          <p className="text-sm text-[var(--text-secondary)] font-medium">
-            Configure the grid structure for your terminal panes.
+          <p className="text-sm text-[var(--text-secondary)] font-medium opacity-70">
+            Define how your workspace should be segmented. Select a preset or build a custom arrangement.
           </p>
         </div>
 
@@ -214,7 +215,7 @@ export function StepWorkspace({
         />
 
         {savedLayouts.length === 0 && (
-          <div className="mt-8">
+          <div className="mt-10">
             <EmptyState 
               icon={Zap}
               compact
@@ -232,54 +233,47 @@ export function StepWorkspace({
 
         {layout === 'custom' && (
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8 relative overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--text-primary)]/[0.02] p-6 group"
+            className="mt-10"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent opacity-50" />
-            
-            <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex flex-1 items-center gap-4">
-                <div className="w-10 h-10 rounded-md bg-[var(--text-primary)]/5 flex items-center justify-center text-[var(--text-secondary)]">
-                  <Save size={18} />
+            <Spotlight className="rounded-xl border border-[var(--border-color)] bg-[var(--text-primary)]/[0.01] p-8 overflow-hidden group">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                <div className="flex flex-1 items-center gap-6">
+                  <div className="w-12 h-12 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
+                    <Save size={20} />
+                  </div>
+                  <div className="flex-1 flex flex-col pt-1">
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 ml-0.5 opacity-60">
+                      Configuration Label
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder={`Dynamic ID: ${customLayout.rows}X${customLayout.cols}`}
+                      value={layoutName}
+                      onChange={(e) => setLayoutName(e.target.value)}
+                      className="h-8 border-none bg-transparent px-0.5 font-mono text-[14px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/40"
+                    />
+                  </div>
                 </div>
-                <div className="flex-1 flex flex-col">
-                  <label className="text-[9px] font-bold text-[var(--text-secondary)] tracking-[0.1em] mb-0.5 ml-0.5">
-                    Layout Name
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder={`ID: ${customLayout.rows}X${customLayout.cols} (Optional)`}
-                    value={layoutName}
-                    onChange={(e) => setLayoutName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === 'Escape') {
-                        e.stopPropagation();
-                      }
-                    }}
-                    className="h-7 border-none bg-transparent px-0.5 font-mono text-[12px] text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/50"
-                  />
+                
+                <div className="flex items-center gap-6 pl-16 md:pl-0">
+                  <div className="hidden md:flex flex-col items-end gap-1 mr-4">
+                    <span className="text-[9px] font-bold text-[var(--text-secondary)] tracking-widest uppercase opacity-50 text-right">Layout Blueprint</span>
+                    <span className="text-xs font-mono font-bold text-[var(--accent-primary)] text-right">
+                      {layoutName.trim() ? layoutName : `${customLayout.rows}X${customLayout.cols}`}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={handleSaveLayout}
+                    disabled={customLayout.rows < 1 || customLayout.cols < 1}
+                    className="btn-tactile primary h-11 px-8 font-bold text-[11px] tracking-wider"
+                  >
+                    Save Configuration
+                  </Button>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-4 pl-14 md:pl-0">
-                <div className="hidden md:flex flex-col items-end gap-0.5 mr-2">
-                  <span className="text-[8px] font-mono font-bold text-[var(--text-secondary)] tracking-widest opacity-80 text-right">Layout ID</span>
-                  <span className="text-[10px] font-mono font-bold text-[var(--accent-primary)] text-right">
-                    {layoutName.trim() ? layoutName : `${customLayout.rows}X${customLayout.cols}`}
-                  </span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSaveLayout}
-                  disabled={customLayout.rows < 1 || customLayout.cols < 1}
-                  className="h-9 px-6 bg-[var(--accent-primary)] text-[var(--accent-contrast)] border-[var(--accent-primary)] hover:brightness-110 font-bold text-[10px] tracking-wider rounded-md transition-all"
-                >
-                  Save Layout
-                </Button>
-              </div>
-            </div>
+            </Spotlight>
           </motion.div>
         )}
       </motion.section>

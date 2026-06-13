@@ -437,7 +437,7 @@ export function CortexLibraryDialog({
       >
         <div className="flex h-full">
           {/* Modular Sidebar */}
-          <div className="w-[220px] border-r border-[var(--text-primary)]/5 bg-[var(--bg-color)]/20 flex flex-col p-5 shrink-0">
+          <div className="w-[220px] border-r border-[var(--border-color)] bg-[var(--bg-color)]/20 flex flex-col p-5 shrink-0">
              <div className="mb-10 px-1">
                 <div className="flex items-center gap-2.5 mb-1.5">
                    <div className="w-6 h-6 bg-[var(--accent-primary)] rounded flex items-center justify-center shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.2)]">
@@ -481,7 +481,7 @@ export function CortexLibraryDialog({
              </div>
           {/* Main Dynamic View Area */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-            <header className="px-8 py-6 border-b border-[var(--text-primary)]/5 flex items-center justify-between shrink-0 bg-[var(--bg-color)]/5">
+            <header className="px-8 py-6 border-b border-[var(--border-color)] flex items-center justify-between shrink-0 bg-[var(--bg-color)]/5">
                <div className="flex items-center gap-4 flex-1 max-w-xl">
                   {/* View Toggle */}
                   <ViewToggle value={viewMode} onChange={setViewMode} className="mr-2 shrink-0" />
@@ -522,7 +522,7 @@ export function CortexLibraryDialog({
                         onClick={toggleSelectAll}
                         className={cn(
                           "w-5 h-5 rounded border transition-all flex items-center justify-center shrink-0",
-                          selectedIds.size > 0 ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10" : "border-[var(--text-primary)]/10 hover:border-[var(--text-primary)]/20"
+                          selectedIds.size > 0 ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10" : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                         )}
                       >
                         {selectedIds.size === items.length && selectedIds.size > 0 && (
@@ -541,7 +541,7 @@ export function CortexLibraryDialog({
                     />
                     <Input 
                       placeholder={`Filter ${activeTab === 'workspaces' ? 'templates' : activeTab === 'commands' ? 'snippets' : 'presets & layouts'}...`}
-                      className="pl-9 pr-10 text-[13px] h-[38px] bg-[var(--text-primary)]/[0.03] border-[var(--text-primary)]/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]/40 transition-all text-[var(--text-primary)]"
+                      className="pl-9 pr-10 text-[13px] h-[38px] bg-[var(--text-primary)]/[0.03] border-[var(--border-color)] focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]/40 transition-all text-[var(--text-primary)]"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -751,7 +751,7 @@ export function CortexLibraryDialog({
                };
 
                return (
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-[600px] bg-[var(--surface-color)] border border-[var(--text-primary)]/10 rounded-xl py-2 px-6 flex items-center justify-between shadow-[0_30px_60px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-bottom-6 duration-500 z-50">
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-[600px] bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl py-2 px-6 flex items-center justify-between shadow-[0_30px_60px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-bottom-6 duration-500 z-50">
                   <div className="flex items-center gap-4">
                     <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse shadow-[0_0_10px_var(--accent-primary)]" />
                     <span className="text-[11px] font-bold tracking-tight text-[var(--text-primary)]">
@@ -836,3 +836,4 @@ function LibraryNavButton({ isActive, onClick, icon, label, count }: { isActive:
     </button>
   );
 }
+

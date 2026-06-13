@@ -147,7 +147,7 @@ export function PresetsTab({
                     "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                     selectedIds.has(preset.id)
                       ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                      : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                      : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                   )}
                 >
                   {selectedIds.has(preset.id) && (
@@ -247,7 +247,7 @@ export function PresetsTab({
                         "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                         archivedSelectedIds.has(preset.id)
                           ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                          : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                          : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                       )}
                     >
                       {archivedSelectedIds.has(preset.id) && (
@@ -400,7 +400,7 @@ function PresetCard({ preset, isSelected, onToggleSelection, onArchive, onRestor
                   onClick={onToggleSelection}
                   className={cn(
                     "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer shrink-0",
-                    isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] hover:border-[var(--text-primary)]/30"
+                    isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
                   )}
                 >
                   {isSelected && <Plus size={10} className="text-black rotate-45" />}

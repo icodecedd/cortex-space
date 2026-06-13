@@ -114,39 +114,39 @@ export function InteractiveTab({
   const activeColorConfig = color ? COLOR_MAP[color] : null
 
   return (
-    <div className="relative">
+    <div className="relative h-full flex items-center">
       <Tooltip open={disableTooltip ? false : undefined}>
         <TooltipTrigger asChild>
           <div
             onClick={onSelect}
             className={cn(
-              "group relative h-[28px] px-2.5 rounded-md flex items-center gap-2 text-[11px] font-sans font-bold cursor-pointer transition-all duration-200 select-none shrink-0 min-w-[110px] max-w-[180px] overflow-hidden [-webkit-app-region:no-drag]",
+              "group relative h-8 px-3 rounded-lg flex items-center gap-2.5 text-xs font-sans font-bold cursor-pointer transition-all duration-300 select-none shrink-0 min-w-[120px] max-w-[200px] overflow-hidden [-webkit-app-region:no-drag]",
               isActive
-                ? (!color ? "bg-[var(--text-primary)]/10 text-[var(--text-primary)]" : cn(activeColorConfig?.activeBg, "text-[var(--text-primary)]"))
+                ? (!color ? "bg-[var(--text-primary)]/10 text-[var(--text-primary)] shadow-sm" : cn(activeColorConfig?.activeBg, "text-[var(--text-primary)] shadow-sm"))
                 : (!color ? "bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5" : cn(activeColorConfig?.bg, activeColorConfig?.hoverBg, activeColorConfig?.text)),
-              isDraft && !isActive && "opacity-80"
+              isDraft && !isActive && "opacity-60"
             )}
           >
-            {/* Active Tab Accent Indicator (Left Line) */}
+            {/* Active Tab Accent Indicator (Bottom Line) */}
             {isActive && (
               <div className={cn(
-                "absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full opacity-100",
-                color ? cn("bg-current opacity-70") : "bg-[var(--accent-primary)]"
+                "absolute left-3 right-3 bottom-0 h-[2px] rounded-t-full opacity-100",
+                color ? cn("bg-current opacity-70") : "bg-[var(--accent-primary)] shadow-[0_-2px_8px_rgba(var(--accent-primary-rgb),0.5)]"
               )} />
             )}
 
             {/* Left Slot: Mode Indicator / Icon */}
-            <div className="flex items-center justify-center shrink-0 z-10 ml-0.5">
+            <div className="flex items-center justify-center shrink-0 z-10">
               {isPinned ? (
-                <Pin size={11} className={cn(
-                  "transition-all duration-200",
-                  isActive ? "text-[var(--accent-primary)]" : "text-[var(--text-secondary)] opacity-60"
+                <Pin size={12} className={cn(
+                  "transition-all duration-300",
+                  isActive ? "text-[var(--accent-primary)]" : "text-[var(--text-secondary)] opacity-50"
                 )} />
               ) : (
                 icon ? (
                   <div className={cn(
-                    "transition-all duration-200",
-                    isActive ? "opacity-100 scale-105" : "opacity-60 group-hover:opacity-100"
+                    "transition-all duration-300",
+                    isActive ? "opacity-100 scale-110" : "opacity-50 group-hover:opacity-100"
                   )}>
                     {icon}
                   </div>
@@ -154,10 +154,10 @@ export function InteractiveTab({
                   <Terminal
                     size={12}
                     className={cn(
-                      "transition-all duration-200",
+                      "transition-all duration-300",
                       isActive
-                        ? "text-[var(--accent-primary)] scale-105"
-                        : "text-[var(--text-secondary)] opacity-60 group-hover:opacity-100",
+                        ? "text-[var(--accent-primary)] scale-110"
+                        : "text-[var(--text-secondary)] opacity-50 group-hover:opacity-100",
                       color && activeColorConfig?.text
                     )}
                   />
@@ -168,14 +168,14 @@ export function InteractiveTab({
             {/* Workspace Title (Truncated) */}
             <div
               className={cn(
-                "truncate text-left flex-1 flex items-center gap-1.5 z-10 transition-colors duration-200",
-                isActive ? "font-bold" : "font-bold"
+                "truncate text-left flex-1 flex items-center gap-2 z-10 transition-colors duration-300 pt-px",
+                isActive ? "font-bold text-[var(--text-primary)] tracking-tight" : "font-semibold tracking-tight"
               )}
             >
               <span className="truncate">{displayName}</span>
               {terminalCount !== undefined && terminalCount > 0 && (
                 <span className={cn(
-                  "text-[9px] px-1 rounded-sm font-mono opacity-50 bg-black/20",
+                  "text-[9px] px-1.5 py-0.5 rounded flex items-center justify-center font-mono opacity-40 bg-black/40",
                   isActive && "opacity-80"
                 )}>
                   {terminalCount}
@@ -191,18 +191,18 @@ export function InteractiveTab({
                   onClose()
                 }}
                 className={cn(
-                  "ml-auto p-0.5 rounded-sm transition-all flex items-center justify-center w-4 h-4 text-[var(--text-secondary)] cursor-pointer shrink-0 z-10 active:scale-90",
-                  isActive ? "opacity-60 hover:opacity-100 hover:bg-white/10" : "opacity-0 group-hover:opacity-80 hover:opacity-100 hover:bg-white/10"
+                  "ml-auto p-1 rounded-md transition-all flex items-center justify-center w-5 h-5 text-[var(--text-secondary)] cursor-pointer shrink-0 z-10 active:scale-90",
+                  isActive ? "opacity-50 hover:opacity-100 hover:bg-[var(--text-primary)]/10 hover:text-[var(--text-primary)]" : "opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-[var(--text-primary)]/10 hover:text-[var(--text-primary)]"
                 )}
               >
-                <X size={10} strokeWidth={2.5} />
+                <X size={12} strokeWidth={2.5} />
               </button>
             )}
           </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
+        <TooltipContent side="bottom" sideOffset={8} className="text-xs font-bold tracking-tight bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)] shadow-xl">
           {`${displayName}${customName && name ? ` (${name})` : ""}`}
-          <div className="text-[10px] opacity-80 font-bold mt-0.5">Right-click for workspace actions</div>
+          <div className="text-[9px] opacity-50 font-bold mt-1 uppercase tracking-widest">Right-click for options</div>
         </TooltipContent>
       </Tooltip>
     </div>

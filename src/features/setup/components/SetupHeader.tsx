@@ -10,124 +10,80 @@ interface SetupHeaderProps {
 export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
   return (
     <div
-      className="animate-in"
+      className="animate-in flex justify-between items-center transition-all duration-500 ease-[var(--ease-out)]"
       style={{
-        marginBottom: step > 1 ? '1.5rem' : '3rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        transitionDelay: '0ms'
+        marginBottom: step > 1 ? '2rem' : '4rem',
       }}
     >
-      <div style={{
-        display: 'flex',
-        flexDirection: step > 1 ? 'row' : 'column',
-        alignItems: step > 1 ? 'center' : 'flex-start',
-        gap: step > 1 ? '1.5rem' : '1.5rem'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: step > 1 ? '0.75rem' : '1rem',
-          transition: 'all 0.4s ease'
-        }}>
-          <div style={{
-            width: step > 1 ? '28px' : '44px',
-            height: step > 1 ? '28px' : '44px',
-            background: 'var(--accent-primary)',
-            borderRadius: step > 1 ? '6px' : '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-            transition: 'all 0.4s ease'
-          }}>
+      <div className="flex items-center gap-6">
+        <div className="relative group">
+          <div className="absolute inset-0 bg-[var(--accent-primary)] blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
+          <div 
+            className="relative z-10 bg-[var(--accent-primary)] flex items-center justify-center overflow-hidden transition-all duration-500"
+            style={{
+              width: step > 1 ? '32px' : '48px',
+              height: step > 1 ? '32px' : '48px',
+              borderRadius: step > 1 ? '8px' : '12px',
+            }}
+          >
             <img
               src={ASSETS.LOGO}
               alt="Cortex"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              className="w-full h-full object-cover"
               onError={(e) => {
                 e.currentTarget.src = ASSETS.LOGO_FALLBACK;
               }}
             />
           </div>
-          <div style={{ 
-            transition: 'all 0.4s ease',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center'
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.75rem',
-              height: 'fit-content'
-            }}>
-              <h2 style={{
-                fontSize: step > 1 ? '1rem' : '1.5rem',
-                margin: 0,
-                letterSpacing: '0.1em',
-                transition: 'all 0.4s ease',
-                lineHeight: 1.2
-              }}>
-                {SETUP_CONTENT.TITLE}<span style={{ color: 'var(--accent-primary)' }}> {SETUP_CONTENT.SUBTITLE}</span>
-              </h2>
-              <span 
-                className="bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)]"
-                style={{
-                  fontSize: step > 1 ? '8px' : '9px',
-                  fontWeight: 700,
-                  padding: step > 1 ? '0.1rem 0.4rem' : '0.15rem 0.5rem',
-                  borderRadius: '9999px',
-                  letterSpacing: '0.08em',
-                  transition: 'all 0.4s ease',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {mode === 'agents' ? 'AI Assisted Mode' : 'Terminal Mode'}
-              </span>
-            </div>
-            {step === 1 && (
-              <p className="animate-in" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.1em', marginTop: '0.25rem' }}>
-                {SETUP_CONTENT.WORKSPACE_SETUP}
-              </p>
-            )}
+        </div>
+
+        <div className="flex flex-col justify-center transition-all duration-500">
+          <div className="flex items-center gap-4">
+            <h2 
+              className="font-bold tracking-tight m-0 leading-tight transition-all duration-500"
+              style={{
+                fontSize: step > 1 ? '1.1rem' : '1.75rem',
+              }}
+            >
+              {SETUP_CONTENT.TITLE}<span className="text-[var(--accent-primary)]"> {SETUP_CONTENT.SUBTITLE}</span>
+            </h2>
+            <span 
+              className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 text-[var(--accent-primary)] transition-all duration-500"
+            >
+              {mode === 'agents' ? 'AI Assisted Mode' : 'Terminal Mode'}
+            </span>
           </div>
+          {step === 1 && (
+            <p className="animate-in text-[10px] text-[var(--text-secondary)] font-semibold uppercase tracking-[0.2em] mt-2 opacity-60">
+              {SETUP_CONTENT.WORKSPACE_SETUP}
+            </p>
+          )}
         </div>
 
         <ConfirmModeChangeDialog step={step} onConfirm={onBack} />
       </div>
 
-      <div className="stepper-nav" style={{
-        margin: 0,
-        border: 'none',
-        gap: step > 1 ? '1.5rem' : '2rem',
-        transition: 'all 0.4s ease'
-      }}>
+      <nav className="flex items-center gap-8">
         {[1, 2, 3].map(i => (
-          <div key={i} className={`step-indicator ${step === i ? 'active' : ''}`} style={{ transition: 'all 0.3s ease' }}>
-            <span style={{
-              width: step > 1 ? '18px' : '20px',
-              height: step > 1 ? '18px' : '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: `1px solid ${step === i ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-              fontSize: step > 1 ? '0.6rem' : '0.7rem',
-              transition: 'all 0.4s ease'
-            }}>{i}</span>
-            <span style={{
-              fontSize: step > 1 ? '0.65rem' : 'inherit',
-              transition: 'all 0.4s ease'
-            }}>
+          <div 
+            key={i} 
+            className={`flex items-center gap-3 transition-all duration-300 ${step === i ? 'opacity-100' : 'opacity-40'}`}
+          >
+            <div 
+              className={`w-6 h-6 flex items-center justify-center rounded-md border text-[10px] font-bold transition-all duration-300 ${
+                step === i ? 'border-[var(--accent-primary)] text-[var(--accent-primary)] shadow-[0_0_12px_rgba(var(--accent-primary-rgb),0.2)]' : 'border-[var(--border-color)] text-[var(--text-secondary)]'
+              }`}
+            >
+              {i}
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-widest hidden sm:inline-block">
               {i === 1 && SETUP_CONTENT.STEPS.WORKSPACE}
               {i === 2 && (mode === 'agents' ? SETUP_CONTENT.STEPS.ASSIGN : SETUP_CONTENT.STEPS.COMMANDS)}
               {i === 3 && SETUP_CONTENT.STEPS.PREVIEW}
             </span>
           </div>
         ))}
-      </div>
+      </nav>
     </div>
   );
 }
