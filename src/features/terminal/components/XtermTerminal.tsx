@@ -20,8 +20,6 @@ import { terminalSessionManager } from '@/lib/terminalSessionManager';
 import { extractVariables, resolveVariables } from '@/lib/snippet-utils';
 import '@xterm/xterm/css/xterm.css';
 
-// Port state machine types
-// ... (rest of imports remains same, just adding snippet-utils)
 export type PortState = 'detected' | 'gone';
 export interface DetectedPort {
   port: number;
@@ -29,7 +27,6 @@ export interface DetectedPort {
   state: PortState;
 }
 
-// Variable Snippet types
 interface PendingSnippet {
   originalCommand: string;
   variables: string[];
@@ -38,7 +35,6 @@ interface PendingSnippet {
   execute: boolean;
 }
 
-// Well-known non-browser ports blocklist (mirrors Rust side)
 const PORT_BLOCKLIST = new Set([5432, 3306, 6379, 27017, 5672, 9200, 2181, 25, 22, 21, 3307, 1433, 5433]);
 
 interface XtermTerminalProps {
@@ -87,8 +83,7 @@ export function XtermTerminal({
   const [showFloatingHeader, setShowFloatingHeader] = useState(true);
   const [headerVisibility, setHeaderVisibility] = useState<'hover' | 'always'>('hover');
   const [detectedPorts, setDetectedPorts] = useState<DetectedPort[]>([]);
-  
-  // Snippet Variable State
+
   const [pendingSnippet, setPendingSnippet] = useState<PendingSnippet | null>(null);
   const [currentVarValue, setCurrentVarValue] = useState("");
   const [initialCommandProcessed, setInitialCommandProcessed] = useState(false);
@@ -103,13 +98,10 @@ export function XtermTerminal({
   const notifiedPortsRef = useRef<Set<number>>(new Set());
   const activePortsRef = useRef<DetectedPort[]>([]);
 
-  // Keep ref in sync with state for callbacks
   useEffect(() => {
     activePortsRef.current = detectedPorts;
   }, [detectedPorts]);
 
-
-  // Show one-time toast per newly detected port
   const firePortToast = useCallback((dp: DetectedPort) => {
     if (notifiedPortsRef.current.has(dp.port)) return;
     notifiedPortsRef.current.add(dp.port);
@@ -123,7 +115,6 @@ export function XtermTerminal({
     });
   }, []);
 
-  // Centralized Settings Fetching
   useEffect(() => {
     const loadSettings = async () => {
       const [startup, sh, showHeader, visibility, terminal] = await Promise.all([
@@ -178,14 +169,15 @@ export function XtermTerminal({
     return themeDef.dark;
   }, [allThemes]);
 
-
-
   const getActiveAnsiColors = useCallback((themeName: string, scheme: 'light' | 'dark') => {
     const palette = getThemePalette(themeName, scheme);
     return palette.ansi || {};
   }, [getThemePalette]);
 
-  // Port Promotion: verify a candidate port before adding it to state
+  // ---------------------------------------------------------------------------
+  // Port detection
+  // ---------------------------------------------------------------------------
+
   const promotePort = useCallback(async (port: number, rawUrl: string) => {
     if (PORT_BLOCKLIST.has(port)) return;
     if (promotingRef.current.has(port)) return;
@@ -195,8 +187,19 @@ export function XtermTerminal({
     let url = rawUrl;
     if (!url.startsWith('http')) url = `http://${url}`;
     url = url.replace(/(?:127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\])/g, 'localhost');
-    // Strip path — we only need the origin for browser opening
     try { url = new URL(url).origin; } catch { /* keep as-is */ }
+
+    // FIX: Check global port ownership.
+    // If another terminal is already serving on this port, don't claim it.
+    // This prevents cross-pane badge pollution when a terminal's output
+    // merely *mentions* a URL that another pane is actually hosting.
+    if (!terminalSessionManager.claimPort(id, port)) {
+      // Undo seenUrlsRef so we can retry if the owning terminal later releases
+      // the port (e.g., its process terminates or is killed).
+      seenUrlsRef.current.delete(`http://localhost:${port}`);
+      promotingRef.current.delete(port);
+      return;
+    }
 
     // Retry up to 3× with 500ms delay to verify the port is actually listening
     let open = false;
@@ -211,32 +214,33 @@ export function XtermTerminal({
     if (open) {
       const newPort: DetectedPort = { port, url, state: 'detected' };
       setDetectedPorts(prev => {
-        if (prev.some(p => p.port === port)) return prev; // already tracked
+        if (prev.some(p => p.port === port)) return prev;
         return [...prev, newPort];
       });
       firePortToast(newPort);
+    } else {
+      // Port didn't open — release the speculative claim and undo seenUrls
+      // so the next output that mentions this port can try again.
+      terminalSessionManager.releasePort(id, port);
+      seenUrlsRef.current.delete(`http://localhost:${port}`);
     }
 
     promotingRef.current.delete(port);
-  }, [firePortToast]);
+  }, [firePortToast, id]);
 
   const lastPortCheckRef = useRef<number>(0);
   const portDetectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const runPortDetection = useCallback((text: string) => {
-    // Spec regex: covers Vite, Next.js, Express, Remix, Astro, Nuxt, Rails, Django, etc.
     const portRegex =
       /(?:https?:\/\/localhost:(\d+)|listening on[:\s]+(\d+)|ready on[:\s]+(\d+)|Local:\s+https?:\/\/localhost:(\d+)|server running.*:(\d+)|started on.*:(\d+)|running at.*:(\d+)|available at.*:(\d+)|((?:https?:\/\/)?(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\[::\]):(\d{2,5})))/gi;
 
     let match: RegExpExecArray | null;
     while ((match = portRegex.exec(text)) !== null) {
-      // Find first non-undefined capture group that is a pure port number
       const portStr = match.slice(1).find(g => g && /^\d+$/.test(g));
       if (!portStr) continue;
       const port = parseInt(portStr, 10);
-      // Ignore ports < 1024 (system ports) and blocklisted ones
       if (port < 1024 || PORT_BLOCKLIST.has(port)) continue;
-      // Build a canonical URL key for dedup
       const urlKey = `http://localhost:${port}`;
       if (!seenUrlsRef.current.has(urlKey)) {
         seenUrlsRef.current.add(urlKey);
@@ -245,15 +249,12 @@ export function XtermTerminal({
     }
   }, [promotePort]);
 
-  // CHECKLIST ITEM 3: Single-Source Rendering — string data from backend
   const handlePtyData = useCallback((data: string) => {
     if (xtermRef.current) {
       xtermRef.current.write(data);
 
-      // Maintain rolling context buffer (last 600 chars)
       outputBufferRef.current = (outputBufferRef.current + data).slice(-600);
 
-      // Throttled port detection: run at most once every 200ms
       const now = Date.now();
       if (now - lastPortCheckRef.current > 200) {
         lastPortCheckRef.current = now;
@@ -261,14 +262,10 @@ export function XtermTerminal({
           clearTimeout(portDetectionTimeoutRef.current);
           portDetectionTimeoutRef.current = null;
         }
-
-        // Strip ANSI escape codes before regex matching
         const cleanText = outputBufferRef.current
           .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
-
         runPortDetection(cleanText);
       } else if (!portDetectionTimeoutRef.current) {
-        // Ensure the last few characters are eventually checked
         portDetectionTimeoutRef.current = setTimeout(() => {
           lastPortCheckRef.current = Date.now();
           portDetectionTimeoutRef.current = null;
@@ -279,7 +276,6 @@ export function XtermTerminal({
       }
     }
   }, [runPortDetection]);
-
 
   const ptyConfig = useMemo(() => ({
     command,
@@ -292,13 +288,12 @@ export function XtermTerminal({
 
   const { write: writeToPty, resize: resizePty, isReady, isTerminated, relaunch: relaunchPty, status } = usePty(id, handlePtyData, ptyConfig);
 
-  // Handle initial command prop for variable detection
   useEffect(() => {
     if (command && !initialCommandProcessed && isReady) {
       const varRegex = /\{\{([^}]+)\}\}/g;
       const variables: string[] = [];
       let match;
-      
+
       const seenVars = new Set<string>();
       while ((match = varRegex.exec(command)) !== null) {
         const varName = match[1];
@@ -322,7 +317,6 @@ export function XtermTerminal({
     }
   }, [command, initialCommandProcessed, isReady]);
 
-
   const [relaunchKey, setRelaunchKey] = useState(0);
 
   const relaunch = useCallback(async () => {
@@ -333,19 +327,23 @@ export function XtermTerminal({
     notifiedPortsRef.current.clear();
     outputBufferRef.current = "";
     setInitialCommandProcessed(false);
-    
+
+    // Release all port ownership so other panes can detect these ports
+    // after this terminal restarts.
+    terminalSessionManager.releaseAllPortsForTerminal(id);
+
     await relaunchPty();
     setRelaunchKey(prev => prev + 1);
-  }, [relaunchPty]);
+  }, [relaunchPty, id]);
 
   // Aggressive cleanup on process termination
-  // We do not instantly remove the badges. Instead, we aggressively poll the ports
-  // to confirm they have been released by the OS. This prevents premature badge removal
-  // and race conditions where a killed node process lingers in TIME_WAIT.
   useEffect(() => {
     if (!isTerminated) return;
 
-    // Cancel regular liveness polling immediately
+    // Release all port ownership immediately so other terminals can detect
+    // ports that were previously served by this terminal's process.
+    terminalSessionManager.releaseAllPortsForTerminal(id);
+
     if (checkPortRef.current) {
       checkPortRef.current = null;
     }
@@ -356,11 +354,8 @@ export function XtermTerminal({
 
       const results = await Promise.all(activePorts.map(async (dp) => {
         try {
-          // check_port_lsof provides a definitive "is it listening" system check
           const lsofStatus = await invoke<string>('check_port_lsof', { port: dp.port });
           if (lsofStatus === 'closed') return { port: dp.port, status: 'closed' };
-
-          // Fallback to connection test if lsof is inconclusive
           const connStatus = await invoke<string>('check_port', { port: dp.port });
           return { port: dp.port, status: connStatus === 'open' ? 'open' : 'closed' };
         } catch {
@@ -384,25 +379,25 @@ export function XtermTerminal({
         return changed ? next : prev;
       });
 
-      // If there are still active ports, continue aggressive polling
       if (results.some(r => r.status === 'open')) {
-        setTimeout(checkExitStatus, 500); // 500ms aggressive poll
+        setTimeout(checkExitStatus, 500);
       } else {
         promotingRef.current.clear();
       }
     };
 
     checkExitStatus();
+  }, [isTerminated, detectedPorts, id]);
 
-    // Note: keep notifiedPortsRef — we still want toast dedup across restarts
-  }, [isTerminated, detectedPorts]);
-
-  // Port Liveness Polling — periodically verify detected ports are still listening
+  // Port Liveness Polling
   useEffect(() => {
     const activePorts = detectedPorts.filter(p => p.state === 'detected');
-    
+
     activePorts.forEach(dp => {
       terminalSessionManager.registerPortCheck(id, dp.port, dp.url, () => {
+        // Release ownership so other terminals can detect this port if they start
+        // serving on it after this one's process releases it.
+        terminalSessionManager.releasePort(id, dp.port);
         setDetectedPorts(prev => prev.filter(p => p.port !== dp.port));
         seenUrlsRef.current.delete(dp.url);
       });
@@ -415,23 +410,20 @@ export function XtermTerminal({
     };
   }, [detectedPorts, id]);
 
-  // Synchronize dynamic callbacks (write, resize, shortcuts) with session manager
+  // Synchronize dynamic callbacks with session manager
   useEffect(() => {
     const writeCb = (data: string) => {
       writeToPty(data);
-      if (data === '\x03') { // Ctrl+C keypress
-        // On Windows, child processes like node.exe are often orphaned when Ctrl+C is sent to npm.cmd.
-        // We wait 1 second for graceful shutdown. If the port is still bound, we forcefully kill it.
+      if (data === '\x03') {
         setTimeout(async () => {
           const activePorts = activePortsRef.current.filter(p => p.state === 'detected');
           if (activePorts.length === 0) return;
-          
+
           let anyKilled = false;
           for (const p of activePorts) {
             try {
               const status = await invoke<string>('check_port_lsof', { port: p.port });
               if (status === 'open') {
-                console.log(`[PTY ${id}] Port ${p.port} still open after Ctrl+C, forcefully killing process.`);
                 await invoke('kill_port_process', { port: p.port });
                 anyKilled = true;
               }
@@ -461,7 +453,7 @@ export function XtermTerminal({
       const isRelaunch = (e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r';
 
       if (isGlobalShortcut(e, shortcuts) || isEscape || isDirectionalNav || isPaneFocus || isMaximize || isRelaunch) {
-        return false; // Bubble up
+        return false;
       }
       return true;
     };
@@ -500,7 +492,6 @@ export function XtermTerminal({
       const initialLineHeight = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-line-height').trim()) || TERMINAL_DEFAULTS.lineHeight;
       const initialLetterSpacing = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-letter-spacing').trim()) || TERMINAL_DEFAULTS.letterSpacing;
 
-      // Load full settings from store for fields not covered by CSS vars
       let initialSettings = { ...TERMINAL_DEFAULTS };
       getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS).then((saved) => {
         initialSettings = saved;
@@ -508,7 +499,7 @@ export function XtermTerminal({
       });
 
       term = new Terminal({
-        cursorBlink: false, // Always false - we handle blinking ourselves in CSS!
+        cursorBlink: false,
         cursorStyle: initialSettings.cursorStyle,
         fontSize: initialFontSize,
         fontFamily: initialFontFamily,
@@ -556,34 +547,25 @@ export function XtermTerminal({
     }
 
     if (isNew) {
-      // Centralized shortcut bubbling logic via dynamic delegate lookup
       activeTerm.attachCustomKeyEventHandler((e: KeyboardEvent) => {
         const delegate = terminalSessionManager.getKeyEventHandlerDelegate(id);
-        if (delegate) {
-          return delegate(e);
-        }
-        return true; // default: do not bubble
+        if (delegate) return delegate(e);
+        return true;
       });
 
       activeTerm.onResize(({ rows, cols }: { rows: number; cols: number }) => {
         if (rows <= 0 || cols <= 0) return;
         const delegate = terminalSessionManager.getResizeDelegate(id);
-        if (delegate) {
-          delegate(rows, cols);
-        }
+        if (delegate) delegate(rows, cols);
       });
 
       activeTerm.onData((data: string) => {
         const delegate = terminalSessionManager.getWriteDelegate(id);
-        if (delegate) {
-          delegate(data);
-        }
+        if (delegate) delegate(data);
       });
       activeTerm.onBinary((data: string) => {
         const delegate = terminalSessionManager.getWriteDelegate(id);
-        if (delegate) {
-          delegate(data);
-        }
+        if (delegate) delegate(data);
       });
     }
 
@@ -661,20 +643,14 @@ export function XtermTerminal({
       const ss = evt.detail?.startup;
       const sh = evt.detail?.shortcuts;
 
-      if (ss?.defaultShell !== undefined) {
-        setDefaultShell(ss.defaultShell);
-      }
-
-      if (sh) {
-        setShortcuts(sh);
-      }
-
+      if (ss?.defaultShell !== undefined) setDefaultShell(ss.defaultShell);
+      if (sh) setShortcuts(sh);
       if (!xtermRef.current) return;
 
       if (ts) {
         xtermRef.current.options.fontSize = ts.fontSize;
         xtermRef.current.options.fontFamily = `"${ts.fontFamily}", monospace`;
-        xtermRef.current.options.cursorBlink = false; // Always false - we handle blinking ourselves in CSS!
+        xtermRef.current.options.cursorBlink = false;
         xtermRef.current.options.cursorStyle = ts.cursorStyle as 'block' | 'underline' | 'bar';
         xtermRef.current.options.lineHeight = ts.lineHeight;
         xtermRef.current.options.letterSpacing = ts.letterSpacing;
@@ -730,17 +706,11 @@ export function XtermTerminal({
         try { fitAddonRef.current.fit(); } catch (e) {}
       }
     };
-
     fit();
     const t1 = setTimeout(fit, 50);
     const t2 = setTimeout(fit, 150);
     const t3 = setTimeout(fit, 350);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [isMaximized, isZenMode, showFloatingHeader, headerVisibility]);
 
   useEffect(() => {
@@ -750,38 +720,22 @@ export function XtermTerminal({
     return () => window.removeEventListener('focus', handleFocus);
   }, [isFocused, isReady]);
 
-  // Handle Variable Prompt Logic
   const handleVariableSubmit = useCallback(() => {
     if (!pendingSnippet) return;
-
     const currentVar = pendingSnippet.variables[pendingSnippet.currentIndex];
     const newResolved = { ...pendingSnippet.resolvedValues, [currentVar]: currentVarValue };
     const nextIndex = pendingSnippet.currentIndex + 1;
 
     if (nextIndex < pendingSnippet.variables.length) {
-      // More variables to fill
-      setPendingSnippet({
-        ...pendingSnippet,
-        resolvedValues: newResolved,
-        currentIndex: nextIndex
-      });
+      setPendingSnippet({ ...pendingSnippet, resolvedValues: newResolved, currentIndex: nextIndex });
       setCurrentVarValue("");
-      // Refocus input
       setTimeout(() => promptInputRef.current?.focus(), 10);
     } else {
-      // All variables resolved, construct final command
       const finalCommand = resolveVariables(pendingSnippet.originalCommand, newResolved);
-
-      // Write to PTY
       writeToPty(finalCommand);
-      if (pendingSnippet.execute) {
-        writeToPty('\r');
-      }
-
-      // Cleanup
+      if (pendingSnippet.execute) writeToPty('\r');
       setPendingSnippet(null);
       setCurrentVarValue("");
-      // Return focus to terminal
       xtermRef.current?.focus();
     }
   }, [pendingSnippet, currentVarValue, writeToPty]);
@@ -792,35 +746,20 @@ export function XtermTerminal({
     xtermRef.current?.focus();
   }, []);
 
-  // Listen for the custom "cortex:write-to-terminal" event (Command Snippet injection)
   useEffect(() => {
     const handleWriteRequest = (e: any) => {
       const { workspaceId: targetWsId, command, execute } = e.detail;
-
-      // We only respond if we are in the target workspace AND we are the currently focused pane
       if (targetWsId === workspaceId && isFocused && isReady) {
         const variables = extractVariables(command);
-
         if (variables.length > 0) {
-          // Enter interactive prompting mode
-          setPendingSnippet({
-            originalCommand: command,
-            variables,
-            resolvedValues: {},
-            currentIndex: 0,
-            execute
-          });
+          setPendingSnippet({ originalCommand: command, variables, resolvedValues: {}, currentIndex: 0, execute });
           setCurrentVarValue("");
         } else {
-          // No variables, write directly
           writeToPty(command);
-          if (execute) {
-            writeToPty('\r');
-          }
+          if (execute) writeToPty('\r');
         }
       }
     };
-
     window.addEventListener('cortex:write-to-terminal', handleWriteRequest);
     return () => window.removeEventListener('cortex:write-to-terminal', handleWriteRequest);
   }, [workspaceId, isFocused, isReady, writeToPty]);
@@ -828,9 +767,7 @@ export function XtermTerminal({
   useEffect(() => {
     if (!isFocused || !isReady) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      // If we are in variable prompting mode, ignore these shortcuts
       if (pendingSnippet) return;
-
       if (matchesShortcut(e, shortcuts.resetPane)) {
         e.preventDefault();
         relaunch();
@@ -853,11 +790,11 @@ export function XtermTerminal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFocused, isReady, relaunch, index, onSplit, onKill, paneId, shortcuts, pendingSnippet]);
 
-  const handleContainerClick = () => { 
+  const handleContainerClick = () => {
     if (pendingSnippet) {
       promptInputRef.current?.focus();
     } else if (xtermRef.current && isReady) {
-      xtermRef.current.focus(); 
+      xtermRef.current.focus();
     }
   };
 
@@ -898,7 +835,6 @@ export function XtermTerminal({
         />
       )}
 
-      {/* Spacer for the floating header in 'always' mode */}
       {getTerminalPaddingTop() !== '0px' && (
         <div style={{
           height: getTerminalPaddingTop(),
@@ -946,7 +882,7 @@ export function XtermTerminal({
             exit={{ opacity: 0, y: 5, scale: 0.98 }}
             className="absolute inset-0 z-[100] flex items-center justify-center p-6 bg-black/20 backdrop-blur-sm"
           >
-            <div 
+            <div
               className="w-full max-w-md bg-[var(--surface-color)]/80 backdrop-blur-xl border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden"
               style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}
             >
@@ -956,7 +892,7 @@ export function XtermTerminal({
                     <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse" />
                     <span className="text-[10px] font-bold text-[var(--accent-primary)]">Fill Snippet Variables</span>
                   </div>
-                  <button 
+                  <button
                     onClick={handleVariableCancel}
                     className="p-1 hover:bg-[var(--text-primary)]/5 rounded-md text-[var(--text-secondary)] transition-colors"
                   >
@@ -1009,10 +945,9 @@ export function XtermTerminal({
                   </div>
                 </div>
               </div>
-              
-              {/* Progress Bar */}
+
               <div className="h-1 w-full bg-[var(--text-primary)]/5">
-                <motion.div 
+                <motion.div
                   className="h-full bg-[var(--accent-primary)]"
                   initial={{ width: 0 }}
                   animate={{ width: `${((pendingSnippet.currentIndex) / pendingSnippet.variables.length) * 100}%` }}
