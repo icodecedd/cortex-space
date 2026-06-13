@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { m } from "framer-motion";
+import { m, LazyMotion, domAnimation } from "framer-motion";
 import { SetupView } from "./features/setup/SetupView";
 import { SpaceView } from "./features/space/SpaceView";
 import { useTheme, ThemeName } from "./hooks/useTheme";
@@ -11,18 +11,39 @@ import { useWindowControls } from "./hooks/useWindowControls";
 import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { AppHeader } from "./components/layout/AppHeader";
 import { AppFooter } from "./components/layout/AppFooter";
-import { KeyboardShortcutsDialog } from "./components/dialogs/KeyboardShortcutsDialog";
-import { SettingsDialog } from "./features/settings/SettingsDialog";
 import { SplashScreen } from "./components/screens/SplashScreen";
 import { ModeSelectorScreen } from "./components/screens/ModeSelectorScreen";
 import { AgentOnboardingScreen } from "./components/screens/AgentOnboardingScreen";
 import { useAgents } from "./hooks/useAgents";
 import { getSetting, setSetting } from "./lib/store";
-import { CortexLibraryDialog } from "./features/cortex-library/CortexLibraryDialog";
-import { WorkspaceSwitcherDialog } from "./components/dialogs/WorkspaceSwitcherDialog";
 import { useFocusSettings } from "./hooks/useFocusSettings";
 import { useDemoSettings } from "./hooks/useDemoSettings";
 import { WorkspaceProvider, useWorkspace } from "./context/WorkspaceContext";
+
+// ---------------------------------------------------------------------------
+// Heavy dialogs — lazy-loaded so they never hit the initial parse budget.
+// Each one only loads when first opened by the user.
+// ---------------------------------------------------------------------------
+const KeyboardShortcutsDialog = lazy(() =>
+  import("./components/dialogs/KeyboardShortcutsDialog").then((m) => ({
+    default: m.KeyboardShortcutsDialog,
+  }))
+);
+const SettingsDialog = lazy(() =>
+  import("./features/settings/SettingsDialog").then((m) => ({
+    default: m.SettingsDialog,
+  }))
+);
+const CortexLibraryDialog = lazy(() =>
+  import("./features/cortex-library/CortexLibraryDialog").then((m) => ({
+    default: m.CortexLibraryDialog,
+  }))
+);
+const WorkspaceSwitcherDialog = lazy(() =>
+  import("./components/dialogs/WorkspaceSwitcherDialog").then((m) => ({
+    default: m.WorkspaceSwitcherDialog,
+  }))
+);
 
 declare global {
   interface Window {
@@ -76,7 +97,7 @@ function AppInner() {
   } = useWorkspace();
 
   // ── App lifecycle state ──────────────────────────────────────────────────
-  const [appState, setAppState] = useState<AppState>('splash');
+  const [appState, setAppState] = useState<AppState>("splash");
   const [splashKey, setSplashKey] = useState(0);
   const [splashTimerDone, setSplashTimerDone] = useState(false);
   const { agents, installAgent, isInitialized } = useAgents();
@@ -109,11 +130,23 @@ function AppInner() {
     setReducedMotion,
     resetToDefaults: resetAppearance,
   } = useColorScheme();
-  const { theme, setTheme, allThemes, addCustomTheme, removeCustomTheme, previewTheme, cancelPreview } =
-    useTheme();
-  const { settings: focusSettings, setFocusSetting, toggleZenMode, resetToDefaults: resetFocus } =
-    useFocusSettings();
-  const { settings: demoSettings, setDemoSetting, resetToDefaults: resetDemo } = useDemoSettings();
+  const {
+    theme,
+    setTheme,
+    allThemes,
+    addCustomTheme,
+    removeCustomTheme,
+    previewTheme,
+    cancelPreview,
+  } = useTheme();
+  const {
+    settings: focusSettings,
+    setFocusSetting,
+    toggleZenMode,
+    resetToDefaults: resetFocus,
+  } = useFocusSettings();
+  const { settings: demoSettings, setDemoSetting, resetToDefaults: resetDemo } =
+    useDemoSettings();
 
   // ── Global event listeners ───────────────────────────────────────────────
   useEffect(() => {
@@ -123,45 +156,52 @@ function AppInner() {
     };
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") {
         if (!e.altKey && !demoSettings.enableBrowserRefresh) {
           e.preventDefault();
         }
       }
     };
 
-    window.addEventListener('cortex:modal-depth-changed', handleDepthChange);
-    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener("cortex:modal-depth-changed", handleDepthChange);
+    window.addEventListener("keydown", handleGlobalKeyDown);
     return () => {
-      window.removeEventListener('cortex:modal-depth-changed', handleDepthChange);
-      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener(
+        "cortex:modal-depth-changed",
+        handleDepthChange
+      );
+      window.removeEventListener("keydown", handleGlobalKeyDown);
     };
   }, [demoSettings.enableBrowserRefresh]);
 
-  const { isWindowMaximized, handleMinimize, handleMaximize, handleClose } = useWindowControls();
+  const { isWindowMaximized, handleMinimize, handleMaximize, handleClose } =
+    useWindowControls();
 
   // ── Debug: log Tauri PATH only in dev builds ─────────────────────────────
   useEffect(() => {
     if (import.meta.env.DEV) {
-      invoke<string>('debug_env')
-        .then((path) => console.log('Tauri PATH:', path))
-        .catch((err) => console.error('Failed to get Tauri PATH:', err));
+      invoke<string>("debug_env")
+        .then((path) => console.log("Tauri PATH:", path))
+        .catch((err) => console.error("Failed to get Tauri PATH:", err));
     }
   }, []);
 
   // ── Splash screen ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (appState !== 'splash') return;
+    if (appState !== "splash") return;
 
     let cleanup: (() => void) | undefined;
 
-    getSetting('startup.showSplashAnimation', true).then(async (showSplash) => {
-      const hasOnboarded = await getSetting('startup.hasOnboardedAgents', false);
+    getSetting("startup.showSplashAnimation", true).then(async (showSplash) => {
+      const hasOnboarded = await getSetting(
+        "startup.hasOnboardedAgents",
+        false
+      );
 
       if (!showSplash) {
-        const nextState = hasOnboarded ? 'running' : 'agent-setup';
+        const nextState = hasOnboarded ? "running" : "agent-setup";
         setAppState(nextState);
-        if (nextState === 'running') initWorkspace();
+        if (nextState === "running") initWorkspace();
         return;
       }
 
@@ -180,15 +220,18 @@ function AppInner() {
   }, [appState, initWorkspace]);
 
   useEffect(() => {
-    if (appState !== 'splash' || !splashTimerDone) return;
+    if (appState !== "splash" || !splashTimerDone) return;
 
     async function evaluateTransition() {
-      const hasOnboarded = await getSetting('startup.hasOnboardedAgents', false);
+      const hasOnboarded = await getSetting(
+        "startup.hasOnboardedAgents",
+        false
+      );
       if (hasOnboarded) {
-        setAppState('running');
+        setAppState("running");
         initWorkspace();
       } else if (isInitialized) {
-        setAppState('agent-setup');
+        setAppState("agent-setup");
       }
     }
     evaluateTransition();
@@ -211,253 +254,278 @@ function AppInner() {
   });
 
   const showHeader =
-    appState === 'running' && (!focusSettings.isZenMode || focusSettings.showTabs);
+    appState === "running" &&
+    (!focusSettings.isZenMode || focusSettings.showTabs);
   const showFooter =
-    appState === 'running' && (!focusSettings.isZenMode || focusSettings.showStatusBar);
+    appState === "running" &&
+    (!focusSettings.isZenMode || focusSettings.showStatusBar);
 
   const handleSnippetExecute = useCallback(
     (snippet: any, execute: boolean) => {
       if (!activeWorkspaceId) return;
       window.dispatchEvent(
-        new CustomEvent('cortex:write-to-terminal', {
-          detail: { workspaceId: activeWorkspaceId, command: snippet.command, execute },
-        }),
+        new CustomEvent("cortex:write-to-terminal", {
+          detail: {
+            workspaceId: activeWorkspaceId,
+            command: snippet.command,
+            execute,
+          },
+        })
       );
       setTemplatesOpen(false);
       setSwitcherOpen(false);
     },
-    [activeWorkspaceId],
+    [activeWorkspaceId]
   );
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div id="root" className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--bg-color)]">
-      <m.div
-        className="flex-1 flex flex-col overflow-hidden"
-        animate={{
-          scale: isBackgroundRecessed && !colorSchemeSettings.reducedMotion ? 0.98 : 1,
-          opacity: isBackgroundRecessed && !colorSchemeSettings.reducedMotion ? 0.5 : 1,
-        }}
-        transition={
-          colorSchemeSettings.reducedMotion
-            ? { duration: 0.1 }
-            : { type: 'spring', stiffness: 300, damping: 25 }
-        }
-      >
-        {showHeader && (
-          <AppHeader
-            workspaces={workspaces}
-            activeWorkspaceId={activeWorkspaceId}
-            isWindowMaximized={isWindowMaximized}
-            onSwitchWorkspace={handleSwitchWorkspace}
-            onCloseWorkspace={handleCloseWorkspace}
-            onCloseWorkspaces={handleCloseWorkspaces}
-            onReorderWorkspaces={handleReorderWorkspaces}
-            onNewWorkspaceFlow={handleNewWorkspaceFlow}
-            onNewWorkspaceToRight={handleNewWorkspaceToRight}
-            onRenameWorkspace={handleRenameWorkspace}
-            onColorWorkspace={handleColorWorkspace}
-            onPinWorkspace={handlePinWorkspace}
-            onOpenShortcuts={() => setShortcutsOpen(true)}
-            onOpenSettings={handleOpenSettings}
-            onOpenTemplates={() => setTemplatesOpen(true)}
-            onMinimize={handleMinimize}
-            onMaximize={handleMaximize}
-            onClose={handleClose}
-            showWorkspacesTab={demoSettings.showWorkspacesTab}
-            showTemplatesButton={demoSettings.showTemplatesButton}
-            showShortcutsButton={demoSettings.showShortcutsButton}
-          />
-        )}
-
-        <main
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: activeWorkspace?.status === 'active' ? 'stretch' : 'center',
-            alignItems: activeWorkspace?.status === 'active' ? 'stretch' : 'center',
-            overflow: 'hidden',
+    <div
+      id="root"
+      className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--bg-color)]"
+    >
+      {/* LazyMotion loads only the domAnimation feature set (~18KB vs ~130KB
+          for the full bundle). Must wrap all <m.*> usage. */}
+      <LazyMotion features={domAnimation}>
+        <m.div
+          className="flex-1 flex flex-col overflow-hidden"
+          animate={{
+            scale:
+              isBackgroundRecessed && !colorSchemeSettings.reducedMotion
+                ? 0.98
+                : 1,
+            opacity:
+              isBackgroundRecessed && !colorSchemeSettings.reducedMotion
+                ? 0.5
+                : 1,
           }}
+          transition={
+            colorSchemeSettings.reducedMotion
+              ? { duration: 0.1 }
+              : { type: "spring", stiffness: 300, damping: 25 }
+          }
         >
-          {appState === 'splash' && (
-            <SplashScreen splashKey={splashKey} reducedMotion={colorSchemeSettings.reducedMotion} />
-          )}
-
-          {appState === 'agent-setup' && (
-            <AgentOnboardingScreen
-              agents={agents}
-              installAgent={installAgent}
-              isInitialized={isInitialized}
-              onComplete={async () => {
-                await setSetting('startup.hasOnboardedAgents', true);
-                setAppState('running');
-                initWorkspace();
-              }}
+          {showHeader && (
+            <AppHeader
+              workspaces={workspaces}
+              activeWorkspaceId={activeWorkspaceId}
+              isWindowMaximized={isWindowMaximized}
+              onSwitchWorkspace={handleSwitchWorkspace}
+              onCloseWorkspace={handleCloseWorkspace}
+              onCloseWorkspaces={handleCloseWorkspaces}
+              onReorderWorkspaces={handleReorderWorkspaces}
+              onNewWorkspaceFlow={handleNewWorkspaceFlow}
+              onNewWorkspaceToRight={handleNewWorkspaceToRight}
+              onRenameWorkspace={handleRenameWorkspace}
+              onColorWorkspace={handleColorWorkspace}
+              onPinWorkspace={handlePinWorkspace}
+              onOpenShortcuts={() => setShortcutsOpen(true)}
+              onOpenSettings={handleOpenSettings}
+              onOpenTemplates={() => setTemplatesOpen(true)}
+              onMinimize={handleMinimize}
+              onMaximize={handleMaximize}
+              onClose={handleClose}
+              showWorkspacesTab={demoSettings.showWorkspacesTab}
+              showTemplatesButton={demoSettings.showTemplatesButton}
+              showShortcutsButton={demoSettings.showShortcutsButton}
             />
           )}
 
-          {appState === 'running' &&
-            workspaces.map((ws) => {
-              const isCurrent = activeWorkspaceId === ws.id;
+          <main
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent:
+                activeWorkspace?.status === "active" ? "stretch" : "center",
+              alignItems:
+                activeWorkspace?.status === "active" ? "stretch" : "center",
+              overflow: "hidden",
+            }}
+          >
+            {appState === "splash" && (
+              <SplashScreen
+                splashKey={splashKey}
+                reducedMotion={colorSchemeSettings.reducedMotion}
+              />
+            )}
 
-              // Keep active workspaces mounted to preserve terminal sessions;
-              // prune non-current non-active workspaces to save memory.
-              if (!isCurrent && ws.status !== 'active') return null;
+            {appState === "agent-setup" && (
+              <AgentOnboardingScreen
+                agents={agents}
+                installAgent={installAgent}
+                isInitialized={isInitialized}
+                onComplete={async () => {
+                  await setSetting("startup.hasOnboardedAgents", true);
+                  setAppState("running");
+                  initWorkspace();
+                }}
+              />
+            )}
 
-              if (ws.status === 'mode-select') {
-                return (
-                  <div key={ws.id} className="w-full h-full flex">
-                    <ModeSelectorScreen
-                      onSelectMode={handleSelectMode}
-                      showShortcutHints={demoSettings.showModeShortcutHints}
-                      showTemplatesHint={demoSettings.showTemplatesButton}
-                    />
-                  </div>
-                );
-              }
+            {appState === "running" &&
+              workspaces.map((ws) => {
+                const isCurrent = activeWorkspaceId === ws.id;
 
-              if (ws.status === 'setup') {
-                return (
-                  <div
-                    key={ws.id}
-                    className="w-full h-full flex flex-col max-w-[1100px] mx-auto px-8 pt-8 overflow-hidden"
-                  >
-                    <SetupView
-                      mode={ws.mode}
-                      onLaunch={handleLaunch}
-                      onBack={() => handleGoBack(ws.id)}
-                    />
-                  </div>
-                );
-              }
+                if (!isCurrent && ws.status !== "active") return null;
 
-              if (ws.status === 'active') {
-                return (
-                  <div
-                    key={ws.id}
-                    style={{
-                      display: isCurrent ? 'flex' : 'none',
-                      flex: 1,
-                      flexDirection: 'column',
-                      height: '100%',
-                      width: '100%',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <SpaceView
-                      workspaceId={ws.id}
-                      config={ws.config}
-                      mode={ws.mode}
-                      theme={theme}
-                      setTheme={setTheme}
-                      onStop={() => handleCloseWorkspace(ws.id)}
-                      isZenMode={focusSettings.isZenMode}
-                      setIsZenMode={(v) => setFocusSetting('isZenMode', v)}
-                      zenPadding={colorSchemeSettings.zenPadding}
-                      showPaneHeaders={focusSettings.showPaneHeaders as boolean}
-                      onSplitPane={handleSplitPane}
-                      onMovePane={handleMovePane}
-                      onKillPane={handleKillPane}
-                      onRenamePane={handleRenamePane}
-                      onSaveSnippet={(command) => addSnippet('', command)}
-                      isCurrent={isCurrent}
-                    />
-                  </div>
-                );
-              }
+                if (ws.status === "mode-select") {
+                  return (
+                    <div key={ws.id} className="w-full h-full flex">
+                      <ModeSelectorScreen
+                        onSelectMode={handleSelectMode}
+                        showShortcutHints={demoSettings.showModeShortcutHints}
+                        showTemplatesHint={demoSettings.showTemplatesButton}
+                      />
+                    </div>
+                  );
+                }
 
-              return null;
-            })}
-        </main>
+                if (ws.status === "setup") {
+                  return (
+                    <div
+                      key={ws.id}
+                      className="w-full h-full flex flex-col max-w-[1100px] mx-auto px-8 pt-8 overflow-hidden"
+                    >
+                      <SetupView
+                        mode={ws.mode}
+                        onLaunch={handleLaunch}
+                        onBack={() => handleGoBack(ws.id)}
+                      />
+                    </div>
+                  );
+                }
 
-        {showFooter && (
-          <AppFooter
-            theme={theme}
-            setTheme={(newTheme) => setTheme(newTheme as ThemeName)}
-            allThemes={allThemes}
-          />
-        )}
-      </m.div>
+                if (ws.status === "active") {
+                  return (
+                    <div
+                      key={ws.id}
+                      style={{
+                        display: isCurrent ? "flex" : "none",
+                        flex: 1,
+                        flexDirection: "column",
+                        height: "100%",
+                        width: "100%",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <SpaceView
+                        workspaceId={ws.id}
+                        config={ws.config}
+                        mode={ws.mode}
+                        theme={theme}
+                        setTheme={setTheme}
+                        onStop={() => handleCloseWorkspace(ws.id)}
+                        isZenMode={focusSettings.isZenMode}
+                        setIsZenMode={(v) => setFocusSetting("isZenMode", v)}
+                        zenPadding={colorSchemeSettings.zenPadding}
+                        showPaneHeaders={focusSettings.showPaneHeaders as boolean}
+                        onSplitPane={handleSplitPane}
+                        onMovePane={handleMovePane}
+                        onKillPane={handleKillPane}
+                        onRenamePane={handleRenamePane}
+                        onSaveSnippet={(command) => addSnippet("", command)}
+                        isCurrent={isCurrent}
+                      />
+                    </div>
+                  );
+                }
 
-      <KeyboardShortcutsDialog
-        open={shortcutsOpen}
-        onOpenChange={setShortcutsOpen}
-        onCustomize={handleCustomizeShortcuts}
-      />
-      <SettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        initialTab={settingsInitialTab}
-        theme={theme}
-        setTheme={setTheme}
-        allThemes={allThemes}
-        addCustomTheme={addCustomTheme}
-        removeCustomTheme={removeCustomTheme}
-        previewTheme={previewTheme}
-        cancelPreview={cancelPreview}
-        colorScheme={colorSchemeSettings.colorScheme}
-        setColorScheme={setColorScheme}
-        uiFontScale={colorSchemeSettings.uiFontScale}
-        setUiFontScale={setUiFontScale}
-        zenPadding={colorSchemeSettings.zenPadding}
-        setZenPadding={setZenPadding}
-        reducedMotion={colorSchemeSettings.reducedMotion}
-        setReducedMotion={setReducedMotion}
-        onResetAppearance={resetAppearance}
-        focusSettings={focusSettings}
-        setFocusSetting={setFocusSetting}
-        resetFocus={resetFocus}
-        demoSettings={demoSettings}
-        setDemoSetting={setDemoSetting}
-        resetDemo={resetDemo}
-      />
-      <CortexLibraryDialog
-        isOpen={templatesOpen}
-        onOpenChange={setTemplatesOpen}
-        templates={templates}
-        snippets={snippets}
-        onLaunchTemplate={handleLaunchTemplate}
-        onDeleteTemplate={deleteTemplate}
-        onDeleteTemplates={deleteTemplates}
-        onCaptureCurrent={handleCaptureCurrent}
-        onAddSnippet={addSnippet}
-        onDeleteSnippet={deleteSnippet}
-        onDeleteSnippets={deleteSnippets}
-        onExecuteSnippet={handleSnippetExecute}
-        onArchiveSnippet={archiveSnippet}
-        onArchiveSnippets={archiveSnippets}
-        onUnarchiveSnippet={unarchiveSnippet}
-        onUnarchiveSnippets={unarchiveSnippets}
-        onArchiveTemplate={archiveTemplate}
-        onArchiveTemplates={archiveTemplates}
-        onUnarchiveTemplate={unarchiveTemplate}
-        onUnarchiveTemplates={unarchiveTemplates}
-      />
+                return null;
+              })}
+          </main>
 
-      <WorkspaceSwitcherDialog
-        isOpen={switcherOpen}
-        onOpenChange={setSwitcherOpen}
-        templates={templates.filter((t) => !t.isArchived)}
-        workspaces={workspaces}
-        activeWorkspaceId={activeWorkspaceId}
-        snippets={snippets.filter((s) => !s.isArchived)}
-        onSwitchWorkspace={handleSwitchWorkspace}
-        onLaunchTemplate={handleLaunchTemplate}
-        onSnippetExecute={handleSnippetExecute}
-        onToggleZenMode={toggleZenMode}
-        onOpenSettings={handleOpenSettings}
-        onOpenShortcuts={() => setShortcutsOpen(true)}
-        onOpenTemplates={() => setTemplatesOpen(true)}
-        onSetTheme={setTheme}
-        allThemes={allThemes}
-      />
+          {showFooter && (
+            <AppFooter
+              theme={theme}
+              setTheme={(newTheme) => setTheme(newTheme as ThemeName)}
+              allThemes={allThemes}
+            />
+          )}
+        </m.div>
+      </LazyMotion>
+
+      {/* Dialogs are lazy — Suspense provides a no-op fallback while the
+          chunk loads (typically <50ms on first open). */}
+      <Suspense fallback={null}>
+        <KeyboardShortcutsDialog
+          open={shortcutsOpen}
+          onOpenChange={setShortcutsOpen}
+          onCustomize={handleCustomizeShortcuts}
+        />
+        <SettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          initialTab={settingsInitialTab}
+          theme={theme}
+          setTheme={setTheme}
+          allThemes={allThemes}
+          addCustomTheme={addCustomTheme}
+          removeCustomTheme={removeCustomTheme}
+          previewTheme={previewTheme}
+          cancelPreview={cancelPreview}
+          colorScheme={colorSchemeSettings.colorScheme}
+          setColorScheme={setColorScheme}
+          uiFontScale={colorSchemeSettings.uiFontScale}
+          setUiFontScale={setUiFontScale}
+          zenPadding={colorSchemeSettings.zenPadding}
+          setZenPadding={setZenPadding}
+          reducedMotion={colorSchemeSettings.reducedMotion}
+          setReducedMotion={setReducedMotion}
+          onResetAppearance={resetAppearance}
+          focusSettings={focusSettings}
+          setFocusSetting={setFocusSetting}
+          resetFocus={resetFocus}
+          demoSettings={demoSettings}
+          setDemoSetting={setDemoSetting}
+          resetDemo={resetDemo}
+        />
+        <CortexLibraryDialog
+          isOpen={templatesOpen}
+          onOpenChange={setTemplatesOpen}
+          templates={templates}
+          snippets={snippets}
+          onLaunchTemplate={handleLaunchTemplate}
+          onDeleteTemplate={deleteTemplate}
+          onDeleteTemplates={deleteTemplates}
+          onCaptureCurrent={handleCaptureCurrent}
+          onAddSnippet={addSnippet}
+          onDeleteSnippet={deleteSnippet}
+          onDeleteSnippets={deleteSnippets}
+          onExecuteSnippet={handleSnippetExecute}
+          onArchiveSnippet={archiveSnippet}
+          onArchiveSnippets={archiveSnippets}
+          onUnarchiveSnippet={unarchiveSnippet}
+          onUnarchiveSnippets={unarchiveSnippets}
+          onArchiveTemplate={archiveTemplate}
+          onArchiveTemplates={archiveTemplates}
+          onUnarchiveTemplate={unarchiveTemplate}
+          onUnarchiveTemplates={unarchiveTemplates}
+        />
+        <WorkspaceSwitcherDialog
+          isOpen={switcherOpen}
+          onOpenChange={setSwitcherOpen}
+          templates={templates.filter((t) => !t.isArchived)}
+          workspaces={workspaces}
+          activeWorkspaceId={activeWorkspaceId}
+          snippets={snippets.filter((s) => !s.isArchived)}
+          onSwitchWorkspace={handleSwitchWorkspace}
+          onLaunchTemplate={handleLaunchTemplate}
+          onSnippetExecute={handleSnippetExecute}
+          onToggleZenMode={toggleZenMode}
+          onOpenSettings={handleOpenSettings}
+          onOpenShortcuts={() => setShortcutsOpen(true)}
+          onOpenTemplates={() => setTemplatesOpen(true)}
+          onSetTheme={setTheme}
+          allThemes={allThemes}
+        />
+      </Suspense>
 
       <Toaster
         position="bottom-right"
         closeButton
         richColors
-        theme={resolvedScheme as 'light' | 'dark' | 'system'}
+        theme={resolvedScheme as "light" | "dark" | "system"}
       />
     </div>
   );
