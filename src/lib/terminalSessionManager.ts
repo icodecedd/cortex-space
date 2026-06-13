@@ -8,8 +8,8 @@ interface PtyOutputPayload {
 
 interface Session {
   id: string;
-  buffer: string[]; // Store output strings
-  bufferLength: number; // Keep track of characters
+  buffer: string[];
+  bufferLength: number;
   onDataCallbacks: Set<(data: string) => void>;
   onExitCallbacks: Set<() => void>;
   cleanupTimeout: any | null;
@@ -36,6 +36,60 @@ class SessionManager {
   private portCheckInterval: any | null = null;
   private isCheckingPorts = false;
   private portFailures = new Map<string, number>();
+
+  /**
+   * Global port-ownership registry.
+   *
+   * Maps port number -> terminalId that detected and "owns" that port.
+   * Prevents a second terminal whose output merely mentions a URL from
+   * claiming a port that is actually being served by a different pane.
+   */
+  private portOwners = new Map<number, string>();
+
+  // ---------------------------------------------------------------------------
+  // Port ownership API
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Attempt to claim a port for the given terminal.
+   * Returns true if the claim succeeds (port was unclaimed or already owned
+   * by this terminal), false if a *different* terminal already owns it.
+   */
+  claimPort(terminalId: string, port: number): boolean {
+    const existingOwner = this.portOwners.get(port);
+    if (existingOwner && existingOwner !== terminalId) {
+      // Already owned by a different terminal
+      return false;
+    }
+    this.portOwners.set(port, terminalId);
+    return true;
+  }
+
+  /**
+   * Release a specific port claim for the given terminal.
+   * No-op if the terminal doesn't own that port.
+   */
+  releasePort(terminalId: string, port: number): void {
+    if (this.portOwners.get(port) === terminalId) {
+      this.portOwners.delete(port);
+    }
+  }
+
+  /**
+   * Release ALL port claims held by the given terminal.
+   * Call on terminal relaunch, kill, or unmount.
+   */
+  releaseAllPortsForTerminal(terminalId: string): void {
+    for (const [port, owner] of this.portOwners.entries()) {
+      if (owner === terminalId) {
+        this.portOwners.delete(port);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Delegate management
+  // ---------------------------------------------------------------------------
 
   setWriteDelegate(id: string, cb: ((data: string) => void) | undefined) {
     if (cb === undefined) {
@@ -102,13 +156,17 @@ class SessionManager {
     this.resizeDelegates.delete(id);
     this.keyEventHandlerDelegates.delete(id);
     this.activePortChecks.delete(id);
+    // Release any port claims so other terminals can detect those ports
+    this.releaseAllPortsForTerminal(id);
   }
+
+  // ---------------------------------------------------------------------------
+  // Initialization
+  // ---------------------------------------------------------------------------
 
   async init() {
     if (this.initialized) return;
     this.initialized = true;
-
-    console.log('[SessionManager] Initializing global PTY event listeners');
 
     // Listen to pty-output globally
     await listen<PtyOutputPayload>('pty-output', (event) => {
@@ -117,8 +175,7 @@ class SessionManager {
       if (!session) {
         session = this.createSessionRecord(id);
       }
-      
-      // Append to buffer, keeping a limit (e.g. 200,000 characters)
+
       session.buffer.push(data);
       session.bufferLength += data.length;
       if (session.bufferLength > 250000) {
@@ -130,14 +187,12 @@ class SessionManager {
         }
       }
 
-      // Route data to active callbacks
       session.onDataCallbacks.forEach(cb => cb(data));
     });
 
     // Listen to pty-exit globally
     await listen<string>('pty-exit', (event) => {
       const id = event.payload;
-      console.log(`[SessionManager] PTY exited event received for ${id}`);
       const session = this.sessions.get(id);
       if (session) {
         session.isTerminated = true;
@@ -160,14 +215,16 @@ class SessionManager {
     return session;
   }
 
+  // ---------------------------------------------------------------------------
   // Port Monitoring System
+  // ---------------------------------------------------------------------------
+
   registerPortCheck(terminalId: string, port: number, url: string, onGone: () => void) {
     let checks = this.activePortChecks.get(terminalId);
     if (!checks) {
       checks = new Set();
       this.activePortChecks.set(terminalId, checks);
     }
-    // Remove existing check for same port if any
     for (const c of checks) { if (c.port === port) checks.delete(c); }
     checks.add({ port, url, onGone });
     this.startGlobalPortCheck();
@@ -189,13 +246,11 @@ class SessionManager {
 
   private startGlobalPortCheck() {
     if (this.portCheckInterval) return;
-    console.log('[SessionManager] Starting global port liveness monitor');
     this.portCheckInterval = setInterval(() => this.pollActivePorts(), 5000);
   }
 
   private stopGlobalPortCheck() {
     if (this.portCheckInterval) {
-      console.log('[SessionManager] Stopping global port liveness monitor');
       clearInterval(this.portCheckInterval);
       this.portCheckInterval = null;
     }
@@ -218,10 +273,8 @@ class SessionManager {
         if (status === 'open') {
           this.portFailures.set(key, 0);
         } else if (status === 'refused') {
-          // Port definitively closed
           this.handlePortGone(terminalId, check);
         } else {
-          // Timeout / error
           const failures = (this.portFailures.get(key) || 0) + 1;
           if (failures >= maxFailures) {
             this.handlePortGone(terminalId, check);
@@ -244,7 +297,10 @@ class SessionManager {
     check.onGone();
   }
 
-  // Get session history buffer
+  // ---------------------------------------------------------------------------
+  // Session history
+  // ---------------------------------------------------------------------------
+
   getHistory(id: string): Uint8Array {
     const session = this.sessions.get(id);
     if (!session) return new Uint8Array();
@@ -252,20 +308,22 @@ class SessionManager {
     return encoder.encode(session.buffer.join(''));
   }
 
-  // Register active component callbacks
+  // ---------------------------------------------------------------------------
+  // Session lifecycle
+  // ---------------------------------------------------------------------------
+
   register(
-    id: string, 
-    onData: (data: string) => void, 
+    id: string,
+    onData: (data: string) => void,
     onExit: () => void
   ) {
-    this.init(); // Ensure initialized
+    this.init();
     let session = this.sessions.get(id);
     if (!session) {
       session = this.createSessionRecord(id);
     }
 
     if (session.cleanupTimeout) {
-      console.log(`[SessionManager] Cancelling deferred cleanup for session ${id}`);
       clearTimeout(session.cleanupTimeout);
       session.cleanupTimeout = null;
     }
@@ -278,7 +336,6 @@ class SessionManager {
     };
   }
 
-  // Unregister active component callbacks (mark inactive)
   unregister(id: string, onData: (data: string) => void, onExit: () => void) {
     const session = this.sessions.get(id);
     if (!session) return;
@@ -286,13 +343,11 @@ class SessionManager {
     session.onDataCallbacks.delete(onData);
     session.onExitCallbacks.delete(onExit);
 
-    // If no more components are listening to this PTY, set cleanup timeout
     if (session.onDataCallbacks.size === 0) {
       if (session.cleanupTimeout) {
         clearTimeout(session.cleanupTimeout);
       }
       session.cleanupTimeout = setTimeout(async () => {
-        console.log(`[SessionManager] Cleaning up PTY session ${id} (no reconnects received within timeout)`);
         this.sessions.delete(id);
         this.removeXterm(id);
         try {
@@ -300,13 +355,11 @@ class SessionManager {
         } catch (e) {
           console.warn(`Failed to kill PTY ${id}:`, e);
         }
-      }, 10000); // Wait 10 seconds for potential layout remounts
+      }, 10000);
     }
   }
 
-  // Force kill (when user explicitly kills process)
   async forceKill(id: string) {
-    console.log(`[SessionManager] Force killing PTY session ${id}`);
     const session = this.sessions.get(id);
     if (session) {
       if (session.cleanupTimeout) {
@@ -324,7 +377,6 @@ class SessionManager {
     }
   }
 
-  // Check if PTY session is already running
   hasSession(id: string): boolean {
     return this.sessions.has(id) && !this.sessions.get(id)?.isTerminated;
   }
