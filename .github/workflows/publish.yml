@@ -52,11 +52,19 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Sanitize signing key
+        shell: bash
+        env:
+          RAW_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          CLEAN_KEY=$(echo "$RAW_KEY" | tr -d '\n' | tr -d '\r' | tr -d ' ')
+          echo "TAURI_SIGNING_PRIVATE_KEY=$CLEAN_KEY" >> $GITHUB_ENV
+
       - name: Build and release Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ env.TAURI_SIGNING_PRIVATE_KEY }}
         with:
           tagName: v__VERSION__ # Uses the version from src-tauri/tauri.conf.json (e.g. v0.1.0)
           releaseName: 'Cortex v__VERSION__'
