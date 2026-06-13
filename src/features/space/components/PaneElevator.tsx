@@ -145,8 +145,9 @@ export function PaneElevator({
         style={{
           background: isDragging ? 'rgba(var(--accent-primary-rgb), 0.2)' : 'rgba(var(--surface-color-rgb), 0.9)',
           backdropFilter: 'blur(12px) saturate(180%)',
-          border: isDragging ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-          borderRadius: '8px',
+          border: isDragging ? '1px solid var(--accent-primary)' : '1px solid transparent',
+          borderRadius: '9999px',
+          position: 'relative',
           boxShadow: isDragging 
             ? '0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(var(--text-primary-rgb), 0.1)' 
             : '0 8px 32px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(var(--text-primary-rgb), 0.05)',

@@ -968,3 +968,90 @@ html:not(.dark) .cn-toast [data-button]:hover {
   --glow-speed: 5s;
   box-shadow: 0 12px 40px rgba(var(--accent-primary-rgb), 0.04) !important;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Floating pane action bar — rounded pill + theme-aware moving glow border
+   The glow is driven entirely by --accent-primary / --accent-primary-rgb, so it
+   re-tints automatically per theme (e.g. Claude -> #D97757, Cursor, etc.).
+   ─────────────────────────────────────────────────────────────────────────── */
+@property --cortex-bar-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Travelling accent ring — the moving glow border itself */
+.pane-elevator-toolbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--cortex-bar-angle),
+    rgba(var(--accent-primary-rgb), 0) 0deg,
+    rgba(var(--accent-primary-rgb), 0) 70deg,
+    rgba(var(--accent-primary-rgb), 0.65) 135deg,
+    var(--accent-primary) 180deg,
+    rgba(var(--accent-primary-rgb), 0.65) 225deg,
+    rgba(var(--accent-primary-rgb), 0) 290deg,
+    rgba(var(--accent-primary-rgb), 0) 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  animation: cortexBarGlow 4s linear infinite;
+  pointer-events: none;
+}
+
+/* Soft outer bloom following the same sweep — sits behind the bar */
+.pane-elevator-toolbar::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--cortex-bar-angle),
+    transparent 0deg,
+    rgba(var(--accent-primary-rgb), 0.5) 150deg,
+    var(--accent-primary) 180deg,
+    rgba(var(--accent-primary-rgb), 0.5) 210deg,
+    transparent 360deg
+  );
+  filter: blur(7px);
+  opacity: 0.4;
+  animation: cortexBarGlow 4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes cortexBarGlow {
+  to {
+    --cortex-bar-angle: 360deg;
+  }
+}
+
+/* Respect reduced-motion: hold a static accent edge, no rotation */
+@media (prefers-reduced-motion: reduce) {
+  .pane-elevator-toolbar::before,
+  .pane-elevator-toolbar::after {
+    animation: none;
+  }
+  .pane-elevator-toolbar::before {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--accent-primary-rgb), 0.55),
+      rgba(var(--accent-primary-rgb), 0.12)
+    );
+  }
+  .pane-elevator-toolbar::after {
+    background: rgba(var(--accent-primary-rgb), 0.35);
+    opacity: 0.3;
+  }
+}
