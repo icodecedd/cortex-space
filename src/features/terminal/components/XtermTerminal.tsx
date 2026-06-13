@@ -55,7 +55,6 @@ interface XtermTerminalProps {
   onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
   onKill?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
-  onSaveSnippet?: (command: string) => void;
 }
 
 export function XtermTerminal({
@@ -71,8 +70,7 @@ export function XtermTerminal({
   name,
   onSplit,
   onKill,
-  onRename,
-  onSaveSnippet
+  onRename
 }: XtermTerminalProps) {
   const workspaceId = id.substring(0, id.lastIndexOf(`-${paneId}`));
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -325,14 +323,19 @@ export function XtermTerminal({
   }, [command, initialCommandProcessed, isReady]);
 
 
-  const relaunch = useCallback(() => {
+  const [relaunchKey, setRelaunchKey] = useState(0);
+
+  const relaunch = useCallback(async () => {
     setDetectedPorts([]);
     failuresMapRef.current.clear();
     seenUrlsRef.current.clear();
     promotingRef.current.clear();
     notifiedPortsRef.current.clear();
     outputBufferRef.current = "";
-    relaunchPty();
+    setInitialCommandProcessed(false);
+    
+    await relaunchPty();
+    setRelaunchKey(prev => prev + 1);
   }, [relaunchPty]);
 
   // Aggressive cleanup on process termination
@@ -540,9 +543,15 @@ export function XtermTerminal({
     const activeFit = fitAddon;
 
     if (activeTerm.element) {
-      terminalRef.current.appendChild(activeTerm.element);
+      if (terminalRef.current && !terminalRef.current.contains(activeTerm.element)) {
+        terminalRef.current.innerHTML = '';
+        terminalRef.current.appendChild(activeTerm.element);
+      }
       activeTerm.refresh(0, activeTerm.rows - 1);
     } else {
+      if (terminalRef.current) {
+        terminalRef.current.innerHTML = '';
+      }
       activeTerm.open(terminalRef.current);
     }
 
@@ -628,7 +637,7 @@ export function XtermTerminal({
       window.removeEventListener('resize', handleResize);
       resizeObserver.disconnect();
     };
-  }, [id]);
+  }, [id, relaunchKey]);
 
   // Theme Sync
   useEffect(() => {
@@ -883,7 +892,6 @@ export function XtermTerminal({
           onKill={() => onKill?.(paneId)}
           onRename={(newName) => onRename?.(paneId, newName)}
           onRelaunch={relaunch}
-          onSaveSnippet={onSaveSnippet}
           terminalInstance={xtermRef.current}
           detectedPorts={detectedPorts}
           headerVisibility={headerVisibility}
