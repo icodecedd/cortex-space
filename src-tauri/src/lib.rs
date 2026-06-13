@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     io::{Read, Write},
-    sync::{Arc, Mutex},
+    sync::{Mutex, OnceLock},
     thread,
 };
 
@@ -11,10 +11,10 @@ use std::os::windows::process::CommandExt;
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
+use dashmap::DashMap;
 use portable_pty::{native_pty_system, CommandBuilder, PtySize, MasterPty, Child};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
-use once_cell::sync::Lazy;
 
 #[derive(Serialize, Clone)]
 struct PtyOutputPayload {
@@ -29,46 +29,54 @@ struct PtySession {
     session_id: u64,
 }
 
-type PtyState = Arc<Mutex<HashMap<String, PtySession>>>;
+// Per-session Mutex inside a DashMap gives lock-free concurrent access to
+// *different* sessions. The old Arc<Mutex<HashMap>> forced every
+// write_pty/resize_pty call to wait behind any other session's lock.
+static PTY_SESSIONS: OnceLock<DashMap<String, Mutex<PtySession>>> = OnceLock::new();
 
-static PTY_SESSIONS: Lazy<PtyState> = Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
-static SESSION_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+// Shell env is expensive on Unix (forks a login shell to capture PATH and
+// friends). Cache it for the process lifetime — users restart after PATH
+// changes, and the cache is pre-warmed on first pane open.
+static SHELL_ENV_CACHE: OnceLock<HashMap<String, String>> = OnceLock::new();
 
-fn get_shell_env() -> HashMap<String, String> {
-    let mut env = HashMap::new();
-    
-    // First, inherit all current process environment variables
-    for (k, v) in std::env::vars() {
-        env.insert(k, v);
-    }
+static SESSION_COUNTER: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
 
-    // For Unix, load the login shell's profiles to load PATH and env correctly
-    #[cfg(unix)]
-    {
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
-        if let Ok(output) = std::process::Command::new(&shell)
-            .args(["-l", "-c", "env"])
-            .output()
+fn pty_sessions() -> &'static DashMap<String, Mutex<PtySession>> {
+    PTY_SESSIONS.get_or_init(DashMap::new)
+}
+
+fn get_shell_env() -> &'static HashMap<String, String> {
+    SHELL_ENV_CACHE.get_or_init(|| {
+        let mut env = HashMap::new();
+        for (k, v) in std::env::vars() {
+            env.insert(k, v);
+        }
+        // Unix: run the user's login shell once to pick up .profile / .zprofile
+        // PATH entries that wouldn't be present in a plain process env.
+        #[cfg(unix)]
         {
-            for line in String::from_utf8_lossy(&output.stdout).lines() {
-                let mut parts = line.splitn(2, '=');
-                if let (Some(k), Some(v)) = (parts.next(), parts.next()) {
-                    env.insert(k.to_string(), v.to_string());
+            let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+            if let Ok(output) = std::process::Command::new(&shell)
+                .args(["-l", "-c", "env"])
+                .output()
+            {
+                for line in String::from_utf8_lossy(&output.stdout).lines() {
+                    let mut parts = line.splitn(2, '=');
+                    if let (Some(k), Some(v)) = (parts.next(), parts.next()) {
+                        env.insert(k.to_string(), v.to_string());
+                    }
                 }
             }
         }
-    }
-
-    // Windows shell environment is usually inherited correctly, but we could add logic here if needed
-    
-    env
+        env
+    })
 }
 
 fn kill_process_tree(child: &mut Box<dyn Child + Send + Sync>) {
     if let Some(pid) = child.process_id() {
         #[cfg(unix)]
         unsafe {
-            // portable-pty creates a new session leader, so PID is the PGID
             libc::killpg(pid as libc::pid_t, libc::SIGKILL);
         }
         #[cfg(windows)]
@@ -79,7 +87,6 @@ fn kill_process_tree(child: &mut Box<dyn Child + Send + Sync>) {
             let _ = cmd.output();
         }
     }
-    // Fallback if the process is still around
     let _ = child.kill();
 }
 
@@ -98,7 +105,7 @@ async fn spawn_pty<R: Runtime>(
 
     let result = tokio::task::spawn_blocking(move || {
         let pty_system = native_pty_system();
-        
+
         let pty_pair = pty_system
             .openpty(PtySize {
                 rows,
@@ -108,12 +115,13 @@ async fn spawn_pty<R: Runtime>(
             })
             .map_err(|e| format!("Failed to open PTY: {}", e))?;
 
+        // Cached — zero fork cost after first call
         let env = get_shell_env();
 
         let child = if cfg!(target_os = "windows") {
             let shell_to_use = shell.unwrap_or_else(|| "pwsh.exe".to_string());
             let mut main_cmd = CommandBuilder::new(&shell_to_use);
-            
+
             if shell_to_use.contains("pwsh.exe") || shell_to_use.contains("powershell.exe") {
                 if let Some(ref cmd_str) = command {
                     main_cmd.args([
@@ -122,13 +130,15 @@ async fn spawn_pty<R: Runtime>(
                         "Bypass",
                         "-NoExit",
                         "-Command",
-                        &format!("{} -NoLogo -ExecutionPolicy Bypass -Command {}", shell_to_use, cmd_str),
+                        &format!(
+                            "{} -NoLogo -ExecutionPolicy Bypass -Command {}",
+                            shell_to_use, cmd_str
+                        ),
                     ]);
                 } else {
                     main_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
                 }
             } else if let Some(ref cmd_str) = command {
-                // For other shells like git bash or cmd
                 main_cmd.arg("-c");
                 main_cmd.arg(cmd_str);
             }
@@ -142,7 +152,7 @@ async fn spawn_pty<R: Runtime>(
             } else if let Some(home_dir) = home::home_dir() {
                 main_cmd.cwd(home_dir);
             }
-            for (key, val) in &env {
+            for (key, val) in env {
                 main_cmd.env(key, val);
             }
             main_cmd.env("TERM", "xterm-256color");
@@ -151,7 +161,6 @@ async fn spawn_pty<R: Runtime>(
             match pty_pair.slave.spawn_command(main_cmd) {
                 Ok(c) => c,
                 Err(_) if shell_to_use == "pwsh.exe" => {
-                    // Fallback to powershell.exe if pwsh failed and was the default
                     let mut ps_cmd = CommandBuilder::new("powershell.exe");
                     if let Some(ref cmd_str) = command {
                         ps_cmd.args([
@@ -160,7 +169,10 @@ async fn spawn_pty<R: Runtime>(
                             "Bypass",
                             "-NoExit",
                             "-Command",
-                            &format!("powershell.exe -NoLogo -ExecutionPolicy Bypass -Command {}", cmd_str),
+                            &format!(
+                                "powershell.exe -NoLogo -ExecutionPolicy Bypass -Command {}",
+                                cmd_str
+                            ),
                         ]);
                     } else {
                         ps_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
@@ -174,27 +186,32 @@ async fn spawn_pty<R: Runtime>(
                     } else if let Some(home_dir) = home::home_dir() {
                         ps_cmd.cwd(home_dir);
                     }
-                    for (key, val) in &env {
+                    for (key, val) in env {
                         ps_cmd.env(key, val);
                     }
                     ps_cmd.env("TERM", "xterm-256color");
                     ps_cmd.env("COLORTERM", "truecolor");
-
-                    pty_pair.slave.spawn_command(ps_cmd).map_err(|e| format!("Failed to spawn powershell: {}", e))?
+                    pty_pair
+                        .slave
+                        .spawn_command(ps_cmd)
+                        .map_err(|e| format!("Failed to spawn powershell: {}", e))?
                 }
                 Err(e) => return Err(format!("Failed to spawn {}: {}", shell_to_use, e)),
             }
         } else {
-            // Unix shell
-            let shell_to_use = shell.unwrap_or_else(|| std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string()));
+            let shell_to_use = shell.unwrap_or_else(|| {
+                std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
+            });
             let mut unix_cmd = CommandBuilder::new(&shell_to_use);
-            
-            // Add interactive/login flags for standard shells
-            if shell_to_use.ends_with("sh") || shell_to_use.ends_with("bash") || shell_to_use.ends_with("zsh") {
+
+            if shell_to_use.ends_with("sh")
+                || shell_to_use.ends_with("bash")
+                || shell_to_use.ends_with("zsh")
+            {
                 unix_cmd.arg("-l");
                 unix_cmd.arg("-i");
             }
-            
+
             if let Some(ref cmd_str) = command {
                 unix_cmd.arg("-c");
                 unix_cmd.arg(format!("exec {}", cmd_str));
@@ -209,51 +226,58 @@ async fn spawn_pty<R: Runtime>(
             } else if let Some(home_dir) = home::home_dir() {
                 unix_cmd.cwd(home_dir);
             }
-            for (key, val) in &env {
+            for (key, val) in env {
                 unix_cmd.env(key, val);
             }
             unix_cmd.env("TERM", "xterm-256color");
             unix_cmd.env("COLORTERM", "truecolor");
 
-            pty_pair.slave.spawn_command(unix_cmd).map_err(|e| format!("Failed to spawn shell {}: {}", shell_to_use, e))?
+            pty_pair
+                .slave
+                .spawn_command(unix_cmd)
+                .map_err(|e| format!("Failed to spawn shell {}: {}", shell_to_use, e))?
         };
 
-        let reader = pty_pair.master.try_clone_reader().map_err(|e| format!("Failed to clone reader: {}", e))?;
-        let writer = pty_pair.master.take_writer().map_err(|e| format!("Failed to take writer: {}", e))?;
+        let reader = pty_pair
+            .master
+            .try_clone_reader()
+            .map_err(|e| format!("Failed to clone reader: {}", e))?;
+        let writer = pty_pair
+            .master
+            .take_writer()
+            .map_err(|e| format!("Failed to take writer: {}", e))?;
 
         Ok((pty_pair.master, writer, child, reader))
-    }).await.map_err(|e| e.to_string())??;
+    })
+    .await
+    .map_err(|e| e.to_string())??
+    ;
 
     let (master, writer, child, reader) = result;
-    let session_id = SESSION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let session_id =
+        SESSION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-    // Kill existing session if any with the same ID, release lock before killing to avoid blocking
-    let old_session = {
-        let mut sessions = PTY_SESSIONS.lock().unwrap();
-        sessions.remove(&id)
-    };
-    
-    if let Some(mut old) = old_session {
-        // Run blocking operation in a separate thread to avoid freezing main thread
+    // Kill any pre-existing session for this ID without holding the DashMap
+    // shard lock during the (potentially slow) process kill.
+    let old_session = pty_sessions().remove(&id).map(|(_, v)| v);
+    if let Some(session_mutex) = old_session {
         let _ = tokio::task::spawn_blocking(move || {
-            kill_process_tree(&mut old.child);
-        }).await;
+            if let Ok(mut s) = session_mutex.into_inner() {
+                kill_process_tree(&mut s.child);
+            }
+        })
+        .await;
     }
 
-    {
-        let mut sessions = PTY_SESSIONS.lock().unwrap();
-        sessions.insert(
-            id.clone(),
-            PtySession {
-                master,
-                writer,
-                child,
-                session_id,
-            },
-        );
-    }
-
-
+    pty_sessions().insert(
+        id.clone(),
+        Mutex::new(PtySession {
+            master,
+            writer,
+            child,
+            session_id,
+        }),
+    );
 
     let id_clone_thread = id_clone.clone();
     thread::spawn(move || {
@@ -265,38 +289,49 @@ async fn spawn_pty<R: Runtime>(
         loop {
             match reader.read(&mut buffer) {
                 Ok(n) if n > 0 => {
-                    accumulated_data.push_str(&String::from_utf8_lossy(&buffer[..n]));
-                    
-                    // Batch output: emit if buffer is large OR if some time has passed
-                    if accumulated_data.len() > 12288 || last_emit.elapsed().as_millis() > 10 {
-                        let _ = app_handle.emit("pty-output", PtyOutputPayload {
-                            id: id_clone_thread.clone(),
-                            data: accumulated_data.clone(),
-                        });
+                    accumulated_data
+                        .push_str(&String::from_utf8_lossy(&buffer[..n]));
+
+                    if accumulated_data.len() > 12288
+                        || last_emit.elapsed().as_millis() > 10
+                    {
+                        let _ = app_handle.emit(
+                            "pty-output",
+                            PtyOutputPayload {
+                                id: id_clone_thread.clone(),
+                                data: accumulated_data.clone(),
+                            },
+                        );
                         accumulated_data.clear();
                         last_emit = std::time::Instant::now();
                     }
                 }
                 _ => {
-                    // Flush any remaining data before exiting
                     if !accumulated_data.is_empty() {
-                        let _ = app_handle.emit("pty-output", PtyOutputPayload {
-                            id: id_clone_thread.clone(),
-                            data: accumulated_data,
-                        });
+                        let _ = app_handle.emit(
+                            "pty-output",
+                            PtyOutputPayload {
+                                id: id_clone_thread.clone(),
+                                data: accumulated_data,
+                            },
+                        );
                     }
                     break;
                 }
             }
         }
-        // Notify frontend that this PTY session has terminated, ONLY if it is still the current active session
-        let mut sessions = PTY_SESSIONS.lock().unwrap();
-        if let Some(session) = sessions.get(&id_clone_thread) {
-            if session.session_id == session_id {
-                sessions.remove(&id_clone_thread);
-                drop(sessions); // Release lock before emitting event to avoid deadlocks
-                let _ = app_handle.emit("pty-exit", id_clone_thread.clone());
-            }
+
+        // Only emit pty-exit if this reader belongs to the currently active
+        // session (guards against a race where the session was replaced).
+        let should_remove = pty_sessions()
+            .get(&id_clone_thread)
+            .map_or(false, |m| {
+                m.lock().map_or(false, |s| s.session_id == session_id)
+            });
+
+        if should_remove {
+            pty_sessions().remove(&id_clone_thread);
+            let _ = app_handle.emit("pty-exit", id_clone_thread);
         }
     });
 
@@ -305,9 +340,12 @@ async fn spawn_pty<R: Runtime>(
 
 #[tauri::command]
 async fn write_pty(id: String, data: String) -> Result<(), String> {
-    let mut sessions = PTY_SESSIONS.lock().unwrap();
-    if let Some(session) = sessions.get_mut(&id) {
-        session.writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+    if let Some(session_ref) = pty_sessions().get(&id) {
+        let mut session = session_ref.lock().unwrap();
+        session
+            .writer
+            .write_all(data.as_bytes())
+            .map_err(|e| e.to_string())?;
         session.writer.flush().map_err(|e| e.to_string())?;
         Ok(())
     } else {
@@ -317,8 +355,8 @@ async fn write_pty(id: String, data: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn resize_pty(id: String, rows: u16, cols: u16) -> Result<(), String> {
-    let mut sessions = PTY_SESSIONS.lock().unwrap();
-    if let Some(session) = sessions.get_mut(&id) {
+    if let Some(session_ref) = pty_sessions().get(&id) {
+        let mut session = session_ref.lock().unwrap();
         session
             .master
             .resize(PtySize {
@@ -336,16 +374,13 @@ async fn resize_pty(id: String, rows: u16, cols: u16) -> Result<(), String> {
 
 #[tauri::command]
 async fn kill_pty(id: String) -> Result<(), String> {
-    let session = {
-        let mut sessions = PTY_SESSIONS.lock().unwrap();
-        sessions.remove(&id)
-    };
-    
-    if let Some(mut s) = session {
-        // Run blocking operation in a separate thread to avoid freezing main thread
+    if let Some((_, session_mutex)) = pty_sessions().remove(&id) {
         let _ = tokio::task::spawn_blocking(move || {
-            kill_process_tree(&mut s.child);
-        }).await;
+            if let Ok(mut s) = session_mutex.into_inner() {
+                kill_process_tree(&mut s.child);
+            }
+        })
+        .await;
     }
     Ok(())
 }
@@ -355,7 +390,9 @@ async fn validate_directory(path: String) -> bool {
     tokio::task::spawn_blocking(move || {
         let p = std::path::Path::new(&path);
         p.exists() && p.is_dir()
-    }).await.unwrap_or(false)
+    })
+    .await
+    .unwrap_or(false)
 }
 
 #[tauri::command]
@@ -365,29 +402,32 @@ fn get_home_dir() -> Option<String> {
 
 #[tauri::command]
 async fn check_port(port: u16) -> String {
-    use tokio::net::TcpStream;
     use std::time::Duration;
+    use tokio::net::TcpStream;
     use tokio::time::timeout;
 
     let ipv4_addr = format!("127.0.0.1:{}", port);
     let ipv6_addr = format!("[::1]:{}", port);
 
-    // Try IPv4 loopback async with a short timeout (200ms)
-    let ipv4_res = timeout(Duration::from_millis(200), TcpStream::connect(&ipv4_addr)).await;
+    let ipv4_res =
+        timeout(Duration::from_millis(200), TcpStream::connect(&ipv4_addr)).await;
     if let Ok(Ok(_)) = ipv4_res {
         return "open".to_string();
     }
 
-    // Try IPv6 loopback async with a short timeout (200ms)
-    let ipv6_res = timeout(Duration::from_millis(200), TcpStream::connect(&ipv6_addr)).await;
+    let ipv6_res =
+        timeout(Duration::from_millis(200), TcpStream::connect(&ipv6_addr)).await;
     if let Ok(Ok(_)) = ipv6_res {
         return "open".to_string();
     }
 
-    // Determine if it was a timeout or connection refusal
     let is_timeout = match (ipv4_res, ipv6_res) {
-        (Err(_), _) | (_, Err(_)) => true, // timeout error
-        (Ok(Err(ref e)), _) | (_, Ok(Err(ref e))) if e.kind() == std::io::ErrorKind::TimedOut => true,
+        (Err(_), _) | (_, Err(_)) => true,
+        (Ok(Err(ref e)), _) | (_, Ok(Err(ref e)))
+            if e.kind() == std::io::ErrorKind::TimedOut =>
+        {
+            true
+        }
         _ => false,
     };
 
@@ -400,23 +440,27 @@ async fn check_port(port: u16) -> String {
 
 #[tauri::command]
 fn is_port_blocked(port: u16) -> bool {
-    // Blocklist: well-known non-browser ports (DBs, SSH, SMTP, etc.)
-    matches!(port, 5432 | 3306 | 6379 | 27017 | 5672 | 9200 | 2181 | 25 | 22 | 21 | 3307 | 1433 | 5433)
+    matches!(
+        port,
+        5432 | 3306 | 6379 | 27017 | 5672 | 9200 | 2181 | 25 | 22 | 21 | 3307 | 1433
+            | 5433
+    )
 }
 
 #[tauri::command]
 async fn check_port_lsof(port: u16) -> String {
     use tokio::process::Command;
-    
+
     if cfg!(target_os = "windows") {
         let mut cmd = Command::new("cmd");
-        cmd.args(["/C", &format!("netstat -ano | findstr :{} | findstr LISTEN", port)]);
+        cmd.args([
+            "/C",
+            &format!("netstat -ano | findstr :{} | findstr LISTEN", port),
+        ]);
         #[cfg(windows)]
         cmd.creation_flags(CREATE_NO_WINDOW);
-        
-        let output = cmd.output().await;
-            
-        if let Ok(output) = output {
+
+        if let Ok(output) = cmd.output().await {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if !stdout.trim().is_empty() {
                 return "open".to_string();
@@ -427,7 +471,7 @@ async fn check_port_lsof(port: u16) -> String {
             .args(["-c", &format!("lsof -iTCP:{} -sTCP:LISTEN", port)])
             .output()
             .await;
-            
+
         if let Ok(output) = output {
             let stdout = String::from_utf8_lossy(&output.stdout);
             if stdout.contains("LISTEN") {
@@ -435,7 +479,7 @@ async fn check_port_lsof(port: u16) -> String {
             }
         }
     }
-    
+
     "closed".to_string()
 }
 
@@ -444,16 +488,15 @@ async fn kill_port_process(port: u16) -> Result<(), String> {
     use tokio::process::Command;
 
     if cfg!(target_os = "windows") {
-        // Find PID holding the port
         let mut find_cmd = Command::new("cmd");
-        find_cmd.args(["/C", &format!("netstat -ano | findstr :{} | findstr LISTEN", port)]);
+        find_cmd.args([
+            "/C",
+            &format!("netstat -ano | findstr :{} | findstr LISTEN", port),
+        ]);
         #[cfg(windows)]
         find_cmd.creation_flags(CREATE_NO_WINDOW);
 
-        let output = find_cmd.output()
-            .await
-            .map_err(|e| e.to_string())?;
-
+        let output = find_cmd.output().await.map_err(|e| e.to_string())?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         if let Some(line) = stdout.lines().next() {
             let parts: Vec<&str> = line.split_whitespace().collect();
@@ -462,33 +505,42 @@ async fn kill_port_process(port: u16) -> Result<(), String> {
                 kill_cmd.args(["/F", "/T", "/PID", pid]);
                 #[cfg(windows)]
                 kill_cmd.creation_flags(CREATE_NO_WINDOW);
-                
                 let _ = kill_cmd.output().await;
             }
         }
     } else {
-        // Unix: lsof -t -iTCP:<port> -sTCP:LISTEN | xargs kill -9
         let _ = Command::new("sh")
-            .args(["-c", &format!("lsof -t -iTCP:{} -sTCP:LISTEN | xargs kill -9", port)])
+            .args([
+                "-c",
+                &format!("lsof -t -iTCP:{} -sTCP:LISTEN | xargs kill -9", port),
+            ])
             .output()
             .await;
     }
     Ok(())
 }
 
+/// Returns the Tauri PATH in development; no-op in release builds.
+/// The shell env is now cached, so this is essentially free after first use.
 #[tauri::command]
 async fn debug_env() -> String {
-    // get_shell_env is relatively fast but it's better to run it in a non-blocking way if possible.
-    // However, it's mostly inheriting vars. Only Unix runs a command.
-    let env = tokio::task::spawn_blocking(move || get_shell_env()).await.unwrap_or_default();
-    env.get("PATH")
-        .or_else(|| env.get("Path"))
-        .or_else(|| env.get("path"))
-        .cloned()
-        .unwrap_or_else(|| {
-            let keys: Vec<&String> = env.keys().collect();
-            format!("PATH not found. Available keys: {:?}", keys)
-        })
+    #[cfg(debug_assertions)]
+    {
+        let env = tokio::task::spawn_blocking(|| get_shell_env())
+            .await
+            .unwrap_or_else(|_| get_shell_env());
+        return env
+            .get("PATH")
+            .or_else(|| env.get("Path"))
+            .or_else(|| env.get("path"))
+            .cloned()
+            .unwrap_or_else(|| {
+                let keys: Vec<&String> = env.keys().collect();
+                format!("PATH not found. Available keys: {:?}", keys)
+            });
+    }
+    #[cfg(not(debug_assertions))]
+    String::new()
 }
 
 #[tauri::command]
@@ -505,24 +557,27 @@ async fn check_command(command: String) -> bool {
             c.arg(&command);
             c
         };
-        
         match cmd.output() {
             Ok(output) => output.status.success(),
             Err(_) => false,
         }
-    }).await.unwrap_or(false)
+    })
+    .await
+    .unwrap_or(false)
 }
 
 #[tauri::command]
 fn get_agents_dir<R: Runtime>(app: AppHandle<R>) -> Result<String, String> {
-    let path = app.path().app_data_dir()
+    let path = app
+        .path()
+        .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("agents");
-    
+
     if !path.exists() {
         std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     }
-    
+
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -531,8 +586,6 @@ async fn install_agent_cli(command: String) -> Result<(), String> {
     use tokio::process::Command;
 
     if cfg!(target_os = "windows") {
-        // Try pwsh.exe (PowerShell 7+) first — many modern CLI installers require it.
-        // Fall back to powershell.exe (Windows PowerShell 5.x) if pwsh is unavailable.
         let ps_args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &command];
 
         let mut pwsh_cmd = Command::new("pwsh.exe");
@@ -540,18 +593,15 @@ async fn install_agent_cli(command: String) -> Result<(), String> {
         #[cfg(windows)]
         pwsh_cmd.creation_flags(CREATE_NO_WINDOW);
 
-        let pwsh_result = pwsh_cmd.output().await;
-
-        let output = match pwsh_result {
+        let output = match pwsh_cmd.output().await {
             Ok(o) => o,
             Err(_) => {
-                // pwsh not found — fallback to legacy powershell.exe
                 let mut ps5_cmd = Command::new("powershell.exe");
                 ps5_cmd.args(&ps_args);
                 #[cfg(windows)]
                 ps5_cmd.creation_flags(CREATE_NO_WINDOW);
-                
-                ps5_cmd.output()
+                ps5_cmd
+                    .output()
                     .await
                     .map_err(|e| format!("Failed to execute powershell: {}", e))?
             }
@@ -562,7 +612,6 @@ async fn install_agent_cli(command: String) -> Result<(), String> {
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            // Some installers write errors to stdout
             let msg = if !stderr.is_empty() { stderr } else { stdout };
             Err(if msg.is_empty() {
                 format!("Installation exited with code {:?}", output.status.code())
@@ -596,21 +645,25 @@ async fn install_agent_cli(command: String) -> Result<(), String> {
 async fn get_default_shell() -> String {
     tokio::task::spawn_blocking(move || {
         if cfg!(target_os = "windows") {
-            // Check if pwsh exists by trying to run it
             let mut where_cmd = std::process::Command::new("where");
             where_cmd.arg("pwsh.exe");
             #[cfg(windows)]
             where_cmd.creation_flags(CREATE_NO_WINDOW);
-
-            let pwsh_exists = where_cmd.output()
+            let pwsh_exists = where_cmd
+                .output()
                 .map(|o| o.status.success())
                 .unwrap_or(false);
-                
-            if pwsh_exists { "pwsh.exe".to_string() } else { "powershell.exe".to_string() }
+            if pwsh_exists {
+                "pwsh.exe".to_string()
+            } else {
+                "powershell.exe".to_string()
+            }
         } else {
             std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
         }
-    }).await.unwrap_or_else(|_| "/bin/sh".to_string())
+    })
+    .await
+    .unwrap_or_else(|_| "/bin/sh".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
