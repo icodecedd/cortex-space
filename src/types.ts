@@ -1,4 +1,4 @@
-export type AppState = 'splash' | 'agent-setup' | 'running';
+export type AppState = 'splash' | 'agent-setup' | 'first-run-onboarding' | 'running';
 export type WorkspaceStatus = 'mode-select' | 'setup' | 'active';
 export type Mode = 'normal' | 'agents';
 
