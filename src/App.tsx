@@ -14,6 +14,7 @@ import { AppFooter } from "./components/layout/AppFooter";
 import { SplashScreen } from "./components/screens/SplashScreen";
 import { ModeSelectorScreen } from "./components/screens/ModeSelectorScreen";
 import { AgentOnboardingScreen } from "./components/screens/AgentOnboardingScreen";
+import { FirstRunOnboardingScreen } from "./components/screens/FirstRunOnboardingScreen";
 import { useAgents } from "./hooks/useAgents";
 import { getSetting, setSetting } from "./lib/store";
 import { useFocusSettings } from "./hooks/useFocusSettings";
@@ -223,15 +224,16 @@ function AppInner() {
     if (appState !== "splash" || !splashTimerDone) return;
 
     async function evaluateTransition() {
-      const hasOnboarded = await getSetting(
-        "startup.hasOnboardedAgents",
-        false
-      );
-      if (hasOnboarded) {
+      const [hasCompletedOnboarding, hasOnboarded] = await Promise.all([
+        getSetting("startup.hasCompletedOnboarding", false),
+        getSetting("startup.hasOnboardedAgents", false),
+      ]);
+      if (hasOnboarded || hasCompletedOnboarding) {
         setAppState("running");
         initWorkspace();
       } else if (isInitialized) {
-        setAppState("agent-setup");
+        // First-time user — redirect to the full first-run onboarding flow
+        setAppState("first-run-onboarding");
       }
     }
     evaluateTransition();
@@ -358,6 +360,19 @@ function AppInner() {
                 onBack={() => setAppState("splash")}
                 onComplete={async () => {
                   await setSetting("startup.hasOnboardedAgents", true);
+                  setAppState("running");
+                  initWorkspace();
+                }}
+              />
+            )}
+
+            {appState === "first-run-onboarding" && (
+              <FirstRunOnboardingScreen
+                onComplete={async () => {
+                  await Promise.all([
+                    setSetting("startup.hasCompletedOnboarding", true),
+                    setSetting("startup.hasOnboardedAgents", true),
+                  ]);
                   setAppState("running");
                   initWorkspace();
                 }}
