@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
 import { FOOTER_CONTENT } from "@/lib/content";
+import { cn } from "@/lib/utils";
 
 interface AppFooterProps {
   theme: ThemeName;
@@ -23,70 +24,64 @@ export const AppFooter = React.memo(({ theme, setTheme, allThemes }: AppFooterPr
   const activeThemeName = allThemes.find(t => t.id === theme)?.name || theme;
 
   return (
-    <footer className="h-8 bg-[var(--footer-bg)] border-t border-[var(--border-color)] flex items-center justify-between flex-shrink-0 select-none z-50" style={{
-      paddingLeft: "8px",
-      paddingRight: "8px",
-    }}>
-      {/* Left Side: Empty */}
-      <div className="flex items-center gap-1.5" />
+    <footer className="h-8 bg-[var(--bg-color)] border-t border-white/5 flex items-center justify-between flex-shrink-0 select-none z-50 px-4">
+      {/* Left Side: Dynamic Status & Info (Asymmetric) */}
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-ansi-green shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+          <span className="text-[9px] font-black font-mono text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-50">
+            System Operational
+          </span>
+        </div>
+        
+        <div className="hidden md:flex items-center gap-4 text-[9px] font-bold font-mono text-[var(--text-secondary)] opacity-30">
+          <div className="w-px h-3 bg-white/10" />
+          <span className="tracking-tighter">NODE_ENV: PRODUCTION</span>
+          <div className="w-px h-3 bg-white/10" />
+          <span className="tracking-tighter">PID: 7729</span>
+        </div>
+      </div>
 
-      {/* Right Side: Theme Switcher */}
-      <div className="flex items-center gap-3">
+      {/* Right Side: Theme Switcher & Actions */}
+      <div className="flex items-center gap-4">
+        <div className="w-px h-4 bg-white/10" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="xs"
-              className="h-6 px-3 flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 border-none rounded-md cursor-pointer text-[10px] font-bold tracking-wider uppercase transition-all"
+              className="h-6 px-3 flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 border-none rounded-lg cursor-pointer text-[10px] font-black tracking-[0.1em] uppercase transition-all"
             >
-              <Palette size={12} />
-              <span>{activeThemeName}</span>
+              <Palette size={12} className="opacity-50" />
+              <span className="tracking-tight">{activeThemeName}</span>
             </Button>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
             align="end"
-            className="w-56 bg-[var(--surface-color)]/95 backdrop-blur-xl border-[var(--border-color)] animate-in p-2 shadow-2xl rounded-xl"
+            className="w-56 bg-[var(--surface-color)]/90 backdrop-blur-2xl border-white/10 animate-in p-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] rounded-2xl"
           >
-            <DropdownMenuGroup className="max-h-[300px] overflow-y-auto scrollbar-none">
+            <DropdownMenuGroup className="max-h-[320px] overflow-y-auto scrollbar-none">
               <DropdownMenuLabel
-                style={{
-                  fontSize: '9px',
-                  color: 'var(--text-secondary)',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.15em',
-                  padding: '0.5rem 0.75rem',
-                  opacity: 0.6
-                }}
+                className="text-[9px] text-[var(--text-secondary)] font-black uppercase tracking-[0.25em] p-3 opacity-40"
               >
                 {FOOTER_CONTENT.THEME_LABEL}
               </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-[var(--text-primary)]/10 mx-2 mb-1" />
+              <DropdownMenuSeparator className="bg-white/5 mx-2 mb-1" />
               {allThemes.map(t => {
                 const isActive = theme === t.id;
                 return (
                   <DropdownMenuItem
                     key={t.id}
                     onClick={() => setTheme(t.id)}
-                    className="focus:bg-[var(--text-primary)]/5 focus:text-[var(--accent-primary)] rounded-lg"
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      color: isActive ? 'var(--accent-primary)' : 'var(--text-primary)',
-                      background: isActive ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'transparent',
-                      cursor: 'pointer',
-                      padding: '0.5rem 0.75rem',
-                      margin: '0.1rem 0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      transition: 'all 200ms ease'
-                    }}
+                    className={cn(
+                      "flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-300 cursor-pointer text-xs font-bold",
+                      isActive ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]" : "text-[var(--text-primary)] hover:bg-white/5"
+                    )}
                   >
-                    <span>{t.name}</span>
+                    <span className="tracking-tight">{t.name}</span>
                     {isActive && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_8px_rgba(var(--accent-primary-rgb),0.8)] animate-pulse" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_8px_rgba(var(--accent-primary-rgb),0.8)]" />
                     )}
                   </DropdownMenuItem>
                 );

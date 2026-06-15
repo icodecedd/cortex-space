@@ -8,9 +8,9 @@ import { Input } from '@/components/ui/input';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Step = 'boot' | 'workspace' | 'scan' | 'concepts' | 'ready';
+type Step = 'startup' | 'workspace' | 'scan' | 'concepts' | 'ready';
 
-const STEPS: Step[] = ['boot', 'workspace', 'scan', 'concepts', 'ready'];
+const STEPS: Step[] = ['startup', 'workspace', 'scan', 'concepts', 'ready'];
 
 type CheckStatus = 'pending' | 'checking' | 'ok' | 'warn' | 'fail';
 
@@ -88,11 +88,11 @@ const ScrambleText = memo(function ScrambleText({
 // ── Boot Log ─────────────────────────────────────────────────────────────────
 
 const BOOT_LINES = [
-  'Loading kernel interface...',
-  'Mounting workspace volumes...',
-  'Allocating shell contexts...',
-  'Binding process namespaces...',
-  'Initializing agent registry...',
+  'Initializing system components...',
+  'Setting up workspace...',
+  'Preparing terminals...',
+  'Connecting services...',
+  'Loading AI agents...',
   'System ready',
 ];
 
@@ -148,9 +148,9 @@ const BootLog = memo(function BootLog({ skip }: { skip: boolean }) {
   );
 });
 
-// ── Step 1: Boot ──────────────────────────────────────────────────────────────
+// ── Step 1: Startup ──────────────────────────────────────────────────────────────
 
-function StepBoot({ skip }: { skip: boolean }) {
+function StepStartup({ skip }: { skip: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -194,7 +194,7 @@ function StepBoot({ skip }: { skip: boolean }) {
             opacity: 0.8,
           }}
         >
-          Workspace Initialization
+          Startup Sequence
         </div>
       </div>
 
@@ -1238,8 +1238,8 @@ export const FirstRunOnboardingScreen = memo(
                   ease: [0.22, 1, 0.36, 1],
                 }}
               >
-                {currentStep === 'boot' && (
-                  <StepBoot skip={shouldReduceMotion ?? false} />
+                {currentStep === 'startup' && (
+                  <StepStartup skip={shouldReduceMotion ?? false} />
                 )}
                 {currentStep === 'workspace' && (
                   <StepWorkspace

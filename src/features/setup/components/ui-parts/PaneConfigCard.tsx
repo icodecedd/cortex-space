@@ -95,29 +95,39 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
     >
       <Spotlight
         className={`
-          group relative overflow-hidden flex flex-col p-6 rounded-xl border transition-all duration-500
+          group relative overflow-hidden flex flex-col p-4 rounded-xl border transition-all duration-500
           ${isPopulated 
-            ? "bg-[var(--text-primary)]/[0.03] border-[var(--border-color)] shadow-2xl shadow-black/40" 
+            ? "bg-[var(--text-primary)]/[0.03] border-[var(--border-color)] shadow-xl" 
             : "bg-[var(--text-primary)]/[0.01] border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"}
         `}
         spotlightColor="rgba(var(--text-primary-rgb), 0.03)"
       >
-        <div className="flex items-center justify-between mb-8 relative z-20">
+        <div className="flex items-center justify-between mb-4 relative z-20">
           <div className="flex items-center gap-3">
-            <div className={`
-              w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300
-              ${isPopulated ? "bg-[var(--accent-primary)] text-[var(--accent-contrast)] shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.3)]" : "bg-[var(--text-primary)]/5 text-[var(--text-secondary)]"}
-            `}>
-              {mode === 'agents' ? <Cpu size={18} /> : <Terminal size={18} />}
-            </div>
+            <motion.div 
+              animate={{
+                y: isPopulated ? [0, -2, 0] : 0,
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className={`
+                w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500
+                ${isPopulated ? "bg-[var(--accent-primary)] text-[var(--accent-contrast)] shadow-md" : "bg-[var(--text-primary)]/5 text-[var(--text-secondary)]"}
+              `}
+            >
+              {mode === 'agents' ? <Cpu size={20} /> : <Terminal size={20} />}
+            </motion.div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-[var(--accent-primary)] uppercase tracking-[0.15em] opacity-80 mb-0.5">
-                Terminal Pane 0{pane.id}
+              <span className="text-[9px] font-bold text-[var(--accent-primary)] uppercase tracking-wider opacity-60 mb-0.5">
+                Terminal 0{pane.id}
               </span>
               {isEditingName ? (
                 <input
                   autoFocus
-                  className="text-xs font-bold text-[var(--text-primary)] bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
+                  className="text-sm font-bold text-[var(--text-primary)] bg-transparent border-none outline-none focus:ring-0 p-0 w-full tracking-tight"
                   value={pane.name}
                   onChange={(e) => onNameUpdate?.(pane.id, e.target.value)}
                   onBlur={() => setIsEditingName(false)}
@@ -128,7 +138,7 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                 />
               ) : (
                 <span 
-                  className="text-xs font-bold text-[var(--text-primary)] truncate max-w-[140px] cursor-text hover:text-[var(--accent-primary)] transition-colors"
+                  className="text-sm font-bold text-[var(--text-primary)] truncate max-w-[140px] cursor-text hover:text-[var(--accent-primary)] transition-colors tracking-tight"
                   onClick={() => setIsEditingName(true)}
                 >
                   {pane.name}
@@ -139,67 +149,64 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
           
           {isPopulated && (
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="flex items-center gap-2 px-3 py-1 rounded-full bg-ansi-green/10 border border-ansi-green/20"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-ansi-green/10 border border-ansi-green/20"
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-ansi-green animate-pulse" />
-              <span className="text-[9px] font-bold text-ansi-green uppercase tracking-wider">Ready</span>
+              <div className="w-1 h-1 rounded-full bg-ansi-green" />
+              <span className="text-[8px] font-bold text-ansi-green uppercase tracking-wider">Active</span>
             </motion.div>
           )}
         </div>
 
-        <div className="space-y-4 relative z-20">
-          <div className="flex items-center justify-between px-1">
-            <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-50">
+        <div className="space-y-3 relative z-20">
+          <div className="flex items-center justify-between px-0.5">
+            <label className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-30">
               {mode === 'agents' 
-                ? (pane.isCustom ? 'Manual Command' : 'Agent Identity') 
-                : 'Execution Command'}
+                ? (pane.isCustom ? 'Manual Command' : 'Agent Selection') 
+                : 'Startup Command'}
             </label>
             <div className="flex items-center gap-2">
               {mode === 'agents' && (
                 <Button
                   variant="ghost"
                   onClick={() => onUpdate(pane.id, "", !pane.isCustom)}
-                  className="h-6 px-3 gap-2 bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all"
+                  className="h-6 px-2.5 gap-1.5 bg-white/5 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all"
                 >
                   {pane.isCustom ? <Cpu size={12} /> : <Code size={12} />}
-                  <span>{pane.isCustom ? 'AI Agent' : 'Manual'}</span>
+                  <span>{pane.isCustom ? 'AGENT' : 'MANUAL'}</span>
                 </Button>
               )}
               {mode === 'normal' && (
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button 
-                      className="h-6 px-3 gap-2 bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all"
+                      className="h-6 px-2.5 gap-1.5 bg-white/5 text-[var(--text-secondary)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all"
                     >
                       <Library size={12} />
                       <span>Snippets</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-64 p-2 bg-[var(--surface-color)]/95 backdrop-blur-xl border-[var(--border-color)] shadow-2xl rounded-xl" align="end">
-                    <div className="flex flex-col gap-1">
-                      <div className="px-3 py-2 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest border-b border-[var(--border-color)] mb-1">
-                        Workspace Library
+                  <PopoverContent className="w-64 p-1.5 bg-[var(--surface-color)]/95 backdrop-blur-3xl border-white/10 shadow-2xl rounded-2xl" align="end">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="px-3 py-2 text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest border-b border-white/5 mb-0.5 opacity-50">
+                        Library
                       </div>
                       {snippets.length === 0 ? (
-                        <div className="mx-1 my-2 p-6 flex flex-col items-center justify-center gap-2 text-center rounded-lg border border-dashed border-[var(--border-color)] bg-[var(--text-primary)]/[0.01]">
-                          <Library size={18} className="text-[var(--text-secondary)] opacity-40 mb-1" />
-                          <span className="text-[11px] font-bold text-[var(--text-primary)]/80">Empty Library</span>
-                          <span className="text-[10px] text-[var(--text-secondary)] font-medium leading-relaxed opacity-60">
-                            Add commands in the Cortex Library to see them here.
-                          </span>
+                        <div className="mx-0.5 my-1 p-6 flex flex-col items-center justify-center gap-2 text-center rounded-xl border border-dashed border-white/5 bg-white/[0.01]">
+                          <Library size={20} className="text-[var(--text-secondary)] opacity-20 mb-0.5" />
+                          <span className="text-[10px] font-bold text-[var(--text-primary)]/80">No Snippets Found</span>
                         </div>
                       ) : (
-                        <div className="max-h-[280px] overflow-y-auto pr-1">
+                        <div className="max-h-[280px] overflow-y-auto pr-1 scrollbar-none">
                           {snippets.map((snippet) => (
                             <button
                               key={snippet.id}
                               onClick={() => handleSnippetSelect(snippet)}
-                              className="w-full flex flex-col gap-1 text-left px-3 py-2 rounded-lg hover:bg-[var(--text-primary)]/5 transition-colors group/snippet"
+                              className="w-full flex flex-col gap-0.5 text-left px-3 py-2 rounded-xl hover:bg-white/5 transition-all group/snippet"
                             >
                               <span className="text-xs font-bold text-[var(--text-primary)] group-hover/snippet:text-[var(--accent-primary)] transition-colors">{snippet.label}</span>
-                              <span className="text-[10px] font-mono text-[var(--text-secondary)] truncate opacity-50 group-hover/snippet:opacity-80 transition-opacity">{snippet.command}</span>
+                              <span className="text-[10px] font-mono text-[var(--text-secondary)] truncate opacity-40 group-hover/snippet:opacity-70 transition-opacity">{snippet.command}</span>
                             </button>
                           ))}
                         </div>
@@ -219,9 +226,9 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                 const isPreset = agents.some(p => p.command === val);
                 onUpdate(pane.id, val, !isPreset);
               }}
-              placeholder="Select AI agent..."
-              triggerClassName="h-10 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/40 text-xs transition-all rounded-lg placeholder:text-[var(--text-secondary)]/40 shadow-none font-medium"
-              emptyText="No agents found."
+              placeholder="Select agent..."
+              triggerClassName="h-10 bg-white/5 border-transparent hover:bg-white/[0.08] focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/40 text-[11px] transition-all rounded-lg placeholder:text-[var(--text-secondary)]/30 shadow-none font-bold"
+              emptyText="No identities."
             />
           ) : (
             <div className="relative group/input">
@@ -230,15 +237,14 @@ export function PaneConfigCard({ pane, index, mode, onUpdate, onNameUpdate, snip
                 value={pane.command || ""}
                 onChange={(e) => onUpdate(pane.id, e.target.value, true)}
                 placeholder={
-                  mode === 'agents' ? "Enter custom command..." :
+                  mode === 'agents' ? "Command..." :
                   pane.id === 1 ? "npm run dev" :
-                  pane.id === 2 ? "docker-compose up" :
-                  "Enter command..."
+                  "Command..."
                 }
-                className="w-full h-10 bg-[var(--text-primary)]/[0.03] border-transparent hover:bg-[var(--text-primary)]/[0.05] focus-visible:bg-[var(--bg-color)] focus-visible:border-[var(--accent-primary)]/40 text-xs font-mono placeholder:text-[var(--text-secondary)]/30 transition-all rounded-lg shadow-none focus-visible:ring-0"
+                className="w-full h-10 bg-white/5 border-transparent hover:bg-white/[0.08] focus-visible:bg-[var(--bg-color)] focus-visible:border-[var(--accent-primary)]/40 text-xs font-mono placeholder:text-[var(--text-secondary)]/20 transition-all rounded-lg shadow-none focus-visible:ring-0 font-bold"
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none">
-                <div className="w-1 h-3.5 bg-[var(--accent-primary)] animate-pulse rounded-full" />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none">
+                <div className="w-1 h-3 bg-[var(--accent-primary)] animate-pulse rounded-full" />
               </div>
             </div>
           )}

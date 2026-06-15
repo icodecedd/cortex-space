@@ -4,7 +4,7 @@ import { PaneConfig } from "@/lib/setup-constants";
 import { PaneConfigCard } from "../ui-parts/PaneConfigCard";
 import { useState } from "react";
 import { Snippet, Agent } from "@/types";
-import { toTitleCase } from "@/lib/utils";
+import { toTitleCase, cn } from "@/lib/utils";
 import { Combobox } from "@/components/ui/combobox";
 import { Spotlight } from "@/components/ui/spotlight";
 
@@ -46,85 +46,93 @@ export function StepConfigure({ mode, activePanes, updatePaneCommand, updatePane
 
   return (
     <motion.div 
-      className="max-w-4xl mx-auto w-full py-2"
+      className="w-full py-4 px-4 md:px-5 lg:px-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <motion.div variants={itemVariants} className="flex flex-col gap-1 mb-10">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]">
-            <Command size={16} />
-          </div>
-          <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
-            {mode === 'agents' ? 'Configure AI Agents' : 'Configure Terminal Commands'}
-          </h3>
-        </div>
-        <p className="text-sm text-[var(--text-secondary)] font-medium opacity-70">
-          {mode === 'agents' 
-            ? 'Assign specific AI roles to each terminal pane or apply a global configuration.' 
-            : 'Specify the initial commands to be executed in each workspace pane.'}
-        </p>
-      </motion.div>
+      <div className="flex flex-col gap-6 items-start max-w-[1200px]">
+        {/* Top Section: Context & Global Actions (Balanced) */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 w-full">
+          <motion.div variants={itemVariants} className="flex flex-col gap-3 flex-1">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 flex items-center justify-center text-[var(--accent-primary)] shadow-sm">
+                <Command size={16} />
+              </div>
+              <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)] leading-none whitespace-pre-line">
+                {mode === 'agents' ? 'Agent Assignment' : 'Startup Commands'}
+              </h3>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed opacity-60 max-w-xl">
+              {mode === 'agents' 
+                ? 'Assign specific AI agents to each terminal. You can use one agent for everything or assign different ones to each window.' 
+                : 'Set up the commands that run when you open your workspace. Automatically initialize every terminal window.'}
+            </p>
+            <div className="w-10 h-0.5 bg-[var(--accent-primary)]/20 rounded-full" />
+          </motion.div>
 
-      {mode === 'agents' && (
-        <motion.div variants={itemVariants} className="mb-10">
-          <Spotlight className="rounded-xl border border-[var(--border-color)] bg-[var(--text-primary)]/[0.01] p-8 overflow-hidden group">
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-10">
-              <div className="flex flex-col gap-2 max-w-md">
-                <div className="flex items-center gap-2">
-                  <Zap size={14} className="text-[var(--accent-primary)]" />
-                  <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--accent-primary)]">
-                    Batch Configuration
+          {mode === 'agents' && (
+            <motion.div variants={itemVariants} className="flex flex-col gap-3 w-full lg:w-[320px] shrink-0">
+              <Spotlight className="flex flex-col gap-3 p-3.5 rounded-xl border border-white/5 bg-white/[0.01] shadow-xl shadow-black/20 group">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] group-hover:scale-105 transition-transform duration-500">
+                    <Zap size={14} />
+                  </div>
+                  <h4 className="text-[8px] font-black uppercase tracking-[0.2em] text-[var(--accent-primary)]">
+                    Global Assignment
                   </h4>
                 </div>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-bold opacity-60">
-                  Select a single agent to initialize all {activePanes.length} workspace panes simultaneously. Individual overrides can still be applied to specific panes below.
-                </p>
-              </div>
-              
-              <div className="w-full md:w-[420px] flex flex-col gap-4">
-                <Combobox
-                  items={globalItems}
-                  value={globalValue}
-                  onValueChange={(val) => {
-                    setGlobalValue(val);
-                    const isPreset = mode === 'agents' 
-                      ? agents.some(p => p.command === val)
-                      : snippets.some(s => s.command === val);
-                    updateAllPaneCommands(val, !isPreset);
-                  }}
-                  placeholder="Apply agent to all panes..."
-                  triggerClassName="h-11 bg-[var(--text-primary)]/5 border-transparent hover:bg-[var(--text-primary)]/[0.08] focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/40 text-xs transition-all rounded-lg placeholder:text-[var(--text-secondary)]/40 shadow-none font-medium"
-                  emptyText="No agents found."
-                />
-                <div className="flex items-center gap-3 px-1">
-                  <div className="w-1 h-1 rounded-full bg-[var(--accent-primary)] animate-pulse" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-40">System ready for global assignment</span>
+                
+                <div className="flex flex-col gap-2">
+                  <Combobox
+                    items={globalItems}
+                    value={globalValue}
+                    onValueChange={(val) => {
+                      setGlobalValue(val);
+                      const isPreset = mode === 'agents' 
+                        ? agents.some(p => p.command === val)
+                        : snippets.some(s => s.command === val);
+                      updateAllPaneCommands(val, !isPreset);
+                    }}
+                    placeholder="Assign agent to all windows..."
+                    triggerClassName="h-9 bg-white/[0.02] border-white/5 hover:border-[var(--accent-primary)]/30 focus-within:bg-[var(--bg-color)] focus-within:border-[var(--accent-primary)]/40 text-xs transition-all duration-500 rounded-lg placeholder:text-[var(--text-secondary)]/20 shadow-none font-black tracking-tight"
+                    emptyText="No identities found."
+                  />
+                  <div className="flex items-center gap-2 px-1 opacity-40 group-focus-within:opacity-100 transition-opacity duration-500">
+                    <div className="w-1 h-1 rounded-full bg-[var(--accent-primary)] animate-pulse shadow-[0_0_4px_rgba(var(--accent-primary-rgb),0.6)]" />
+                    <span className="text-[7px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]">Ready</span>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </Spotlight>
-        </motion.div>
-      )}
+              </Spotlight>
+            </motion.div>
+          )}
+        </div>
 
-      <motion.div 
-        variants={itemVariants}
-        className="grid grid-cols-1 md:grid-cols-2 gap-6"
-      >
-        {activePanes.map((pane, index) => (
-          <PaneConfigCard
-            key={pane.id}
-            pane={pane}
-            index={index}
-            mode={mode}
-            onUpdate={updatePaneCommand}
-            onNameUpdate={updatePaneName}
-            snippets={snippets}
-            agents={agents}
-          />
-        ))}
-      </motion.div>
+        {/* Interaction Section: Individual Pane Configurations (Wide & Balanced) */}
+        <div className="w-full">
+          <motion.div 
+            variants={itemVariants}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-5"
+          >
+            {activePanes.map((pane, index) => (
+              <div 
+                key={pane.id} 
+                className="w-full"
+              >
+                <PaneConfigCard
+                  pane={pane}
+                  index={index}
+                  mode={mode}
+                  onUpdate={updatePaneCommand}
+                  onNameUpdate={updatePaneName}
+                  snippets={snippets}
+                  agents={agents}
+                />
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
     </motion.div>
   );
 }

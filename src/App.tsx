@@ -284,7 +284,7 @@ function AppInner() {
   return (
     <div
       id="root"
-      className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--bg-color)]"
+      className="min-h-[100dvh] w-full flex flex-col overflow-hidden bg-[var(--bg-color)]"
     >
       {/* LazyMotion loads only the domAnimation feature set (~18KB vs ~130KB
           for the full bundle). Must wrap all <m.*> usage. */}

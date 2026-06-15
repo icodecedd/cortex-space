@@ -226,8 +226,8 @@ export function AboutTab() {
               </p>
             </div>
             <p className="text-[12.5px] text-[var(--text-secondary)] max-w-[280px] text-center leading-relaxed font-medium">
-              A highly optimized, modular workspace orchestrator. Designed
-              for maximum throughput and rich aesthetics.
+              A fast and customizable workspace manager. Designed
+              for high productivity and rich aesthetics.
             </p>
             <div className="pt-2 flex flex-wrap justify-center gap-2">
               <Button 

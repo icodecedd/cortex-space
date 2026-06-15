@@ -140,7 +140,7 @@ export function GeneralTab({
         open={isStartupResetOpen}
         onOpenChange={setIsStartupResetOpen}
         title="Reset Runtime & Startup"
-        description="This will reset all boot sequence preferences (like splash screen and update checks) back to their factory defaults. Are you sure?"
+        description="This will reset all startup settings (like splash screen and update checks) back to their factory defaults. Are you sure?"
         confirmLabel="Reset Startup"
         variant="destructive"
         onConfirm={onResetStartup}
@@ -171,7 +171,7 @@ export function GeneralTab({
         <SettingsCard 
           title="Application" 
           icon={<Rocket size={16} />}
-          description="Manage how the application boots and updates."
+          description="Manage how the application starts and updates."
           onReset={() => setIsStartupResetOpen(true)}
         >
           <SettingsRow

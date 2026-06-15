@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { m } from "framer-motion";
 import type { DetectedPort } from '../../terminal/components/XtermTerminal';
 
 interface PaneElevatorProps {
@@ -99,7 +100,7 @@ export function PaneElevator({
   const visiblePorts = activePorts.slice(0, MAX_VISIBLE);
   const overflowPorts = activePorts.slice(MAX_VISIBLE);
 
-  const style = transform ? {
+  const dragStyle = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     zIndex: 1000,
   } : undefined;
@@ -119,15 +120,14 @@ export function PaneElevator({
         display: 'flex',
         justifyContent: 'center',
         padding: '8px 12px',
-        pointerEvents: isAlwaysVisible ? 'auto' : 'auto', // Ensure both can catch events/hover
+        pointerEvents: isAlwaysVisible ? 'auto' : 'auto',
       }}
     >
-
-
-      <div 
+      <m.div 
         ref={setNodeRef}
         {...listeners}
         {...attributes}
+        layout
         onPointerDown={(e) => {
           setIsPressed(true);
           listeners?.onPointerDown?.(e);
@@ -139,31 +139,40 @@ export function PaneElevator({
         onPointerCancel={() => {
           setIsPressed(false);
         }}
-        className={`pane-elevator-toolbar transition-all duration-300 ease-out flex items-center justify-between px-3 py-1 ${
-          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
+        className={`pane-elevator-toolbar transition-all duration-500 ease-[var(--ease-out)] flex items-center justify-between px-4 py-1.5 ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 scale-95'
         }`}
         style={{
-          background: isDragging ? 'rgba(var(--accent-primary-rgb), 0.2)' : 'rgba(var(--surface-color-rgb), 0.9)',
-          backdropFilter: 'blur(12px) saturate(180%)',
-          border: isDragging ? '1px solid var(--accent-primary)' : '1px solid transparent',
+          background: isDragging ? 'rgba(var(--accent-primary-rgb), 0.25)' : 'rgba(var(--surface-color-rgb), 0.85)',
+          backdropFilter: 'blur(16px) saturate(200%)',
+          border: isDragging ? '1px solid var(--accent-primary)' : '1px solid rgba(255,255,255,0.1)',
           borderRadius: '9999px',
           position: 'relative',
           boxShadow: isDragging 
-            ? '0 20px 40px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(var(--text-primary-rgb), 0.1)' 
-            : '0 8px 32px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(var(--text-primary-rgb), 0.05)',
-          height: '32px',
+            ? '0 30px 60px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 20px rgba(var(--accent-primary-rgb), 0.3)' 
+            : '0 12px 40px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+          height: '36px',
           width: '100%',
           pointerEvents: isVisible ? 'auto' : 'none',
           cursor: isDragging || isPressed ? 'pointer' : 'default',
-          ...style
+          ...dragStyle
         }}
       >
-        <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-          {/* Pane Index Counter (Monochromatic Badge) */}
+        {/* Subtle Inner Border Shimmer */}
+        <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+          <m.div 
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: index * 0.5 }}
+            className="absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0 relative z-10">
+          {/* Pane Index Counter (Stylized) */}
           <div 
-            className="flex items-center justify-center w-4 h-4 rounded-sm bg-[var(--text-primary)]/10 text-[9px] font-mono font-bold text-[var(--text-secondary)] shrink-0 select-none border border-[var(--border-color)]/50"
+            className="flex items-center justify-center w-5 h-5 rounded-lg bg-white/5 text-[10px] font-black font-mono text-[var(--accent-primary)] shrink-0 select-none border border-white/5 shadow-inner"
           >
-            {index + 1}
+            0{index + 1}
           </div>
 
           <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
@@ -178,112 +187,72 @@ export function PaneElevator({
                   if (e.key === 'Escape') setIsRenaming(false);
                   e.stopPropagation();
                 }}
-                className="bg-transparent border-none outline-none text-[11px] font-bold font-sans text-[var(--accent-primary)] w-full p-0"
+                className="bg-transparent border-none outline-none text-xs font-black font-sans text-[var(--accent-primary)] w-full p-0 tracking-tight"
               />
             ) : (
               <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
                 <span 
                   onDoubleClick={() => setIsRenaming(true)}
-                  className="text-[11px] font-bold text-[var(--text-primary)] cursor-text truncate select-none shrink-0"
-                  style={{ letterSpacing: '-0.01em' }}
+                  className="text-xs font-black text-[var(--text-primary)] cursor-text truncate select-none shrink-0 tracking-tighter"
                 >
-                  {name || `Pane ${index + 1}`}
+                  {name || `Window ${index + 1}`}
                 </span>
-                
-
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0 ml-4">
-          {/* Port Badges — up to 2 visible, rest in overflow pill */}
+        <div className="flex items-center gap-2 shrink-0 ml-4 relative z-10">
+          {/* Port Badges — premium styling */}
           {visiblePorts.map((dp) => (
             <Tooltip key={dp.port}>
               <TooltipTrigger asChild>
-                <button
+                <m.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => openUrl(dp.url)}
-                  aria-label={`Open localhost:${dp.port} in browser`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '3px 8px 3px 6px',
-                    borderRadius: '9999px',
-                    border: '0.5px solid rgba(var(--accent-primary-rgb), 0.35)',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    color: 'var(--accent-primary)',
-                    background: 'rgba(var(--accent-primary-rgb), 0.08)',
-                    animation: 'portBadgeIn 0.2s ease',
-                    letterSpacing: '0.02em',
-                    fontFamily: 'monospace',
-                    whiteSpace: 'nowrap',
-                    outline: 'none',
-                  }}
+                  aria-label={`Connect to localhost:${dp.port}`}
+                  className="flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--accent-primary)]/30 text-[10px] font-black cursor-pointer color-[var(--accent-primary)] bg-[var(--accent-primary)]/5 hover:bg-[var(--accent-primary)]/10 transition-all font-mono tracking-tight"
                 >
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: '#1D9E75',
-                      display: 'inline-block',
-                      flexShrink: 0,
-                      animation: 'portDotPulse 2s ease-in-out infinite',
-                    }}
-                    aria-hidden="true"
+                  <m.span
+                    animate={{ opacity: [1, 0.4, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="w-1.5 h-1.5 rounded-full bg-ansi-green shadow-[0_0_8px_rgba(16,185,129,0.5)] flex-shrink-0"
                   />
-                  <ExternalLink size={9} aria-hidden="true" style={{ opacity: 0.7 }} />
-                  :{dp.port}
-                </button>
+                  <ExternalLink size={10} className="opacity-60" />
+                  <span>:{dp.port}</span>
+                </m.button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-                Open {dp.url} in browser
+              <TooltipContent side="bottom" sideOffset={8} className="text-[10px] font-bold bg-[var(--surface-color)] border-white/10 text-[var(--text-primary)] px-3 py-2 rounded-xl shadow-2xl backdrop-blur-xl">
+                Bridge connection to {dp.url}
               </TooltipContent>
             </Tooltip>
           ))}
 
-          {/* Overflow pill for 3+ ports */}
+          {/* Overflow pill */}
           {overflowPorts.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 8px',
-                    borderRadius: '9999px',
-                    border: '0.5px solid var(--border-color)',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    color: 'var(--text-secondary)',
-                    background: 'rgba(var(--surface-color-rgb), 0.8)',
-                    outline: 'none',
-                    fontFamily: 'monospace',
-                    letterSpacing: '0.02em',
-                  }}
+                  className="flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 text-[10px] font-black cursor-pointer text-[var(--text-secondary)] bg-white/5 hover:bg-white/10 transition-all font-mono"
                 >
-                  <Globe size={9} />
-                  +{overflowPorts.length}
+                  <Globe size={10} />
+                  <span>+{overflowPorts.length}</span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52 bg-[var(--surface-color)] border-[var(--border-color)]">
+              <DropdownMenuContent align="end" className="w-56 bg-[var(--surface-color)]/90 backdrop-blur-2xl border-white/10 rounded-2xl p-2 shadow-2xl">
                 {overflowPorts.map((dp) => (
-                  <DropdownMenuItem key={dp.port} onClick={() => openUrl(dp.url)}>
-                    <span
-                      style={{ width: 6, height: 6, borderRadius: '50%', background: '#1D9E75', display: 'inline-block', marginRight: 6, flexShrink: 0 }}
-                    />
-                    <ExternalLink className="mr-2 h-3 w-3" />
-                    <span className="text-xs truncate font-mono">localhost:{dp.port}</span>
+                  <DropdownMenuItem key={dp.port} onClick={() => openUrl(dp.url)} className="rounded-xl px-3 py-2 text-[11px] font-bold font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-ansi-green mr-3" />
+                    <ExternalLink className="mr-3 h-3 w-3 opacity-50" />
+                    <span>localhost:{dp.port}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+
+          <div className="w-px h-4 bg-white/10 mx-1" />
 
           <Tooltip>
             <TooltipTrigger asChild>
@@ -291,64 +260,57 @@ export function PaneElevator({
                 variant="ghost"
                 size="icon-xs"
                 onClick={onMaximize}
-                className="h-6 w-6 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="h-7 w-7 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5 rounded-lg transition-all"
               >
-                {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-              {isMaximized ? "Restore" : "Maximize"}
+            <TooltipContent side="bottom" sideOffset={8} className="text-[10px] font-bold bg-[var(--surface-color)] border-white/10 text-[var(--text-primary)] px-3 py-2 rounded-xl shadow-2xl">
+              {isMaximized ? "Restore Window" : "Maximize Window"}
             </TooltipContent>
           </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="h-6 w-6 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                  >
-                    <MoreVertical size={14} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-[var(--surface-color)] border-[var(--border-color)]">
-                  <DropdownMenuItem onClick={onRelaunch}>
-                    <RefreshCw className="mr-2 h-3 w-3" />
-                    <span className="text-xs">Reset Pane</span>
-                    <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+R</DropdownMenuShortcut>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onSplit?.('horizontal')}>
-                    <SquareSplitHorizontal className="mr-2 h-3 w-3" />
-                    <span className="text-xs">Split Horizontal</span>
-                    <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+H</DropdownMenuShortcut>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onSplit?.('vertical')}>
-                    <SquareSplitVertical className="mr-2 h-3 w-3" />
-                    <span className="text-xs">Split Vertical</span>
-                    <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+V</DropdownMenuShortcut>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    variant="destructive"
-                    className="cursor-pointer"
-                    onClick={onKill}
-                  >
-                    <Trash2 className="mr-2 h-3 w-3 text-inherit hover:text-red-400 transition-colors" />
-                    <span className="text-xs">Close Pane</span>
-                    <DropdownMenuShortcut className="text-[9px]">Ctrl+Alt+W</DropdownMenuShortcut>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={4} className="text-xs bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-primary)]">
-              Pane Options
-            </TooltipContent>
-          </Tooltip>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="h-7 w-7 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5 rounded-lg transition-all"
+              >
+                <MoreVertical size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 bg-[var(--surface-color)]/90 backdrop-blur-2xl border-white/10 rounded-2xl p-2 shadow-2xl">
+              <DropdownMenuItem onClick={onRelaunch} className="rounded-xl px-3 py-2.5 text-xs font-bold gap-3">
+                <RefreshCw className="h-3.5 w-3.5 opacity-60" />
+                <span>Reload Terminal</span>
+                <DropdownMenuShortcut className="text-[9px] font-mono opacity-40 ml-auto">^⌥R</DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/5 my-1" />
+              <DropdownMenuItem onClick={() => onSplit?.('horizontal')} className="rounded-xl px-3 py-2.5 text-xs font-bold gap-3">
+                <SquareSplitHorizontal className="h-3.5 w-3.5 opacity-60" />
+                <span>Split Horizontally</span>
+                <DropdownMenuShortcut className="text-[9px] font-mono opacity-40 ml-auto">^⌥H</DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onSplit?.('vertical')} className="rounded-xl px-3 py-2.5 text-xs font-bold gap-3">
+                <SquareSplitVertical className="h-3.5 w-3.5 opacity-60" />
+                <span>Split Vertically</span>
+                <DropdownMenuShortcut className="text-[9px] font-mono opacity-40 ml-auto">^⌥V</DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/5 my-1" />
+              <DropdownMenuItem 
+                variant="destructive"
+                className="rounded-xl px-3 py-2.5 text-xs font-bold gap-3 cursor-pointer text-red-400 focus:bg-red-400/10 focus:text-red-400"
+                onClick={onKill}
+              >
+                <Trash2 className="h-3.5 w-3.5 opacity-60" />
+                <span>Close Window</span>
+                <DropdownMenuShortcut className="text-[9px] font-mono opacity-40 ml-auto">^⌥W</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </div>
+      </m.div>
     </div>
   );
 }
