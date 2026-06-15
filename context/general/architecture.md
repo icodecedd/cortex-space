@@ -12,7 +12,7 @@ graph TD
     A -->|Terminal Output Renderer| C[Xterm.js WebGL/Canvas]
     B <-->|PTY Spawning| D[OS Shell Process: cmd/powershell/zsh/bash]
     B -->|TCP Scans| E[Local Host Network]
-    B <-->|Persistence| F[Tauri Store: settings.json]
+    B <-->|Persistence| F[Tauri Store: settings.json / settings.dev.json]
 ```
 
 ### A. The Presentation Layer (Frontend)
@@ -60,7 +60,7 @@ src/
 State in Cortex Space is split between active runtime state (React hook trees) and persistent user configurations:
 
 ### A. Persistent State
-- All configurations (typography, colors, zen mode states, shortcuts, enabled features) are persisted inside `settings.json` in the user's local App Data directory.
+- All configurations (typography, colors, zen mode states, shortcuts, enabled features) are persisted inside `settings.json` (or `settings.dev.json` in development mode) in the user's local App Data directory.
 - This is managed via `@tauri-apps/plugin-store` in [store.ts](file:///c:/Users/Chaoscedd/Programming/web-development/cortex-space/src/lib/store.ts).
 - To prevent slow disk read blocks on every render, `store.ts` loads configurations lazily on launch, maintaining a fast in-memory object cache (`cachedStore`) that is read synchronously.
 

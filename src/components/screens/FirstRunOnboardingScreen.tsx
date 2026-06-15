@@ -5,24 +5,12 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { getSetting, setSetting } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useTheme } from '@/hooks/useTheme';
-import {
-  Folder,
-  FolderOpen,
-  Check,
-  TriangleAlertIcon,
-  XIcon,
-  Layout,
-  Layers,
-  Bot,
-  Rocket
-} from '@/components/ui/icons';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Step = 'boot' | 'environment' | 'persona' | 'concepts' | 'ready';
+type Step = 'boot' | 'workspace' | 'scan' | 'concepts' | 'ready';
 
-const STEPS: Step[] = ['boot', 'environment', 'persona', 'concepts', 'ready'];
+const STEPS: Step[] = ['boot', 'workspace', 'scan', 'concepts', 'ready'];
 
 type CheckStatus = 'pending' | 'checking' | 'ok' | 'warn' | 'fail';
 
@@ -34,113 +22,6 @@ interface SysCheck {
   detail: string;
 }
 
-interface ThemeOption {
-  id: string;
-  name: string;
-  color: string;
-  accent: string;
-}
-
-const THEME_OPTIONS: ThemeOption[] = [
-  { id: 'cortex', name: 'Cortex Pink', color: 'bg-[#FF66B2]', accent: '#FF66B2' },
-  { id: 'cursor', name: 'Hacker Blue', color: 'bg-[#3E8FB0]', accent: '#3E8FB0' },
-  { id: 'caffeine', name: 'Cyberpunk Amber', color: 'bg-[#D8A657]', accent: '#D8A657' },
-  { id: 'claude', name: 'Claude Warm', color: 'bg-[#D97757]', accent: '#D97757' },
-];
-
-interface LayoutOption {
-  id: string;
-  name: string;
-  panes: number;
-}
-
-const LAYOUT_OPTIONS: LayoutOption[] = [
-  { id: '1x1', name: 'Single Pane', panes: 1 },
-  { id: '1x2', name: 'Split Panes', panes: 2 },
-  { id: '2x2', name: 'Quad Grid', panes: 4 },
-];
-
-// ── Background Glow ───────────────────────────────────────────────────────────
-
-function AuroraGlow({ theme }: { theme: string }) {
-  // Map active theme to radial gradient colors
-  let color1 = 'rgba(255, 102, 178, 0.16)'; // Pink
-  let color2 = 'rgba(139, 92, 246, 0.12)';  // Purple
-  let color3 = 'rgba(59, 130, 246, 0.08)';  // Blue
-
-  if (theme === 'cursor') {
-    color1 = 'rgba(62, 143, 176, 0.16)'; // Blue/Teal
-    color2 = 'rgba(59, 130, 246, 0.12)';
-    color3 = 'rgba(16, 185, 129, 0.08)';
-  } else if (theme === 'caffeine') {
-    color1 = 'rgba(216, 166, 87, 0.16)'; // Amber/Yellow
-    color2 = 'rgba(239, 68, 68, 0.1)';   // Red
-    color3 = 'rgba(245, 158, 11, 0.08)';
-  } else if (theme === 'claude') {
-    color1 = 'rgba(217, 119, 87, 0.16)'; // Claude Orange
-    color2 = 'rgba(236, 72, 153, 0.1)';
-    color3 = 'rgba(244, 63, 94, 0.08)';
-  }
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <m.div
-        animate={{
-          x: [0, 50, -30, 0],
-          y: [0, -50, 30, 0],
-        }}
-        transition={{
-          duration: 30,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-        className="absolute w-[600px] h-[600px] rounded-full filter blur-[120px] mix-blend-screen"
-        style={{
-          background: `radial-gradient(circle, ${color1} 0%, transparent 70%)`,
-          top: '-10%',
-          left: '-10%',
-          transition: 'background 1s ease',
-        }}
-      />
-      <m.div
-        animate={{
-          x: [0, -40, 40, 0],
-          y: [0, 40, -40, 0],
-        }}
-        transition={{
-          duration: 25,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-        className="absolute w-[500px] h-[500px] rounded-full filter blur-[100px] mix-blend-screen"
-        style={{
-          background: `radial-gradient(circle, ${color2} 0%, transparent 70%)`,
-          bottom: '-5%',
-          right: '-5%',
-          transition: 'background 1s ease',
-        }}
-      />
-      <m.div
-        animate={{
-          x: [0, 30, -50, 0],
-          y: [0, 50, -30, 0],
-        }}
-        transition={{
-          duration: 28,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-        className="absolute w-[400px] h-[400px] rounded-full filter blur-[90px] mix-blend-screen"
-        style={{
-          background: `radial-gradient(circle, ${color3} 0%, transparent 70%)`,
-          top: '35%',
-          left: '25%',
-          transition: 'background 1s ease',
-        }}
-      />
-    </div>
-  );
-}
 
 // ── Scramble Text ─────────────────────────────────────────────────────────────
 
@@ -230,18 +111,36 @@ const BootLog = memo(function BootLog({ skip }: { skip: boolean }) {
   }, [skip]);
 
   return (
-    <div className="font-mono text-[10px] tracking-wide leading-relaxed">
+    <div
+      style={{
+        fontFamily: 'var(--terminal-font-family, monospace)',
+        fontSize: '0.7rem',
+        letterSpacing: '0.02em',
+        lineHeight: 1.8,
+      }}
+    >
       {BOOT_LINES.slice(0, visibleLines).map((line, i) => (
         <div
           key={i}
-          className={`${
-            line === 'System ready' ? 'text-emerald-400' : 'text-neutral-400'
-          }`}
-          style={{ opacity: line === 'System ready' ? 1 : 0.75 }}
+          style={{
+            color:
+              line === 'System ready'
+                ? 'var(--ansi-green, #10B981)'
+                : 'var(--text-secondary)',
+            opacity: line === 'System ready' ? 1 : 0.75,
+          }}
         >
           {line}
           {i === visibleLines - 1 && line !== 'System ready' && (
-            <span className="animate-pulse text-[var(--accent-primary)] ml-1">_</span>
+            <span
+              style={{
+                animation: 'cortex-blink 1s step-end infinite',
+                color: 'var(--accent-primary)',
+                marginLeft: '0.2rem',
+              }}
+            >
+              _
+            </span>
           )}
         </div>
       ))}
@@ -249,17 +148,36 @@ const BootLog = memo(function BootLog({ skip }: { skip: boolean }) {
   );
 });
 
-// ── Step 1: Boot (Neural Wake) ───────────────────────────────────────────────
+// ── Step 1: Boot ──────────────────────────────────────────────────────────────
 
 function StepBoot({ skip }: { skip: boolean }) {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="text-xs font-semibold tracking-wider text-[var(--accent-primary)] opacity-90 uppercase">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            color: 'var(--accent-primary)',
+            opacity: 0.85,
+            textTransform: 'uppercase' as const,
+          }}
+        >
           Step 1 of 5
         </div>
 
-        <div className="font-sans text-5xl font-black tracking-tighter leading-none bg-gradient-to-r from-white via-neutral-200 to-neutral-400 bg-clip-text text-transparent uppercase">
+        <div
+          style={{
+            fontFamily: 'Geist Variable, sans-serif',
+            fontSize: 'clamp(2rem, 6vw, 3.6rem)',
+            fontWeight: 800,
+            letterSpacing: '-0.055em',
+            lineHeight: 0.9,
+            color: 'var(--text-primary)',
+            textTransform: 'uppercase' as const,
+          }}
+        >
           {skip ? (
             'CORTEX SPACE'
           ) : (
@@ -267,29 +185,225 @@ function StepBoot({ skip }: { skip: boolean }) {
           )}
         </div>
 
-        <div className="text-xs font-medium tracking-wide text-neutral-400 opacity-90">
+        <div
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 500,
+            letterSpacing: '0.05em',
+            color: 'var(--text-secondary)',
+            opacity: 0.8,
+          }}
+        >
           Workspace Initialization
         </div>
       </div>
 
-      <div className="w-full h-[1px] bg-neutral-800/60" />
+      <div
+        style={{
+          width: '100%',
+          height: '1px',
+          backgroundColor: 'var(--border-color)',
+          opacity: 0.35,
+        }}
+      />
 
-      {/* Simulated Console Screen */}
-      <div className="p-4 bg-neutral-900/40 border border-neutral-800/80 rounded-xl min-h-[140px] flex flex-col justify-between">
-        <BootLog skip={skip} />
-        <div className="flex gap-3 text-[9px] text-neutral-600 font-semibold tracking-wider mt-4">
-          <span>BUILD V2.0.0</span>
-          <span>•</span>
-          <span>TAURI V2</span>
-          <span>•</span>
-          <span>REACT V19</span>
+      <BootLog skip={skip} />
+
+      <div
+        style={{
+          display: 'flex',
+          gap: '1rem',
+          fontSize: '0.7rem',
+          color: 'var(--text-secondary)',
+          opacity: 0.5,
+          fontWeight: 500,
+        }}
+      >
+        <span>Build v2.0.0</span>
+        <span>•</span>
+        <span>Tauri v2</span>
+        <span>•</span>
+        <span>React v19</span>
+        <span>•</span>
+        <span>First Run</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 2: Workspace Path ────────────────────────────────────────────────────
+
+function StepWorkspace({
+  path,
+  setPath,
+}: {
+  path: string;
+  setPath: (v: string) => void;
+}) {
+  const [browseError, setBrowseError] = useState('');
+
+  const handleBrowse = useCallback(async () => {
+    setBrowseError('');
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: 'Select workspace root directory',
+      });
+      if (selected) setPath(selected as string);
+    } catch {
+      setBrowseError('Directory picker unavailable');
+    }
+  }, [setPath]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            color: 'var(--accent-primary)',
+            opacity: 0.85,
+            textTransform: 'uppercase' as const,
+          }}
+        >
+          Step 2 of 5
+        </div>
+
+        <div
+          style={{
+            fontFamily: 'Geist Variable, sans-serif',
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+            fontWeight: 800,
+            letterSpacing: '-0.04em',
+            lineHeight: 1,
+            textTransform: 'uppercase' as const,
+            color: 'var(--text-primary)',
+          }}
+        >
+          Workspace Root
+        </div>
+
+        <div
+          style={{
+            fontSize: '0.8rem',
+            color: 'var(--text-secondary)',
+            opacity: 0.75,
+            maxWidth: '54ch',
+            lineHeight: 1.6,
+          }}
+        >
+          Define the primary filesystem path from which all terminal
+          sessions and agent contexts will inherit their working directory.
+        </div>
+      </div>
+
+      <div
+        style={{
+          width: '100%',
+          height: '1px',
+          backgroundColor: 'var(--border-color)',
+          opacity: 0.35,
+        }}
+      />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <label
+          htmlFor="workspace-root-input"
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            color: 'var(--text-secondary)',
+            opacity: 0.8,
+          }}
+        >
+          Workspace Root Path
+        </label>
+
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <span
+              style={{
+                position: 'absolute',
+                left: '0.75rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontFamily: 'var(--terminal-font-family, monospace)',
+                fontSize: '0.8rem',
+                color: 'var(--accent-primary)',
+                opacity: 0.65,
+                pointerEvents: 'none',
+              }}
+            >
+              ~/
+            </span>
+            <Input
+              id="workspace-root-input"
+              type="text"
+              value={path}
+              onChange={(e) => {
+                setPath(e.target.value);
+                setBrowseError('');
+              }}
+              placeholder="workspace"
+              style={{
+                paddingLeft: '1.8rem',
+                fontFamily: 'var(--terminal-font-family, monospace)',
+                fontSize: '0.75rem',
+                height: '2.25rem',
+              }}
+            />
+          </div>
+
+          <Button
+            onClick={handleBrowse}
+            variant="outline"
+            style={{
+              height: '2.25rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              padding: '0 1rem',
+            }}
+          >
+            Browse
+          </Button>
+        </div>
+
+        {browseError && (
+          <div
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              color: 'var(--destructive, #EF4444)',
+              letterSpacing: '0.01em',
+            }}
+          >
+            {browseError}
+          </div>
+        )}
+
+        <div
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-secondary)',
+            opacity: 0.55,
+            lineHeight: 1.6,
+          }}
+        >
+          <div>Optional — leave blank to use system home directory.</div>
+          <div>
+            Path is stored in settings.{import.meta.env.DEV ? 'dev.' : ''}json and never transmitted externally.
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Step 2: Environment & Diagnostics ──────────────────────────────────────────
+// ── Step 3: System Scan ───────────────────────────────────────────────────────
 
 const INITIAL_CHECKS: SysCheck[] = [
   {
@@ -338,17 +452,9 @@ const STATUS_LABEL: Record<CheckStatus, string> = {
   fail: 'Failed',
 };
 
-function StepEnvironment({
-  path,
-  setPath,
-  setScanDone,
-}: {
-  path: string;
-  setPath: (v: string) => void;
-  setScanDone: (v: boolean) => void;
-}) {
-  const [browseError, setBrowseError] = useState('');
+function StepScan({ onScanComplete }: { onScanComplete: () => void }) {
   const [checks, setChecks] = useState<SysCheck[]>(INITIAL_CHECKS);
+  const [scanDone, setScanDone] = useState(false);
   const startedRef = useRef(false);
 
   const patch = useCallback(
@@ -358,20 +464,6 @@ function StepEnvironment({
       ),
     []
   );
-
-  const handleBrowse = useCallback(async () => {
-    setBrowseError('');
-    try {
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title: 'Select workspace root directory',
-      });
-      if (selected) setPath(selected as string);
-    } catch {
-      setBrowseError('Directory picker unavailable');
-    }
-  }, [setPath]);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -432,418 +524,542 @@ function StepEnvironment({
       patch('disk', { status: 'ok', detail: 'Read/write verified' });
 
       setScanDone(true);
+      onScanComplete();
     };
 
     run();
-  }, [patch, setScanDone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="text-xs font-semibold tracking-wider text-[var(--accent-primary)] opacity-90 uppercase">
-          Step 2 of 5
-        </div>
-        <h2 className="text-2xl font-extrabold tracking-tight text-white uppercase">
-          Environment & Diagnostics
-        </h2>
-        <p className="text-xs text-neutral-400 max-w-[54ch] leading-relaxed">
-          Select your default workspace directory and verify system prerequisites to begin.
-        </p>
-      </div>
-
-      <div className="w-full h-[1px] bg-neutral-800/60" />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        {/* Workspace Path selector */}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="workspace-root-input" className="text-xs font-bold text-neutral-300 tracking-wider uppercase">
-              WORKSPACE ROOT
-            </label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Folder className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-                <Input
-                  id="workspace-root-input"
-                  type="text"
-                  value={path}
-                  onChange={(e) => {
-                    setPath(e.target.value);
-                    setBrowseError('');
-                  }}
-                  placeholder="workspace"
-                  className="pl-9 font-mono text-xs h-9 bg-neutral-900/40 border-neutral-800 focus:border-[var(--accent-primary)] focus:ring-[var(--accent-primary)]/20 rounded-xl"
-                />
-              </div>
-              <Button
-                onClick={handleBrowse}
-                variant="outline"
-                className="h-9 text-xs font-semibold px-3 border-neutral-800 hover:bg-neutral-800/50 rounded-xl"
-              >
-                Browse
-              </Button>
-            </div>
-            {browseError && (
-              <div className="text-xs font-semibold text-red-500">{browseError}</div>
-            )}
-            <p className="text-[10px] text-neutral-500 leading-relaxed mt-1">
-              Optional — leave empty to use system home. Stored locally.
-            </p>
-          </div>
-        </div>
-
-        {/* Diagnostics checklist */}
-        <div className="flex flex-col gap-3 p-4 bg-neutral-900/40 border border-neutral-800/80 rounded-xl">
-          <div className="text-xs font-bold text-neutral-300 mb-1 tracking-wider uppercase">
-            SYSTEM DIAGNOSTICS
-          </div>
-          <div className="flex flex-col gap-2.5">
-            {checks.map((check) => (
-              <div
-                key={check.id}
-                className="flex items-center justify-between py-1 border-b border-neutral-800/20 last:border-0"
-              >
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-neutral-300 tracking-wide uppercase">
-                    {check.label}
-                  </span>
-                  <span className="text-[10px] text-neutral-500">
-                    {check.detail ? (
-                      <span className="font-mono text-[9px] text-neutral-400">{check.detail}</span>
-                    ) : (
-                      check.description
-                    )}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {check.status === 'checking' && (
-                    <m.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      className="w-3 h-3 border-[1.5px] border-[var(--accent-primary)] border-t-transparent rounded-full"
-                    />
-                  )}
-                  {check.status === 'ok' && (
-                    <Check className="w-3.5 h-3.5 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
-                  )}
-                  {check.status === 'warn' && (
-                    <TriangleAlertIcon className="w-3.5 h-3.5 text-amber-500" />
-                  )}
-                  {check.status === 'fail' && (
-                    <XIcon className="w-3.5 h-3.5 text-red-500" />
-                  )}
-                  {check.status === 'pending' && (
-                    <div className="w-1.5 h-1.5 bg-neutral-700 rounded-full" />
-                  )}
-                  <span
-                    className="text-[10px] font-bold"
-                    style={{ color: STATUS_COLOR[check.status] }}
-                  >
-                    {STATUS_LABEL[check.status]}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Step 3: Visual Persona (Customizing layout and colors) ──────────────────
-
-function StepPersona({
-  selectedTheme,
-  setSelectedTheme,
-  selectedLayout,
-  setSelectedLayout,
-}: {
-  selectedTheme: string;
-  setSelectedTheme: (id: string) => void;
-  selectedLayout: string;
-  setSelectedLayout: (id: string) => void;
-}) {
-  const { setTheme } = useTheme();
-
-  const handleThemeSelect = useCallback((themeId: string) => {
-    setSelectedTheme(themeId);
-    setTheme(themeId);
-  }, [setSelectedTheme, setTheme]);
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="text-xs font-semibold tracking-wider text-[var(--accent-primary)] opacity-90 uppercase">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            color: 'var(--accent-primary)',
+            opacity: 0.85,
+            textTransform: 'uppercase' as const,
+          }}
+        >
           Step 3 of 5
         </div>
-        <h2 className="text-2xl font-extrabold tracking-tight text-white uppercase">
-          Visual Persona
-        </h2>
-        <p className="text-xs text-neutral-400 max-w-[54ch] leading-relaxed">
-          Customize your workspace layout preset and select a global color theme accent.
-        </p>
-      </div>
 
-      <div className="w-full h-[1px] bg-neutral-800/60" />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        {/* Accent Themes */}
-        <div className="flex flex-col gap-3">
-          <label className="text-xs font-bold text-neutral-300 tracking-wider uppercase">
-            CHOOSE ACCENT THEME
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            {THEME_OPTIONS.map((opt) => {
-              const active = selectedTheme === opt.id;
-              return (
-                <div
-                  key={opt.id}
-                  onClick={() => handleThemeSelect(opt.id)}
-                  className={`flex items-center gap-3 p-3 bg-neutral-900/40 border rounded-xl cursor-pointer transition-all duration-200 hover:border-neutral-700/80 active:scale-98 ${
-                    active
-                      ? 'border-[var(--accent-primary)] shadow-[0_0_12px_rgba(var(--accent-primary-rgb),0.15)] bg-neutral-900/60'
-                      : 'border-neutral-800/80'
-                  }`}
-                >
-                  <div className={`w-4 h-4 rounded-full ${opt.color} flex-shrink-0 shadow-[0_0_8px_rgba(255,255,255,0.05)]`} />
-                  <span className="text-xs font-semibold text-neutral-200">{opt.name}</span>
-                </div>
-              );
-            })}
-          </div>
+        <div
+          style={{
+            fontFamily: 'Geist Variable, sans-serif',
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+            fontWeight: 800,
+            letterSpacing: '-0.04em',
+            lineHeight: 1,
+            textTransform: 'uppercase' as const,
+            color: 'var(--text-primary)',
+          }}
+        >
+          System Prerequisites
         </div>
 
-        {/* Layout Presets */}
-        <div className="flex flex-col gap-3">
-          <label className="text-xs font-bold text-neutral-300 tracking-wider uppercase">
-            WORKSPACE LAYOUT PRESET
-          </label>
-          <div className="flex flex-col gap-2">
-            {LAYOUT_OPTIONS.map((opt) => {
-              const active = selectedLayout === opt.id;
-              return (
-                <div
-                  key={opt.id}
-                  onClick={() => setSelectedLayout(opt.id)}
-                  className={`flex items-center justify-between p-3 bg-neutral-900/40 border rounded-xl cursor-pointer transition-all duration-200 hover:border-neutral-700/80 active:scale-98 ${
-                    active
-                      ? 'border-[var(--accent-primary)] shadow-[0_0_12px_rgba(var(--accent-primary-rgb),0.15)] bg-neutral-900/60'
-                      : 'border-neutral-800/80'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Layout className={`w-4 h-4 ${active ? 'text-[var(--accent-primary)]' : 'text-neutral-500'}`} />
-                    <span className="text-xs font-semibold text-neutral-200">{opt.name}</span>
-                  </div>
-                  {/* Miniature representations */}
-                  <div className="w-12 h-8 rounded border border-neutral-800/60 p-0.5 grid gap-0.5 overflow-hidden bg-neutral-950/80">
-                    {opt.id === '1x1' && (
-                      <div className="bg-neutral-800/80 rounded-[1px]" />
-                    )}
-                    {opt.id === '1x2' && (
-                      <div className="grid grid-cols-2 gap-0.5 h-full">
-                        <div className="bg-neutral-800/80 rounded-[1px]" />
-                        <div className="bg-neutral-800/80 rounded-[1px]" />
-                      </div>
-                    )}
-                    {opt.id === '2x2' && (
-                      <div className="grid grid-cols-2 grid-rows-2 gap-0.5 h-full">
-                        <div className="bg-neutral-800/80 rounded-[1px]" />
-                        <div className="bg-neutral-800/80 rounded-[1px]" />
-                        <div className="bg-neutral-800/80 rounded-[1px]" />
-                        <div className="bg-neutral-800/80 rounded-[1px]" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <div
+          style={{
+            fontSize: '0.8rem',
+            color: 'var(--text-secondary)',
+            opacity: 0.75,
+            maxWidth: '54ch',
+            lineHeight: 1.6,
+          }}
+        >
+          Scanning active system paths for required runtime dependencies
+          and toolchain components.
         </div>
       </div>
+
+      <div
+        style={{
+          width: '100%',
+          height: '1px',
+          backgroundColor: 'var(--border-color)',
+          opacity: 0.35,
+        }}
+      />
+
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0,
+        }}
+      >
+        {checks.map((check) => (
+          <div
+            key={check.id}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr auto',
+              alignItems: 'center',
+              padding: '0.9rem 0',
+              borderBottom: '1px solid var(--border-color)',
+              gap: '1rem',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.01em',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {check.label}
+              </div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-secondary)',
+                  opacity: 0.65,
+                  marginTop: '0.2rem',
+                }}
+              >
+                {check.detail ? (
+                  <span style={{ fontFamily: 'var(--terminal-font-family, monospace)', fontSize: '0.7rem' }}>
+                    {check.detail}
+                  </span>
+                ) : (
+                  check.description
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                flexShrink: 0,
+              }}
+            >
+              {check.status === 'checking' && (
+                <m.div
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 0.9,
+                    repeat: Infinity,
+                    ease: 'linear',
+                  }}
+                  style={{
+                    width: 9,
+                    height: 9,
+                    border: '1.5px solid var(--accent-primary)',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              {check.status === 'ok' && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--ansi-green, #10B981)',
+                    boxShadow: '0 0 5px rgba(16,185,129,0.4)',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              {check.status === 'warn' && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--ansi-yellow, #F59E0B)',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              {check.status === 'fail' && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--ansi-red, #EF4444)',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              {check.status === 'pending' && (
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--border-color)',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: STATUS_COLOR[check.status],
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {STATUS_LABEL[check.status]}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {scanDone && (
+          <m.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              color: 'var(--ansi-green, #10B981)',
+              opacity: 0.95,
+            }}
+          >
+            Scan complete. All critical systems nominal.
+          </m.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ── Step 4: Architecture Bento (Bento concepts) ─────────────────────────────
+// ── Step 4: Concepts ──────────────────────────────────────────────────────────
+
+const CONCEPTS = [
+  {
+    id: 'workspaces',
+    index: '01',
+    title: 'WORKSPACES',
+    tag: 'SESSION LAYER',
+    body: 'Isolated session containers. Each workspace runs an independent shell context, maintains its own history, and can be pinned or templated for rapid reuse across projects.',
+  },
+  {
+    id: 'panes',
+    index: '02',
+    title: 'PANES',
+    tag: 'VIEW LAYER',
+    body: 'Split the viewport into concurrent terminal planes. Multiple feeds run simultaneously — side-by-side or stacked. Resize, kill, and spawn panes without closing the active session.',
+  },
+  {
+    id: 'agents',
+    index: '03',
+    title: 'AGENTS',
+    tag: 'INTELLIGENCE LAYER',
+    body: 'Attach AI inference engines to workspaces. Agents observe terminal output, execute commands autonomously, and coordinate multi-step tasks. Requires compatible runtime installation.',
+  },
+];
 
 function StepConcepts() {
-  const [active, setActive] = useState<string | null>(null);
-
-  const concepts = [
-    {
-      id: 'workspaces',
-      index: '01',
-      title: 'WORKSPACES',
-      tag: 'SESSION LAYER',
-      icon: FolderOpen,
-      body: 'Isolated session containers. Each workspace runs an independent shell context, maintains its own history, and can be pinned or templated for rapid reuse across projects.',
-      colClass: 'col-span-1',
-    },
-    {
-      id: 'panes',
-      index: '02',
-      title: 'PANES',
-      tag: 'VIEW LAYER',
-      icon: Layers,
-      body: 'Split the viewport into concurrent terminal planes. Multiple feeds run simultaneously — side-by-side or stacked. Resize, kill, and spawn panes without closing the active session.',
-      colClass: 'col-span-1',
-    },
-    {
-      id: 'agents',
-      index: '03',
-      title: 'AGENTS',
-      tag: 'INTELLIGENCE LAYER',
-      icon: Bot,
-      body: 'Attach AI inference engines to workspaces. Agents observe terminal output, execute commands autonomously, and coordinate multi-step tasks. Requires compatible runtime installation.',
-      colClass: 'md:col-span-2 col-span-1',
-    },
-  ];
+  const [active, setActive] = useState<string | null>('workspaces');
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="text-xs font-semibold tracking-wider text-[var(--accent-primary)] opacity-90 uppercase">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            color: 'var(--accent-primary)',
+            opacity: 0.85,
+            textTransform: 'uppercase' as const,
+          }}
+        >
           Step 4 of 5
         </div>
-        <h2 className="text-2xl font-extrabold tracking-tight text-white uppercase">
+
+        <div
+          style={{
+            fontFamily: 'Geist Variable, sans-serif',
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+            fontWeight: 800,
+            letterSpacing: '-0.04em',
+            lineHeight: 1,
+            textTransform: 'uppercase' as const,
+            color: 'var(--text-primary)',
+          }}
+        >
           Workspace Architecture
-        </h2>
-        <p className="text-xs text-neutral-400 max-w-[54ch] leading-relaxed">
-          Cortex Space is organized into three operational layers. Review each concept to understand the layout.
-        </p>
+        </div>
+
+        <div
+          style={{
+            fontSize: '0.8rem',
+            color: 'var(--text-secondary)',
+            opacity: 0.75,
+            maxWidth: '54ch',
+            lineHeight: 1.6,
+          }}
+        >
+          Three structural layers govern all Cortex operations. Review
+          each component before proceeding.
+        </div>
       </div>
 
-      <div className="w-full h-[1px] bg-neutral-800/60" />
+      <div
+        style={{
+          width: '100%',
+          height: '1px',
+          backgroundColor: 'var(--border-color)',
+          opacity: 0.35,
+        }}
+      />
 
-      {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {concepts.map((item) => {
-          const Icon = item.icon;
-          const isOpen = active === item.id;
-          return (
-            <m.div
-              key={item.id}
-              onClick={() => setActive(isOpen ? null : item.id)}
-              className={`${item.colClass} relative flex flex-col p-5 bg-neutral-900/40 border border-neutral-800/80 rounded-2xl cursor-pointer overflow-hidden transition-all duration-300 hover:border-neutral-700/80`}
-              whileHover={{ scale: 1.01 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: 'var(--border-color)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-md, 12px)',
+          overflow: 'hidden',
+          gap: '1px',
+        }}
+      >
+        {CONCEPTS.map((concept) => (
+          <div
+            key={concept.id}
+            onClick={() =>
+              setActive(active === concept.id ? null : concept.id)
+            }
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '2.5rem 1fr',
+              gap: '1.25rem',
+              padding: '1rem 1.25rem',
+              backgroundColor:
+                active === concept.id
+                  ? 'var(--surface-color)'
+                  : 'var(--bg-color)',
+              cursor: 'pointer',
+              transition: 'background-color 0.15s',
+              borderLeft:
+                active === concept.id
+                  ? '2px solid var(--accent-primary)'
+                  : '2px solid transparent',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: 'inherit',
+                fontSize: '1.25rem',
+                fontWeight: 800,
+                letterSpacing: '-0.05em',
+                lineHeight: 1,
+                color: 'var(--text-primary)',
+                opacity: 0.1,
+                userSelect: 'none',
+                paddingTop: '0.15rem',
+              }}
             >
-              {/* Grid Background Pattern */}
-              <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:14px_24px]" />
+              {concept.index}
+            </div>
 
-              <div className="flex items-start justify-between z-10">
-                <span className="font-mono text-2xl font-black text-white/5 select-none leading-none">
-                  {item.index}
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  marginBottom: '0.2rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {concept.title}
                 </span>
-                <span className="text-[9px] font-bold tracking-wider text-[var(--accent-primary)] bg-[rgba(var(--accent-primary-rgb),0.06)] border border-[rgba(var(--accent-primary-rgb),0.15)] rounded px-1.5 py-0.5 uppercase">
-                  {item.tag}
+                <span
+                  style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.05em',
+                    color: 'var(--accent-primary)',
+                    backgroundColor: 'rgba(var(--accent-primary-rgb), 0.08)',
+                    border: '1px solid rgba(var(--accent-primary-rgb), 0.25)',
+                    borderRadius: '4px',
+                    padding: '0.05rem 0.35rem',
+                  }}
+                >
+                  {concept.tag}
                 </span>
               </div>
 
-              <div className="flex items-center gap-3 mt-4 mb-2 z-10">
-                <div className="p-2 bg-neutral-950/60 rounded-lg border border-neutral-800/50">
-                  <Icon className="w-4 h-4 text-white" />
-                </div>
-                <h3 className="text-sm font-extrabold text-white tracking-wider">
-                  {item.title}
-                </h3>
-              </div>
-
-              <div className="z-10 mt-1">
-                <AnimatePresence initial={false}>
-                  {isOpen ? (
-                    <m.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-                      className="overflow-hidden"
+              <AnimatePresence initial={false}>
+                {active === concept.id ? (
+                  <m.div
+                    key="open"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'var(--text-secondary)',
+                        opacity: 0.8,
+                        lineHeight: 1.6,
+                        paddingTop: '0.35rem',
+                        maxWidth: '52ch',
+                      }}
                     >
-                      <p className="text-xs text-neutral-400 leading-relaxed pt-2 border-t border-neutral-800/40">
-                        {item.body}
-                      </p>
-                    </m.div>
-                  ) : (
-                    <p className="text-xs text-neutral-500 line-clamp-2 leading-relaxed">
-                      {item.body}
-                    </p>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Action Hint */}
-              <div className="mt-4 text-[9px] font-semibold text-neutral-500 uppercase tracking-wide">
-                {isOpen ? 'Click to collapse' : 'Click to learn more'}
-              </div>
-            </m.div>
-          );
-        })}
+                      {concept.body}
+                    </div>
+                  </m.div>
+                ) : (
+                  <m.div
+                    key="closed"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.1 }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '0.7rem',
+                        color: 'var(--text-secondary)',
+                        opacity: 0.45,
+                        fontWeight: 500,
+                      }}
+                    >
+                      Click to expand
+                    </div>
+                  </m.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-// ── Step 5: Ready to Launch ──────────────────────────────────────────────────
+// ── Step 5: Ready ─────────────────────────────────────────────────────────────
 
-function StepReady({
-  workspacePath,
-  selectedTheme,
-  selectedLayout,
-  onLaunch,
-}: {
-  workspacePath: string;
-  selectedTheme: string;
-  selectedLayout: string;
-  onLaunch: () => void;
-}) {
-  const selectedThemeName = THEME_OPTIONS.find((t) => t.id === selectedTheme)?.name || 'Cortex Default';
-  const selectedLayoutName = LAYOUT_OPTIONS.find((l) => l.id === selectedLayout)?.name || 'Single Pane';
-
+function StepReady({ workspacePath }: { workspacePath: string }) {
   const rows = [
-    ['Workspace Path', workspacePath || 'System Home Directory'],
-    ['System Diagnostics', 'Passed'],
-    ['Accent Theme', selectedThemeName],
-    ['Panel Preset', selectedLayoutName],
-    ['Startup Settings', `settings.${import.meta.env.DEV ? 'dev.' : ''}json`],
+    ['Workspace Root', workspacePath || 'System Home Directory'],
+    ['System Checks', 'Passed'],
+    ['Agent Registry', 'Pending Setup'],
+    ['Startup Mode', 'Mode Selector'],
+    ['Settings Path', `settings.${import.meta.env.DEV ? 'dev.' : ''}json`],
   ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="text-xs font-semibold tracking-wider text-emerald-400 opacity-90 uppercase">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            color: 'var(--ansi-green, #10B981)',
+            opacity: 0.95,
+            textTransform: 'uppercase' as const,
+          }}
+        >
           Step 5 of 5
         </div>
-        <h2 className="text-2xl font-extrabold tracking-tight text-white uppercase">
+
+        <div
+          style={{
+            fontFamily: 'Geist Variable, sans-serif',
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+            fontWeight: 800,
+            letterSpacing: '-0.04em',
+            lineHeight: 1,
+            textTransform: 'uppercase' as const,
+            color: 'var(--text-primary)',
+          }}
+        >
           Initialization Complete
-        </h2>
-        <p className="text-xs text-emerald-400/90 font-medium">
+        </div>
+
+        <div
+          style={{
+            fontSize: '0.8rem',
+            color: 'var(--ansi-green, #10B981)',
+            opacity: 0.9,
+            fontWeight: 500,
+          }}
+        >
           All systems nominal. Workspace ready for activation.
-        </p>
+        </div>
       </div>
 
-      <div className="w-full h-[1px] bg-neutral-800/60" />
+      <div
+        style={{
+          width: '100%',
+          height: '1px',
+          backgroundColor: 'var(--border-color)',
+          opacity: 0.35,
+        }}
+      />
 
-      {/* Summary table */}
-      <div className="flex flex-col border border-neutral-800/80 bg-neutral-900/20 rounded-2xl overflow-hidden divide-y divide-neutral-800/40">
+      <div
+        style={{
+          borderTop: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         {rows.map(([key, val]) => (
           <div
             key={key}
-            className="grid grid-cols-2 gap-4 p-3.5 text-xs"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              padding: '0.75rem 0',
+              borderBottom: '1px solid var(--border-color)',
+              gap: '1rem',
+            }}
           >
-            <span className="text-neutral-400 font-semibold uppercase tracking-wider text-[10px]">
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+                opacity: 0.65,
+                fontWeight: 500,
+              }}
+            >
               {key}
             </span>
             <span
-              className={`font-semibold ${
-                key === 'Workspace Path' || key === 'Startup Settings'
-                  ? 'font-mono text-[11px] text-neutral-300 break-all'
-                  : val === 'Passed'
-                  ? 'text-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.1)]'
-                  : 'text-white'
-              }`}
+              style={{
+                fontFamily: key === 'Settings Path' || key === 'Workspace Root' ? 'var(--terminal-font-family, monospace)' : 'inherit',
+                fontSize: '0.75rem',
+                color:
+                  val === 'Passed'
+                    ? 'var(--ansi-green, #10B981)'
+                    : 'var(--text-primary)',
+                wordBreak: 'break-all',
+                fontWeight: val === 'Passed' ? 600 : 500,
+              }}
             >
               {val}
             </span>
@@ -851,27 +1067,21 @@ function StepReady({
         ))}
       </div>
 
-      {/* Central Launch CTA */}
-      <m.button
-        onClick={onLaunch}
-        className="relative group w-full py-4 mt-2 overflow-hidden bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-[var(--accent-contrast)] text-sm font-extrabold tracking-widest uppercase rounded-2xl cursor-pointer transition-all duration-300 flex items-center justify-center gap-2.5 shadow-[0_0_24px_rgba(var(--accent-primary-rgb),0.35)]"
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.97 }}
+      <div
+        style={{
+          fontSize: '0.75rem',
+          color: 'var(--text-secondary)',
+          opacity: 0.55,
+          lineHeight: 1.6,
+        }}
       >
-        <Rocket className="w-4 h-4 fill-current shrink-0" />
-        <span>LAUNCH CORTEX</span>
-        {/* Glow overlay */}
-        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
-      </m.button>
-
-      <p className="text-[10px] text-neutral-500 leading-relaxed text-center">
-        Stored locally. Modifiable anytime in Settings (Cmd+, / Ctrl+,).
-      </p>
+        <div>All configuration is stored locally and can be modified at any time via the Settings Panel (Cmd+, / Ctrl+,).</div>
+      </div>
     </div>
   );
 }
 
-// ── Main Onboarding Component ─────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
 interface FirstRunOnboardingScreenProps {
   onComplete: () => void;
@@ -885,35 +1095,26 @@ export const FirstRunOnboardingScreen = memo(
     const [direction, setDirection] = useState<1 | -1>(1);
     const [workspacePath, setWorkspacePath] = useState('');
     const [scanDone, setScanDone] = useState(false);
-    const [selectedTheme, setSelectedTheme] = useState('cortex');
-    const [selectedLayout, setSelectedLayout] = useState('1x1');
 
     const currentStep = STEPS[stepIndex];
 
-    // Load initial workspace path and configuration settings
+    // Load existing workspace path if set
     useEffect(() => {
       getSetting<string>('workspace.defaultPath', '').then(setWorkspacePath);
-      getSetting<string>('cortex_theme', 'cortex').then(setSelectedTheme);
-      getSetting<string>('cortex_layout_type', '1x1').then(setSelectedLayout);
     }, []);
 
-    const canProceed = currentStep !== 'environment' || scanDone;
+    const canProceed = currentStep !== 'scan' || scanDone;
 
     const goNext = useCallback(async () => {
       if (!canProceed) return;
       if (stepIndex === STEPS.length - 1) {
-        // Persist all user options
-        await Promise.all([
-          setSetting('workspace.defaultPath', workspacePath),
-          setSetting('cortex_theme', selectedTheme),
-          setSetting('cortex_layout_type', selectedLayout)
-        ]);
+        if (workspacePath) await setSetting('workspace.defaultPath', workspacePath);
         onComplete();
         return;
       }
       setDirection(1);
       setStepIndex((i) => i + 1);
-    }, [stepIndex, workspacePath, selectedTheme, selectedLayout, onComplete, canProceed]);
+    }, [stepIndex, workspacePath, onComplete, canProceed]);
 
     const goBack = useCallback(() => {
       if (stepIndex === 0) return;
@@ -921,7 +1122,7 @@ export const FirstRunOnboardingScreen = memo(
       setStepIndex((i) => i - 1);
     }, [stepIndex]);
 
-    // Keyboard controls
+    // Keyboard navigation
     useEffect(() => {
       const handler = (e: KeyboardEvent) => {
         if (e.key === 'Enter') {
@@ -938,137 +1139,197 @@ export const FirstRunOnboardingScreen = memo(
       return () => window.removeEventListener('keydown', handler);
     }, [canProceed, goNext, goBack, stepIndex]);
 
-    const xAmt = shouldReduceMotion ? 0 : 40;
+    const xAmt = shouldReduceMotion ? 0 : 44;
     const slideVariants: Variants = {
-      enter: (dir: number) => ({ opacity: 0, x: dir * xAmt, filter: 'blur(4px)' }),
-      center: { opacity: 1, x: 0, filter: 'blur(0px)' },
-      exit: (dir: number) => ({ opacity: 0, x: dir * -xAmt, filter: 'blur(4px)' }),
+      enter: (dir: number) => ({ opacity: 0, x: dir * xAmt }),
+      center: { opacity: 1, x: 0 },
+      exit: (dir: number) => ({ opacity: 0, x: dir * -xAmt }),
     };
 
     return (
-      <div className="relative w-full h-full flex flex-col bg-neutral-950 overflow-hidden select-none">
-        {/* Dynamic aurora glow overlay */}
-        <AuroraGlow theme={selectedTheme} />
-
-        {/* ── Top Header ─────────────────────────────────────── */}
-        <div className="flex-shrink-0 px-6 py-3.5 flex items-center justify-between border-b border-neutral-900/60 bg-neutral-950/40 backdrop-blur-md z-10">
-          <div className="text-[10px] font-extrabold tracking-widest text-neutral-400 uppercase">
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: 'var(--bg-color)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* ── Top header ─────────────────────────────────────── */}
+        <div
+          style={{
+            flexShrink: 0,
+            padding: '0.75rem 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid var(--border-color)',
+            zIndex: 60,
+          }}
+        >
+          <div
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+              color: 'var(--text-secondary)',
+              opacity: 0.6,
+              textTransform: 'uppercase' as const,
+            }}
+          >
             Cortex Space Setup
           </div>
-          <div className="text-[10px] font-semibold text-neutral-500 uppercase">
+          <div
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              opacity: 0.6,
+            }}
+          >
             Step {stepIndex + 1} of {STEPS.length}
           </div>
         </div>
 
-        {/* ── Progress Bar ───────────────────────────────────── */}
-        <div className="flex-shrink-0 h-[2px] bg-neutral-900/40 z-10">
+        {/* ── Progress bar ───────────────────────────────────── */}
+        <div
+          style={{
+            flexShrink: 0,
+            height: '2px',
+            backgroundColor: 'color-mix(in srgb, var(--border-color) 60%, transparent)',
+            zIndex: 60,
+          }}
+        >
           <m.div
-            className="h-full bg-[var(--accent-primary)] shadow-[0_0_8px_rgba(var(--accent-primary-rgb),0.5)]"
+            style={{ height: '100%', backgroundColor: 'var(--accent-primary)' }}
             initial={false}
             animate={{
               width: `${((stepIndex + 1) / STEPS.length) * 100}%`,
             }}
-            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           />
         </div>
 
         {/* ── Main content area ───────────────────────────────── */}
-        <div className="flex-grow flex items-center justify-center p-6 overflow-hidden z-10">
-          <div className="w-full max-w-[540px]">
-            {/* Glassmorphic Wizard Card */}
-            <div className="p-6 md:p-8 bg-[#0f0f11]/70 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_48px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
-              <AnimatePresence mode="wait" custom={direction}>
-                <m.div
-                  key={currentStep}
-                  custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{
-                    duration: 0.3,
-                    ease: [0.23, 1, 0.32, 1],
-                  }}
-                >
-                  {currentStep === 'boot' && (
-                    <StepBoot skip={shouldReduceMotion ?? false} />
-                  )}
-                  {currentStep === 'environment' && (
-                    <StepEnvironment
-                      path={workspacePath}
-                      setPath={setWorkspacePath}
-                      setScanDone={setScanDone}
-                    />
-                  )}
-                  {currentStep === 'persona' && (
-                    <StepPersona
-                      selectedTheme={selectedTheme}
-                      setSelectedTheme={setSelectedTheme}
-                      selectedLayout={selectedLayout}
-                      setSelectedLayout={setSelectedLayout}
-                    />
-                  )}
-                  {currentStep === 'concepts' && <StepConcepts />}
-                  {currentStep === 'ready' && (
-                    <StepReady
-                      workspacePath={workspacePath}
-                      selectedTheme={selectedTheme}
-                      selectedLayout={selectedLayout}
-                      onLaunch={goNext}
-                    />
-                  )}
-                </m.div>
-              </AnimatePresence>
-            </div>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            padding: '2.5rem 2rem',
+          }}
+        >
+          <div style={{ width: '100%', maxWidth: '520px' }}>
+            <AnimatePresence mode="wait" custom={direction}>
+              <m.div
+                key={currentStep}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{
+                  duration: 0.3,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              >
+                {currentStep === 'boot' && (
+                  <StepBoot skip={shouldReduceMotion ?? false} />
+                )}
+                {currentStep === 'workspace' && (
+                  <StepWorkspace
+                    path={workspacePath}
+                    setPath={setWorkspacePath}
+                  />
+                )}
+                {currentStep === 'scan' && (
+                  <StepScan onScanComplete={() => setScanDone(true)} />
+                )}
+                {currentStep === 'concepts' && <StepConcepts />}
+                {currentStep === 'ready' && (
+                  <StepReady workspacePath={workspacePath} />
+                )}
+              </m.div>
+            </AnimatePresence>
           </div>
         </div>
 
         {/* ── Bottom action bar ───────────────────────────────── */}
-        <div className="flex-shrink-0 px-6 py-4 flex items-center justify-between border-t border-neutral-900/60 bg-neutral-950/40 backdrop-blur-md z-10">
+        <div
+          style={{
+            flexShrink: 0,
+            borderTop: '1px solid var(--border-color)',
+            padding: '0.75rem 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: 'var(--bg-color)',
+            zIndex: 60,
+          }}
+        >
           {/* Back button */}
           <Button
             onClick={goBack}
             disabled={stepIndex === 0}
             variant="ghost"
-            className="text-xs font-semibold px-4 h-8 text-neutral-400 hover:text-white rounded-xl active:scale-97"
+            size="sm"
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 600,
+            }}
           >
             Back
           </Button>
 
-          {/* Progress dots */}
-          <div className="flex items-center gap-1.5">
+          {/* Step pip indicators */}
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          >
             {STEPS.map((_, i) => (
               <div
                 key={i}
-                className="h-[3px] rounded-full transition-all duration-300"
                 style={{
-                  width: i === stepIndex ? 16 : 4,
+                  width: i === stepIndex ? 18 : 4,
+                  height: 3,
                   backgroundColor:
                     i === stepIndex
                       ? 'var(--accent-primary)'
                       : i < stepIndex
-                      ? 'rgba(var(--accent-primary-rgb), 0.35)'
-                      : 'rgba(255, 255, 255, 0.1)',
-                  boxShadow: i === stepIndex ? '0 0 6px rgba(var(--accent-primary-rgb), 0.35)' : 'none'
+                      ? 'color-mix(in srgb, var(--accent-primary) 35%, transparent)'
+                      : 'var(--border-color)',
+                  transition: 'all 0.3s ease',
                 }}
               />
             ))}
           </div>
 
-          {/* Continue/Launch button */}
+          {/* Proceed button */}
           <Button
             onClick={goNext}
             disabled={!canProceed}
             variant={canProceed ? 'default' : 'outline'}
-            className={`text-xs font-bold px-4 h-8 rounded-xl transition-all duration-200 active:scale-97 ${
-              canProceed
-                ? 'bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-[var(--accent-contrast)] shadow-[0_0_12px_rgba(var(--accent-primary-rgb),0.2)]'
-                : 'border-neutral-800 text-neutral-500 pointer-events-none'
-            }`}
+            size="sm"
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 600,
+            }}
           >
             {stepIndex === STEPS.length - 1 ? 'Enter Workspace' : 'Continue'}
           </Button>
         </div>
+
+        {/* ── Keyframe injection ──────────────────────────────── */}
+        <style>{`
+          @keyframes cortex-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+          }
+        `}</style>
       </div>
     );
   }

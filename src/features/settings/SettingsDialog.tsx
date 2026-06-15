@@ -278,7 +278,7 @@ export function SettingsDialog({
           onValueChange={setActiveTab}
           className="w-full flex-1 flex flex-col overflow-hidden mt-4"
         >
-          <TabsList className="w-full grid grid-cols-7 shrink-0">
+          <TabsList className={`w-full grid shrink-0 ${import.meta.env.DEV ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="general" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Settings2 size={13} /> General
             </TabsTrigger>
@@ -294,9 +294,11 @@ export function SettingsDialog({
             <TabsTrigger value="agents" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Cpu size={13} /> Agents
             </TabsTrigger>
-            <TabsTrigger value="demo" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
-              <FlaskConical size={13} /> Demo
-            </TabsTrigger>
+            {import.meta.env.DEV && (
+              <TabsTrigger value="demo" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
+                <FlaskConical size={13} /> Demo
+              </TabsTrigger>
+            )}
             <TabsTrigger value="about" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Info size={13} /> About
             </TabsTrigger>
@@ -380,14 +382,16 @@ export function SettingsDialog({
             <AgentsTab />
           </TabsContent>
 
-          <TabsContent value="demo" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>
-            <DemoTab
-              demo={demoSettings}
-              setDemoSetting={setDemoSetting}
-              onResetDemo={resetDemo}
-              onFactoryReset={handleFactoryReset}
-            />
-          </TabsContent>
+           {import.meta.env.DEV && (
+            <TabsContent value="demo" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>
+              <DemoTab
+                demo={demoSettings}
+                setDemoSetting={setDemoSetting}
+                onResetDemo={resetDemo}
+                onFactoryReset={handleFactoryReset}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="about" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>
             <AboutTab />

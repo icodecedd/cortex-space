@@ -13,7 +13,8 @@ import {
   Palette, 
   Rocket, 
   Target, 
-  Monitor
+  Monitor,
+  AlertTriangle
 } from "@/components/ui/icons";
 import { 
   Select, 
@@ -424,6 +425,31 @@ export function GeneralTab({
               </Button>
             </div>
           </div>
+        </SettingsCard>
+      </motion.div>
+
+      {/* 5. Maintenance / Reset */}
+      <motion.div variants={itemVariants}>
+        <SettingsCard 
+          title="Maintenance" 
+          icon={<AlertTriangle size={16} className="text-red-500" />}
+          description="System resets and configuration wipe options."
+        >
+          <SettingsRow
+            label="Factory Reset"
+            description="Completely wipe all application settings back to defaults."
+            htmlFor="general-factory-reset"
+          >
+            <Button 
+              id="general-factory-reset"
+              variant="destructive" 
+              size="xs" 
+              onClick={() => setIsFactoryResetOpen(true)}
+              className="h-7 text-[10px] font-bold tracking-wider"
+            >
+              Wipe Everything
+            </Button>
+          </SettingsRow>
         </SettingsCard>
       </motion.div>
     </motion.div>

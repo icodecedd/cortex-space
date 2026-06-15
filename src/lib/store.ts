@@ -2,8 +2,9 @@ import { load } from '@tauri-apps/plugin-store';
 import defaults from "@/data/defaults.json";
 
 // We load the store lazily. In Tauri v2, load() returns a promise.
-// 'settings.json' will be stored in the app's config directory.
-const storePromise = load('settings.json', { autoSave: true, defaults: {} });
+// 'settings.json' (or 'settings.dev.json' in dev mode) will be stored in the app's config directory.
+const storeFilename = import.meta.env.DEV ? 'settings.dev.json' : 'settings.json';
+const storePromise = load(storeFilename, { autoSave: true, defaults: {} });
 
 export const getStore = () => storePromise;
 
