@@ -19,9 +19,9 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-6">
           <div className="relative">
-            <m.div 
+            <m.div
               layout
-              className="relative z-10 flex items-center justify-center overflow-hidden transition-all duration-700 shadow-md"
+              className="relative z-10 flex items-center justify-center overflow-hidden transition-all duration-700"
               style={{
                 width: step > 1 ? '32px' : '48px',
                 height: step > 1 ? '32px' : '48px',
@@ -40,7 +40,7 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
           </div>
 
           <div className="flex flex-col justify-center">
-            <m.h2 
+            <m.h2
               layout
               className="font-bold tracking-tighter m-0 leading-none transition-all duration-700 text-[var(--text-primary)]"
               style={{
@@ -50,7 +50,7 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
               {SETUP_CONTENT.TITLE}<span className="text-[var(--accent-primary)] brightness-110"> {SETUP_CONTENT.SUBTITLE}</span>
             </m.h2>
             {step === 1 && (
-              <m.p 
+              <m.p
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 0.5, x: 0 }}
                 className="text-[9px] text-[var(--text-secondary)] font-bold uppercase tracking-[0.2em] mt-2"
@@ -61,11 +61,11 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
           </div>
         </div>
 
-        <m.div 
+        <m.div
           layout
           className="flex items-center gap-3"
         >
-          <span 
+          <span
             className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 text-[var(--accent-primary)]"
           >
             {mode === 'agents' ? 'AI Assisted' : 'Terminal Mode'}
@@ -81,21 +81,21 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
         </p>
         <div className="flex items-center gap-3">
           {[1, 2, 3].map(i => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className={`group flex items-center gap-3 transition-all duration-500 ${step === i ? 'opacity-100' : 'opacity-30 hover:opacity-50'}`}
             >
-              <div 
+              <div
                 className={`w-8 h-8 flex items-center justify-center rounded-xl border text-[10px] font-bold transition-all duration-500 ${
-                  step === i 
-                    ? 'border-[var(--accent-primary)] text-[var(--accent-primary)] bg-[var(--accent-primary)]/5' 
+                  step === i
+                    ? 'border-[var(--accent-primary)] text-[var(--accent-primary)] bg-[var(--accent-primary)]/5'
                     : 'border-[var(--border-color)] text-[var(--text-secondary)]'
                 }`}
               >
                 0{i}
               </div>
               {step === i && (
-                <m.span 
+                <m.span
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-primary)] whitespace-nowrap"

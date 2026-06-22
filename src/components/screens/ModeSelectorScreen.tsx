@@ -86,7 +86,7 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
         <div className="flex flex-col items-start gap-10 text-left">
           <motion.div
             variants={itemVariants}
-            className="w-20 h-20 rounded-[2rem] flex items-center justify-center overflow-hidden shadow-[0_20px_40px_-10px_rgba(var(--accent-primary-rgb),0.3)] relative group"
+            className="w-20 h-20 rounded-[2rem] flex items-center justify-center overflow-hidden"
           >
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             <img
