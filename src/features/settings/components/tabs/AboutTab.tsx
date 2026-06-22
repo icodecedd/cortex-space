@@ -241,7 +241,7 @@ export function AboutTab() {
               </Button>
               <Button 
                 variant="outline" 
-                className="h-8 text-[10px] px-3 font-bold bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-950 text-white border-zinc-700/50 hover:border-zinc-500 hover:brightness-110 shadow-md transition-all"
+                className="h-8 text-[10px] px-3 font-bold bg-gradient-secondary border border-[var(--gradient-secondary-border)] hover:brightness-110 shadow-md transition-all text-[var(--text-primary)]"
                 onClick={handleViewGithub}
               >
                 <Github size={12} className="mr-2" /> View GitHub

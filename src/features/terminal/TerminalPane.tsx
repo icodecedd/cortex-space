@@ -40,7 +40,7 @@ interface TerminalPaneProps {
   const [fixedCoords, setFixedCoords] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
 
   useEffect(() => {
-    if ((isMaximized || isZenMode) && isFocused) {
+    if (isZenMode && isFocused) {
       const updateCoords = () => {
         const el = document.querySelector('.space-view-container');
         if (el) {
@@ -66,9 +66,9 @@ interface TerminalPaneProps {
     } else {
       setFixedCoords(null);
     }
-  }, [isMaximized, isZenMode, isFocused]);
+  }, [isZenMode, isFocused]);
 
-  const isHidden = (isMaximized || isZenMode) && !isFocused;
+  const isHidden = isZenMode && !isFocused;
 
   const paneContent = (
     <div

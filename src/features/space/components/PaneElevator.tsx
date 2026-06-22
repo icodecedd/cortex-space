@@ -6,8 +6,8 @@ import {
   SquareSplitHorizontal, 
   Trash2, 
   RefreshCw, 
-  Maximize2, 
-  Minimize2,
+  ArrowExpand01Icon,
+  ArrowShrink01Icon,
   ExternalLink,
   Globe
 } from "@/components/ui/icons";
@@ -29,6 +29,8 @@ import { toast } from "sonner";
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { m } from "framer-motion";
 import type { DetectedPort } from '../../terminal/components/XtermTerminal';
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { parseShortcutToKeys } from "@/lib/shortcut-utils";
 
 interface PaneElevatorProps {
   paneId: string;
@@ -60,6 +62,23 @@ export function PaneElevator({
   detectedPorts = [],
   headerVisibility = 'hover'
 }: PaneElevatorProps) {
+  const isMac = typeof window !== 'undefined' && navigator.userAgent.includes('Mac');
+
+  const renderShortcut = (shortcut: string) => {
+    return (
+      <KbdGroup className="gap-0.5 flex items-center justify-end">
+        {parseShortcutToKeys(shortcut, isMac).map((key, idx) => (
+          <Kbd
+            key={idx}
+            className="min-w-4 h-4 px-1 text-[8px] flex items-center justify-center font-mono bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20"
+          >
+            {key}
+          </Kbd>
+        ))}
+      </KbdGroup>
+    );
+  };
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: paneId,
   });
@@ -262,7 +281,7 @@ export function PaneElevator({
                 onClick={onMaximize}
                 className="h-7 w-7 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5 rounded-lg transition-all"
               >
-                {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                {isMaximized ? <ArrowShrink01Icon size={16} /> : <ArrowExpand01Icon size={16} />}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" sideOffset={8} className="text-[10px] font-bold bg-[var(--surface-color)] border-white/10 text-[var(--text-primary)] px-3 py-2 rounded-xl shadow-2xl">
@@ -280,32 +299,32 @@ export function PaneElevator({
                 <MoreVertical size={16} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 bg-[var(--surface-color)]/90 backdrop-blur-2xl border-white/10 rounded-2xl p-2 shadow-2xl">
-              <DropdownMenuItem onClick={onRelaunch} className="rounded-xl px-3 py-2.5 text-xs font-bold gap-3">
+            <DropdownMenuContent align="end" className="w-64 bg-[var(--surface-color)]/95 backdrop-blur-xl border-[var(--border-color)] p-1 text-[var(--text-primary)] shadow-2xl rounded-lg">
+              <DropdownMenuItem onClick={onRelaunch} className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer text-xs font-bold px-3 py-2">
                 <RefreshCw className="h-3.5 w-3.5 opacity-60" />
                 <span>Reload Terminal</span>
-                <DropdownMenuShortcut className="text-[9px] font-mono opacity-40 ml-auto">^⌥R</DropdownMenuShortcut>
+                <DropdownMenuShortcut className="ml-auto flex items-center">{renderShortcut("Ctrl+Alt+R")}</DropdownMenuShortcut>
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/5 my-1" />
-              <DropdownMenuItem onClick={() => onSplit?.('horizontal')} className="rounded-xl px-3 py-2.5 text-xs font-bold gap-3">
+              <DropdownMenuSeparator className="bg-[var(--text-primary)]/10 my-1" />
+              <DropdownMenuItem onClick={() => onSplit?.('horizontal')} className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer text-xs font-bold px-3 py-2">
                 <SquareSplitHorizontal className="h-3.5 w-3.5 opacity-60" />
                 <span>Split Horizontally</span>
-                <DropdownMenuShortcut className="text-[9px] font-mono opacity-40 ml-auto">^⌥H</DropdownMenuShortcut>
+                <DropdownMenuShortcut className="ml-auto flex items-center">{renderShortcut("Ctrl+Alt+H")}</DropdownMenuShortcut>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSplit?.('vertical')} className="rounded-xl px-3 py-2.5 text-xs font-bold gap-3">
+              <DropdownMenuItem onClick={() => onSplit?.('vertical')} className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer text-xs font-bold px-3 py-2">
                 <SquareSplitVertical className="h-3.5 w-3.5 opacity-60" />
                 <span>Split Vertically</span>
-                <DropdownMenuShortcut className="text-[9px] font-mono opacity-40 ml-auto">^⌥V</DropdownMenuShortcut>
+                <DropdownMenuShortcut className="ml-auto flex items-center">{renderShortcut("Ctrl+Alt+V")}</DropdownMenuShortcut>
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/5 my-1" />
+              <DropdownMenuSeparator className="bg-[var(--text-primary)]/10 my-1" />
               <DropdownMenuItem 
                 variant="destructive"
-                className="rounded-xl px-3 py-2.5 text-xs font-bold gap-3 cursor-pointer text-red-400 focus:bg-red-400/10 focus:text-red-400"
+                className="flex items-center gap-2 text-xs font-bold px-3 py-2 cursor-pointer text-red-400 focus:bg-red-400/10 focus:text-red-400 rounded-md"
                 onClick={onKill}
               >
                 <Trash2 className="h-3.5 w-3.5 opacity-60" />
                 <span>Close Window</span>
-                <DropdownMenuShortcut className="text-[9px] font-mono opacity-40 ml-auto">^⌥W</DropdownMenuShortcut>
+                <DropdownMenuShortcut className="ml-auto flex items-center">{renderShortcut("Ctrl+Alt+W")}</DropdownMenuShortcut>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

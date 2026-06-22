@@ -156,7 +156,7 @@ export function usePty(
 
   const relaunch = useCallback(async () => {
     setIsTerminated(false);
-    await terminalSessionManager.forceKill(id);
+    await terminalSessionManager.killForRelaunch(id);
     await spawn({
       command: config?.command,
       cwd: config?.cwd,

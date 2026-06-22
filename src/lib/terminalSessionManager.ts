@@ -377,6 +377,42 @@ class SessionManager {
     }
   }
 
+  /**
+   * Kill the PTY process and dispose the xterm instance, but preserve the
+   * session record and its data/exit callbacks so that `usePty` can
+   * continue to receive data after re-spawn without needing to re-register.
+   */
+  async killForRelaunch(id: string) {
+    const session = this.sessions.get(id);
+    if (session) {
+      if (session.cleanupTimeout) {
+        clearTimeout(session.cleanupTimeout);
+      }
+      // Reset buffer so old output doesn't replay
+      session.buffer = [];
+      session.bufferLength = 0;
+      session.isTerminated = false;
+    }
+    // Dispose xterm so the lifecycle effect creates a fresh one
+    const term = this.xtermInstances.get(id);
+    if (term) {
+      try { term.dispose(); } catch {}
+      this.xtermInstances.delete(id);
+    }
+    this.fitAddons.delete(id);
+    // Clear delegates — they will be re-set by the XtermTerminal effect
+    this.writeDelegates.delete(id);
+    this.resizeDelegates.delete(id);
+    this.keyEventHandlerDelegates.delete(id);
+    this.activePortChecks.delete(id);
+    this.releaseAllPortsForTerminal(id);
+    try {
+      await invoke('kill_pty', { id });
+    } catch (e) {
+      console.warn(`Failed to kill PTY ${id} for relaunch:`, e);
+    }
+  }
+
   hasSession(id: string): boolean {
     return this.sessions.has(id) && !this.sessions.get(id)?.isTerminated;
   }

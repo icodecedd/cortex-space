@@ -17,6 +17,11 @@
   --accent-primary-rgb: 235, 121, 120;
   --accent-contrast: #000000;
 
+  /* Theme-agnostic gradient tokens */
+  --gradient-primary: var(--accent-primary);
+  --gradient-secondary: var(--surface-color);
+  --gradient-secondary-border: var(--border-color);
+
   /* Copper theme constants for custom gradients */
   --copper-light: #de6f50;
   --copper: #D97757;
@@ -216,15 +221,46 @@ h4 {
 }
 
 /* Cortex Default Theme Custom Overrides */
-[data-theme="cortex"] .btn-tactile.primary {
-  background: linear-gradient(to right, var(--copper-light), var(--copper), var(--copper-dark));
-  color: #ffffff;
-  border-color: var(--copper-dark);
+[data-theme="cortex"] {
+  --gradient-primary: linear-gradient(to right, var(--copper-light), var(--copper), var(--copper-dark));
+  --gradient-secondary: linear-gradient(to bottom, #3f3f46, #27272a, #09090b);
+  --gradient-secondary-border: #3f3f46;
 }
 
-[data-theme="cortex"] .btn-tactile.primary:hover {
-  filter: brightness(1.08);
-  box-shadow: 0 4px 16px rgba(var(--copper-rgb), 0.35);
+[data-theme="cortex"] .btn-tactile.primary,
+[data-theme="cortex"] .bg-primary,
+[data-theme="cortex"] button[data-variant="default"],
+[data-theme="cortex"] button.bg-\[var\(--accent-primary\)\] {
+  background: var(--gradient-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--copper-dark) !important;
+}
+
+[data-theme="cortex"] .btn-tactile.primary:hover,
+[data-theme="cortex"] .bg-primary:hover,
+[data-theme="cortex"] button[data-variant="default"]:hover,
+[data-theme="cortex"] button.bg-\[var\(--accent-primary\)\]:hover {
+  filter: brightness(1.08) !important;
+  box-shadow: 0 4px 16px rgba(var(--copper-rgb), 0.35) !important;
+}
+
+/* Gradient Utility Helpers */
+.bg-gradient-primary {
+  background: var(--gradient-primary) !important;
+}
+
+.bg-gradient-secondary {
+  background: var(--gradient-secondary) !important;
+}
+
+[data-theme="cortex"] .bg-gradient-primary {
+  color: #ffffff !important;
+  border-color: var(--copper-dark) !important;
+}
+
+[data-theme="cortex"] .bg-gradient-secondary {
+  color: var(--text-primary) !important;
+  border-color: var(--gradient-secondary-border) !important;
 }
 
 [data-theme="cortex"] h1,

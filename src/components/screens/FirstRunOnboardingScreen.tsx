@@ -9,7 +9,7 @@ import { useAgents } from '@/hooks/useAgents';
 import { useTheme } from '@/hooks/useTheme';
 import { 
   Cpu, CheckCircle2, Loader2, Download, ArrowRight,
-  Zap, Target, Palette, Settings, Monitor, FolderOpen, Check, ShieldCheck
+  Zap, Target, Palette, Settings, Monitor, FolderOpen, Check, ShieldCheck, AlertCircle
 } from '@/components/ui/icons';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -17,6 +17,7 @@ import {
 type FlowMode = 'starter' | 'custom' | null;
 
 type CheckStatus = 'pending' | 'checking' | 'ok' | 'warn' | 'fail';
+type InstallableTool = 'node' | 'git';
 
 interface SysCheck {
   id: string;
@@ -24,6 +25,23 @@ interface SysCheck {
   description: string;
   status: CheckStatus;
   detail: string;
+}
+
+interface WorkspacePathValidation {
+  valid: boolean;
+  normalized_path: string | null;
+  message: string;
+  can_write: boolean;
+}
+
+interface PathValidationState {
+  status: 'idle' | 'checking' | 'valid' | 'invalid';
+  message: string;
+  normalizedPath: string;
+}
+
+function isInstallableTool(id: string): id is InstallableTool {
+  return id === 'node' || id === 'git';
 }
 
 // ── Scramble Text ─────────────────────────────────────────────────────────────
@@ -90,73 +108,68 @@ const ScrambleText = memo(function ScrambleText({
 
 // ── Boot Log ─────────────────────────────────────────────────────────────────
 
-const BOOT_LINES = [
-  'Initializing Cortex environment...',
-  'Syncing local workspace configurations...',
-  'Configuring high-agency agent protocols...',
-  'Loading visual theme definitions...',
-  'Establishing secure shell connectors...',
-  'Boot sequence complete. System ready.',
+const INITIAL_BOOT_CHECKS: SysCheck[] = [
+  { id: 'environment', label: 'Initializing Cortex environment', description: 'Resolving local home and application runtime', status: 'pending', detail: '' },
+  { id: 'workspace-sync', label: 'Syncing local workspace configurations', description: 'Loading saved workspace defaults', status: 'pending', detail: '' },
+  { id: 'agents', label: 'Configuring high-agency agent protocols', description: 'Preparing agent registry and command checks', status: 'pending', detail: '' },
+  { id: 'themes', label: 'Loading visual theme definitions', description: 'Verifying bundled and custom themes', status: 'pending', detail: '' },
+  { id: 'shell', label: 'Establishing secure shell connectors', description: 'Detecting default terminal executable', status: 'pending', detail: '' },
 ];
 
 const BootLog = memo(function BootLog({ 
-  skip, 
-  onFinished 
+  checks,
+  finished,
 }: { 
-  skip: boolean; 
-  onFinished: () => void; 
+  checks: SysCheck[];
+  finished: boolean;
 }) {
-  const [visibleLines, setVisibleLines] = useState(skip ? BOOT_LINES.length : 0);
-
-  useEffect(() => {
-    if (skip) {
-      onFinished();
-      return;
-    }
-    let i = 0;
-    const id = setInterval(() => {
-      i++;
-      setVisibleLines(i);
-      if (i >= BOOT_LINES.length) {
-        clearInterval(id);
-        onFinished();
-      }
-    }, 180);
-    return () => clearInterval(id);
-  }, [skip, onFinished]);
+  const statusColor: Record<CheckStatus, string> = {
+    pending: 'var(--text-secondary)',
+    checking: 'var(--accent-primary)',
+    ok: 'var(--ansi-green, #10B981)',
+    warn: 'var(--ansi-yellow, #F59E0B)',
+    fail: 'var(--ansi-red, #EF4444)',
+  };
 
   return (
     <div
-      className="rounded-lg border border-[var(--border-color)]/30 bg-neutral-950/40 p-4 font-mono text-[11px] leading-relaxed select-none overflow-hidden"
+      className="rounded-lg border border-[var(--border-color)]/30 bg-[var(--bg-color)]/60 p-4 font-mono text-[11px] leading-relaxed select-none overflow-hidden"
       style={{
         fontFamily: 'var(--terminal-font-family, monospace)',
-        height: '148px',
+        minHeight: '148px',
       }}
     >
-      {BOOT_LINES.slice(0, visibleLines).map((line, i) => (
+      {checks.map((check) => (
         <div
-          key={i}
-          className="transition-all duration-300"
-          style={{
-            color:
-              line.includes('complete')
-                ? 'var(--ansi-green, #10B981)'
-                : 'var(--text-secondary)',
-            opacity: line.includes('complete') ? 1 : 0.75,
-          }}
+          key={check.id}
+          className="grid grid-cols-[14px_1fr] gap-1.5 transition-all duration-300"
+          style={{ color: statusColor[check.status], opacity: check.status === 'pending' ? 0.55 : 1 }}
         >
-          <span className="text-[var(--accent-primary)]/70 mr-1.5">&gt;</span>
-          {line}
-          {i === visibleLines - 1 && !line.includes('complete') && (
-            <span
-              className="ml-1 text-[var(--accent-primary)] animate-pulse"
-              style={{ animation: 'cortex-blink 1s step-end infinite' }}
-            >
-              _
-            </span>
-          )}
+          <span className="text-[var(--accent-primary)]/70">&gt;</span>
+          <span>
+            {check.label}...
+            {check.status === 'checking' && (
+              <span
+                className="ml-1 text-[var(--accent-primary)] animate-pulse"
+                style={{ animation: 'cortex-blink 1s step-end infinite' }}
+              >
+                _
+              </span>
+            )}
+            {check.detail && (
+              <span className="block text-[10px] text-[var(--text-secondary)] opacity-70">
+                {check.detail}
+              </span>
+            )}
+          </span>
         </div>
       ))}
+      {finished && (
+        <div className="grid grid-cols-[14px_1fr] gap-1.5 mt-1 text-[var(--ansi-green, #10B981)]">
+          <span className="text-[var(--accent-primary)]/70">&gt;</span>
+          <span>Boot sequence complete. System ready.</span>
+        </div>
+      )}
     </div>
   );
 });
@@ -168,13 +181,17 @@ function StepFoundation({
   path,
   setPath,
   bootFinished,
-  setBootFinished,
+  bootChecks,
+  bootFailed,
+  pathValidation,
   skip,
 }: {
   path: string;
   setPath: (v: string) => void;
   bootFinished: boolean;
-  setBootFinished: (v: boolean) => void;
+  bootChecks: SysCheck[];
+  bootFailed: boolean;
+  pathValidation: PathValidationState;
   skip: boolean;
 }) {
   const [browseError, setBrowseError] = useState('');
@@ -213,7 +230,16 @@ function StepFoundation({
 
       <div className="w-full h-[1px] bg-[var(--border-color)] opacity-20" />
 
-      <BootLog skip={skip} onFinished={() => setBootFinished(true)} />
+      <BootLog checks={bootChecks} finished={bootFinished} />
+
+      {bootFailed && (
+        <div className="flex items-start gap-2 rounded-lg border border-[var(--ansi-red,#EF4444)]/30 bg-[var(--ansi-red,#EF4444)]/10 p-3 text-left">
+          <AlertCircle size={14} className="mt-0.5 text-[var(--ansi-red,#EF4444)] shrink-0" />
+          <span className="text-xs font-semibold text-[var(--ansi-red,#EF4444)]">
+            Cortex could not complete startup checks. Resolve the failed item above before continuing.
+          </span>
+        </div>
+      )}
 
       <AnimatePresence>
         {bootFinished && (
@@ -244,14 +270,20 @@ function StepFoundation({
                       setBrowseError('');
                     }}
                     placeholder="workspace"
-                    className="pl-8 font-mono text-xs h-9 bg-[var(--surface-color)] border-[var(--border-color)]"
+                    aria-invalid={pathValidation.status === 'invalid'}
+                    className={`pl-8 font-mono text-xs h-9 bg-[var(--surface-color)] ${
+                      pathValidation.status === 'invalid'
+                        ? 'border-[var(--ansi-red,#EF4444)]'
+                        : pathValidation.status === 'valid'
+                        ? 'border-[var(--ansi-green,#10B981)]/70'
+                        : 'border-[var(--border-color)]'
+                    }`}
                   />
                 </div>
 
                 <Button
                   onClick={handleBrowse}
-                  variant="outline"
-                  className="h-9 text-xs px-4 font-bold border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/40 transition-all active:scale-[0.98]"
+                  className="h-9 text-xs px-4 font-bold bg-[var(--accent-primary)] border-[var(--accent-primary)] text-[var(--accent-contrast)] hover:brightness-110 active:scale-[0.98] transition-all"
                 >
                   <FolderOpen size={13} className="mr-1.5" />
                   Browse
@@ -263,10 +295,31 @@ function StepFoundation({
                   {browseError}
                 </span>
               )}
+              {pathValidation.status !== 'idle' && (
+                <span
+                  className={`text-xs font-semibold tracking-wide mt-1 flex items-center gap-1.5 ${
+                    pathValidation.status === 'invalid'
+                      ? 'text-[var(--ansi-red,#EF4444)]'
+                      : pathValidation.status === 'valid'
+                      ? 'text-[var(--ansi-green,#10B981)]'
+                      : 'text-[var(--accent-primary)]'
+                  }`}
+                >
+                  {pathValidation.status === 'checking' && <Loader2 size={12} className="animate-spin" />}
+                  {pathValidation.status === 'valid' && <CheckCircle2 size={12} />}
+                  {pathValidation.status === 'invalid' && <AlertCircle size={12} />}
+                  {pathValidation.message}
+                </span>
+              )}
+              {pathValidation.normalizedPath && (
+                <span className="text-[10px] font-mono text-[var(--text-secondary)] opacity-60 break-all">
+                  Resolved path: {pathValidation.normalizedPath}
+                </span>
+              )}
             </div>
 
             <p className="text-[11px] text-[var(--text-secondary)] opacity-60 leading-normal">
-              Workspace path directs your default working directory for code sessions and agent triggers. Leave blank for home directory.
+              Workspace path directs your default working directory for code sessions and agent triggers. Relative values resolve inside your home directory; leave blank to use home.
             </p>
           </m.div>
         )}
@@ -498,7 +551,7 @@ function StepPickProfile({
                       value={proShell}
                       onChange={(e) => setProShell(e.target.value)}
                       placeholder="e.g. powershell.exe, bash, zsh"
-                      className="h-8 font-mono text-xs bg-neutral-950 border-[var(--border-color)]"
+                      className="h-8 font-mono text-xs bg-[var(--bg-color)] border-[var(--border-color)]"
                     />
                     <div className="flex gap-1">
                       {['powershell.exe', 'cmd.exe', 'wsl.exe'].map((sh) => (
@@ -509,7 +562,7 @@ function StepPickProfile({
                           className={`px-2 rounded font-mono text-[9px] font-bold border transition-colors ${
                             proShell === sh
                               ? 'bg-[var(--accent-primary)] text-[var(--accent-contrast)] border-[var(--accent-primary)]'
-                              : 'bg-neutral-900 border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/35'
+                              : 'bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/35'
                           }`}
                         >
                           {sh.split('.')[0]}
@@ -532,11 +585,16 @@ function StepSystemScan({
   checks,
   scanDone,
   agentStatusText,
+  installingTools,
+  onInstallTool,
 }: {
   checks: SysCheck[];
   scanDone: boolean;
   agentStatusText?: string;
+  installingTools: Partial<Record<InstallableTool, boolean>>;
+  onInstallTool: (tool: InstallableTool) => void;
 }) {
+  const hasFailure = checks.some((check) => check.status === 'fail');
   const STATUS_COLOR: Record<CheckStatus, string> = {
     pending: 'var(--text-secondary)',
     checking: 'var(--accent-primary)',
@@ -569,7 +627,7 @@ function StepSystemScan({
 
       <div className="w-full h-[1px] bg-[var(--border-color)] opacity-20" />
 
-      <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-neutral-950/20 divide-y divide-[var(--border-color)]/40 overflow-hidden font-mono text-[11px]">
+      <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]/20 divide-y divide-[var(--border-color)]/40 overflow-hidden font-mono text-[11px]">
         {checks.map((check) => (
           <div key={check.id} className="flex justify-between items-center p-3">
             <div className="flex flex-col gap-0.5">
@@ -582,6 +640,22 @@ function StepSystemScan({
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              {isInstallableTool(check.id) && check.status === 'fail' && (
+                <Button
+                  type="button"
+                  onClick={() => onInstallTool(check.id as InstallableTool)}
+                  disabled={installingTools[check.id]}
+                  variant="outline"
+                  className="h-7 px-2 text-[10px] font-bold border-[var(--ansi-red,#EF4444)]/40 bg-[var(--surface-color)] text-[var(--text-primary)] hover:border-[var(--accent-primary)]/50"
+                >
+                  {installingTools[check.id] ? (
+                    <Loader2 size={11} className="mr-1 animate-spin" />
+                  ) : (
+                    <Download size={11} className="mr-1" />
+                  )}
+                  Install
+                </Button>
+              )}
               {check.status === 'checking' && (
                 <m.div
                   animate={{ rotate: 360 }}
@@ -617,13 +691,17 @@ function StepSystemScan({
           <m.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-1 text-xs text-[var(--ansi-green, #10B981)] font-semibold mt-1"
+            className={`flex flex-col gap-1 text-xs font-semibold mt-1 ${
+              hasFailure ? 'text-[var(--ansi-red, #EF4444)]' : 'text-[var(--ansi-green, #10B981)]'
+            }`}
           >
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 size={13} />
-              Diagnostics complete. Environment verified.
+              {hasFailure ? <AlertCircle size={13} /> : <CheckCircle2 size={13} />}
+              {hasFailure
+                ? 'Diagnostics complete. Resolve failed checks before continuing.'
+                : 'Diagnostics complete. Environment verified.'}
             </span>
-            {agentStatusText && (
+            {agentStatusText && !hasFailure && (
               <span className="text-[10px] text-[var(--text-secondary)] opacity-80 pl-4.5">
                 {agentStatusText}
               </span>
@@ -643,11 +721,15 @@ function StepRuntime({
   setShell,
   checks,
   systemShell,
+  installingTools,
+  onInstallTool,
 }: {
   shell: string;
   setShell: (v: string) => void;
   checks: SysCheck[];
   systemShell: string;
+  installingTools: Partial<Record<InstallableTool, boolean>>;
+  onInstallTool: (tool: InstallableTool) => void;
 }) {
   return (
     <div className="flex flex-col gap-6 w-full max-w-xl">
@@ -703,7 +785,7 @@ function StepRuntime({
       {/* Scan section */}
       <div className="flex flex-col gap-2.5">
         <span className="text-xs font-bold text-[var(--text-primary)]">System Diagnostics</span>
-        <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-neutral-950/20 divide-y divide-[var(--border-color)]/40 overflow-hidden font-mono text-[11px]">
+        <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]/20 divide-y divide-[var(--border-color)]/40 overflow-hidden font-mono text-[11px]">
           {checks.map((check) => (
             <div key={check.id} className="flex justify-between items-center p-2.5">
               <div className="flex flex-col">
@@ -711,6 +793,21 @@ function StepRuntime({
                 <span className="text-[9px] text-[var(--text-secondary)] opacity-65">{check.detail || check.description}</span>
               </div>
               <div className="flex items-center gap-1.5">
+                {isInstallableTool(check.id) && check.status === 'fail' && (
+                  <button
+                    type="button"
+                    onClick={() => onInstallTool(check.id as InstallableTool)}
+                    disabled={installingTools[check.id]}
+                    className="h-6 px-2 rounded border border-[var(--ansi-red,#EF4444)]/40 bg-[var(--surface-color)] text-[9px] font-bold text-[var(--text-primary)] hover:border-[var(--accent-primary)]/50 disabled:opacity-60 inline-flex items-center gap-1"
+                  >
+                    {installingTools[check.id] ? (
+                      <Loader2 size={10} className="animate-spin" />
+                    ) : (
+                      <Download size={10} />
+                    )}
+                    Install
+                  </button>
+                )}
                 {check.status === 'checking' && (
                   <m.div
                     animate={{ rotate: 360 }}
@@ -762,7 +859,7 @@ function StepIntelligence({
       <div className="w-full h-[1px] bg-[var(--border-color)] opacity-20" />
 
       {!isInitialized ? (
-        <div className="flex items-center justify-center p-8 border border-dashed border-[var(--border-color)] rounded-xl bg-neutral-950/20 gap-3">
+        <div className="flex items-center justify-center p-8 border border-dashed border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]/20 gap-3">
           <Loader2 size={16} className="animate-spin text-[var(--accent-primary)]" />
           <span className="font-mono text-xs text-[var(--text-secondary)]">Scanning agent repositories...</span>
         </div>
@@ -777,7 +874,7 @@ function StepIntelligence({
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                   agent.status === 'installed' 
                     ? 'bg-[var(--ansi-green)]/10 text-[var(--ansi-green)]' 
-                    : 'bg-neutral-900 text-[var(--text-secondary)]'
+                    : 'bg-[var(--surface-color)] text-[var(--text-secondary)]'
                 }`}>
                   <Cpu size={15} />
                 </div>
@@ -818,7 +915,7 @@ function StepIntelligence({
                       <button
                         type="button"
                         onClick={() => installAgent(agent.id)}
-                        className="px-1.5 py-0.5 rounded border border-[var(--border-color)] bg-neutral-900 text-[9px] font-bold text-[var(--text-secondary)] hover:text-white"
+                        className="px-1.5 py-0.5 rounded border border-[var(--border-color)] bg-[var(--surface-color)] text-[9px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                       >
                         Retry
                       </button>
@@ -933,7 +1030,7 @@ function StepPersonalization({
               }`}
             >
               {/* Mock Grid graphic */}
-              <div className="grid grid-cols-2 gap-0.5 w-9 h-7 border border-[var(--border-color)] p-0.5 rounded bg-neutral-950/40">
+              <div className="grid grid-cols-2 gap-0.5 w-9 h-7 border border-[var(--border-color)] p-0.5 rounded bg-[var(--bg-color)]/60">
                 <div className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 rounded-xs" />
                 <div className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 rounded-xs" />
                 <div className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 rounded-xs" />
@@ -952,7 +1049,7 @@ function StepPersonalization({
               }`}
             >
               {/* Mock Flex graphic */}
-              <div className="flex flex-col gap-0.5 w-9 h-7 border border-[var(--border-color)] p-0.5 rounded bg-neutral-950/40">
+              <div className="flex flex-col gap-0.5 w-9 h-7 border border-[var(--border-color)] p-0.5 rounded bg-[var(--bg-color)]/60">
                 <div className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 rounded-xs flex-1" />
                 <div className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 rounded-xs flex-1" />
               </div>
@@ -972,7 +1069,7 @@ function StepPersonalization({
                 id="font-family-select"
                 value={customFontFamily}
                 onChange={(e) => setCustomFontFamily(e.target.value)}
-                className="h-7 text-[10px] font-mono rounded bg-neutral-950 border-[var(--border-color)] py-0 text-[var(--text-primary)]"
+                className="h-7 text-[10px] font-mono rounded bg-[var(--bg-color)] border-[var(--border-color)] py-0 text-[var(--text-primary)]"
               >
                 <option value="JetBrains Mono">JetBrains Mono</option>
                 <option value="Geist Mono">Geist Mono</option>
@@ -995,7 +1092,7 @@ function StepPersonalization({
                 step="1"
                 value={customFontSize}
                 onChange={(e) => setCustomFontSize(parseInt(e.target.value, 10))}
-                className="accent-[var(--accent-primary)] h-1 cursor-pointer w-full bg-neutral-900"
+                className="accent-[var(--accent-primary)] h-1 cursor-pointer w-full bg-[var(--surface-color)]"
               />
             </div>
           </div>
@@ -1044,7 +1141,7 @@ function StepActivation({
       <div className="w-full h-[1px] bg-[var(--border-color)] opacity-20" />
 
       {/* Review table */}
-      <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-neutral-950/20 divide-y divide-[var(--border-color)]/30 overflow-hidden font-mono text-xs">
+      <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]/20 divide-y divide-[var(--border-color)]/30 overflow-hidden font-mono text-xs">
         {summaryRows.map(([key, val]) => (
           <div key={key} className="flex justify-between items-center p-3 gap-4">
             <span className="text-[var(--text-secondary)] opacity-60 font-bold">{key}</span>
@@ -1079,8 +1176,15 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
 
   // Diagnostics & runtime scan
   const [bootFinished, setBootFinished] = useState(false);
+  const [bootChecks, setBootChecks] = useState<SysCheck[]>(INITIAL_BOOT_CHECKS);
   const [scanDone, setScanDone] = useState(false);
   const [systemShell, setSystemShell] = useState('cmd.exe');
+  const [installingTools, setInstallingTools] = useState<Partial<Record<InstallableTool, boolean>>>({});
+  const [pathValidation, setPathValidation] = useState<PathValidationState>({
+    status: 'idle',
+    message: '',
+    normalizedPath: '',
+  });
   const [checks, setChecks] = useState<SysCheck[]>([
     { id: 'node', label: 'Node.js Runtime', description: 'Requires v18.x or above', status: 'pending', detail: '' },
     { id: 'git', label: 'Git Version Control', description: 'Tracks repositories & themes', status: 'pending', detail: '' },
@@ -1103,17 +1207,131 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
   const { setTheme, allThemes } = useTheme();
   const { agents, installAgent, isInitialized: isAgentsInitialized } = useAgents();
 
-  // Load initial settings
+  // Run first-start checks against real local state before allowing setup to continue.
   useEffect(() => {
-    getSetting<string>('workspace.defaultPath', '').then(setWorkspacePath);
-    
-    // Detect system shell in background
-    invoke<string>('get_default_shell')
-      .then((sh) => {
-        if (sh) setSystemShell(sh.trim());
-      })
-      .catch(() => {});
-  }, []);
+    let cancelled = false;
+
+    const patchBoot = (id: string, update: Partial<SysCheck>) => {
+      if (cancelled) return;
+      setBootChecks((prev) => prev.map((c) => (c.id === id ? { ...c, ...update } : c)));
+    };
+
+    const runBootChecks = async () => {
+      let hasFailure = false;
+      setBootFinished(false);
+      setBootChecks(INITIAL_BOOT_CHECKS);
+
+      patchBoot('environment', { status: 'checking', detail: '' });
+      try {
+        const home = await invoke<string | null>('get_home_dir');
+        if (!home) throw new Error('Home directory unavailable');
+        patchBoot('environment', { status: 'ok', detail: `Home: ${home}` });
+      } catch (error) {
+        hasFailure = true;
+        patchBoot('environment', {
+          status: 'fail',
+          detail: error instanceof Error ? error.message : 'Unable to initialize local environment',
+        });
+      }
+
+      patchBoot('workspace-sync', { status: 'checking', detail: '' });
+      try {
+        const [workspaceDefault, legacyDefault] = await Promise.all([
+          getSetting<string>('workspace.defaultPath', ''),
+          getSetting<string>('cortex_default_path', ''),
+        ]);
+        const savedPath = workspaceDefault || legacyDefault;
+        if (!cancelled) setWorkspacePath(savedPath);
+        patchBoot('workspace-sync', {
+          status: 'ok',
+          detail: savedPath ? `Loaded saved workspace: ${savedPath}` : 'No saved workspace path; home directory will be used',
+        });
+      } catch (error) {
+        hasFailure = true;
+        patchBoot('workspace-sync', {
+          status: 'fail',
+          detail: error instanceof Error ? error.message : 'Failed to load local workspace settings',
+        });
+      }
+
+      patchBoot('agents', { status: 'checking', detail: '' });
+      if (!isAgentsInitialized) {
+        patchBoot('agents', { status: 'checking', detail: 'Waiting for agent registry initialization' });
+        return;
+      }
+      patchBoot('agents', {
+        status: 'ok',
+        detail: `${agents.filter((a) => a.isDefault).length} default agents registered`,
+      });
+
+      patchBoot('themes', { status: 'checking', detail: '' });
+      if (allThemes.length > 0) {
+        patchBoot('themes', { status: 'ok', detail: `${allThemes.length} themes available` });
+      } else {
+        hasFailure = true;
+        patchBoot('themes', { status: 'fail', detail: 'No visual themes were loaded' });
+      }
+
+      patchBoot('shell', { status: 'checking', detail: '' });
+      try {
+        const shell = await invoke<string>('get_default_shell');
+        if (!shell?.trim()) throw new Error('Default shell unavailable');
+        if (!cancelled) setSystemShell(shell.trim());
+        patchBoot('shell', { status: 'ok', detail: shell.trim() });
+      } catch (error) {
+        hasFailure = true;
+        patchBoot('shell', {
+          status: 'fail',
+          detail: error instanceof Error ? error.message : 'Unable to detect default shell',
+        });
+      }
+
+      if (!cancelled) setBootFinished(!hasFailure);
+    };
+
+    runBootChecks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agents, allThemes.length, isAgentsInitialized]);
+
+  useEffect(() => {
+    if (!bootFinished) return;
+
+    let cancelled = false;
+    const rawPath = workspacePath;
+
+    setPathValidation({
+      status: 'checking',
+      message: rawPath.trim() ? 'Validating workspace path...' : 'Validating home directory...',
+      normalizedPath: '',
+    });
+
+    const id = window.setTimeout(async () => {
+      try {
+        const result = await invoke<WorkspacePathValidation>('validate_workspace_path', { path: rawPath });
+        if (cancelled) return;
+        setPathValidation({
+          status: result.valid ? 'valid' : 'invalid',
+          message: result.message,
+          normalizedPath: result.normalized_path || '',
+        });
+      } catch (error) {
+        if (cancelled) return;
+        setPathValidation({
+          status: 'invalid',
+          message: error instanceof Error ? error.message : 'Path validation failed.',
+          normalizedPath: '',
+        });
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
+    };
+  }, [bootFinished, workspacePath]);
 
   // Compute active steps list
   const steps = getStepsList(flowMode);
@@ -1135,7 +1353,6 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
       setChecks((prev) => prev.map((c) => (c.id === id ? { ...c, ...update } : c)));
 
     const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
     // Reset statuses
     setChecks((prev) => prev.map((c) => ({ ...c, status: 'pending', detail: '' })));
     setScanDone(false);
@@ -1145,9 +1362,17 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
     await delay(350);
     try {
       const v = await invoke<string>('check_node_version');
-      patch('node', { status: 'ok', detail: v ? v.trim().slice(0, 20) : 'v18.x detected' });
-    } catch {
-      patch('node', { status: 'ok', detail: 'v18.2 detected' });
+      const major = Number.parseInt(v.trim().replace(/^v/, '').split('.')[0] || '0', 10);
+      if (Number.isFinite(major) && major >= 18) {
+        patch('node', { status: 'ok', detail: v.trim().slice(0, 40) });
+      } else {
+        patch('node', { status: 'fail', detail: `${v.trim() || 'Unknown version'} detected; v18+ required` });
+      }
+    } catch (error) {
+      patch('node', {
+        status: 'fail',
+        detail: typeof error === 'string' ? error : 'Node.js was not found on PATH',
+      });
     }
 
     // Git
@@ -1155,9 +1380,12 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
     await delay(350);
     try {
       const v = await invoke<string>('check_git_version');
-      patch('git', { status: 'ok', detail: v ? v.trim().slice(0, 20) : 'v2.x detected' });
-    } catch {
-      patch('git', { status: 'ok', detail: 'v2.40 detected' });
+      patch('git', { status: 'ok', detail: v ? v.trim().slice(0, 40) : 'Git detected' });
+    } catch (error) {
+      patch('git', {
+        status: 'fail',
+        detail: typeof error === 'string' ? error : 'Git was not found on PATH',
+      });
     }
 
     // Shell
@@ -1165,18 +1393,67 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
     await delay(300);
     try {
       const v = await invoke<string>('get_default_shell');
-      patch('shell', { status: 'ok', detail: v ? v.trim() : 'cmd.exe' });
-    } catch {
-      patch('shell', { status: 'ok', detail: 'cmd.exe' });
+      if (!v?.trim()) throw new Error('Default shell unavailable');
+      patch('shell', { status: 'ok', detail: v.trim() });
+    } catch (error) {
+      patch('shell', {
+        status: 'fail',
+        detail: error instanceof Error ? error.message : 'Default shell unavailable',
+      });
     }
 
     // Disk
     patch('disk', { status: 'checking' });
     await delay(250);
-    patch('disk', { status: 'ok', detail: 'Permission verified' });
+    try {
+      const result = await invoke<WorkspacePathValidation>('validate_workspace_path', { path: workspacePath });
+      if (result.valid) {
+        patch('disk', { status: 'ok', detail: result.normalized_path || 'Workspace directory writable' });
+      } else {
+        patch('disk', { status: 'fail', detail: result.message });
+      }
+    } catch (error) {
+      patch('disk', {
+        status: 'fail',
+        detail: error instanceof Error ? error.message : 'Workspace permission check failed',
+      });
+    }
 
     setScanDone(true);
-  }, []);
+  }, [workspacePath]);
+
+  const installTool = useCallback(async (tool: InstallableTool) => {
+    setInstallingTools((prev) => ({ ...prev, [tool]: true }));
+    setScanDone(false);
+    setChecks((prev) =>
+      prev.map((check) =>
+        check.id === tool
+          ? { ...check, status: 'checking', detail: `Installing stable ${tool === 'node' ? 'Node.js LTS' : 'Git'} release...` }
+          : check
+      )
+    );
+
+    try {
+      await invoke('install_dev_tool', { tool });
+      await runSystemScan();
+    } catch (error) {
+      const detail = typeof error === 'string'
+        ? error
+        : error instanceof Error
+        ? error.message
+        : `Failed to install ${tool}.`;
+      setChecks((prev) =>
+        prev.map((check) =>
+          check.id === tool
+            ? { ...check, status: 'fail', detail }
+            : check
+        )
+      );
+      setScanDone(true);
+    } finally {
+      setInstallingTools((prev) => ({ ...prev, [tool]: false }));
+    }
+  }, [runSystemScan]);
 
   // Run scans when diagnostic steps load
   useEffect(() => {
@@ -1205,15 +1482,20 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
     }
   }, [customTheme, flowMode, currentStep, setTheme]);
 
+  const bootFailed = bootChecks.some((check) => check.status === 'fail');
+  const isInstallingTool = Object.values(installingTools).some(Boolean);
+  const scanPassed = scanDone && !isInstallingTool && checks.every((check) => check.status !== 'fail');
+  const workspacePathReady = pathValidation.status === 'valid';
+
   // Logic validation for moving forward
   const canProceed = useCallback(() => {
-    if (currentStep === 'foundation') return bootFinished;
+    if (currentStep === 'foundation') return bootFinished && workspacePathReady;
     if (currentStep === 'choice') return flowMode !== null;
     if (currentStep === 'pick-profile') return selectedProfile !== null;
-    if (currentStep === 'verification') return scanDone;
-    if (currentStep === 'runtime') return scanDone;
+    if (currentStep === 'verification') return scanPassed;
+    if (currentStep === 'runtime') return scanPassed;
     return true;
-  }, [currentStep, bootFinished, flowMode, selectedProfile, scanDone]);
+  }, [currentStep, bootFinished, workspacePathReady, flowMode, selectedProfile, scanPassed]);
 
   // Navigation handlers
   const goNext = useCallback(async () => {
@@ -1221,7 +1503,7 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
 
     if (currentStep === 'activation') {
       // Collect settings to commit
-      let path = workspacePath;
+      let path = pathValidation.normalizedPath || workspacePath.trim();
       let themeName = 'cortex';
       let layout = 'grid';
       let shell = '';
@@ -1253,6 +1535,7 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
       // Commit to settings store
       await Promise.all([
         setSetting('workspace.defaultPath', path),
+        setSetting('cortex_default_path', path),
         setSetting('appearance.theme', themeName),
         setSetting('workspace.layout', layout),
         setSetting('terminal.shell', shell),
@@ -1278,6 +1561,7 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
     canProceed,
     currentStep,
     workspacePath,
+    pathValidation.normalizedPath,
     flowMode,
     selectedProfile,
     proShellPreference,
@@ -1399,7 +1683,9 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
                   path={workspacePath}
                   setPath={setWorkspacePath}
                   bootFinished={bootFinished}
-                  setBootFinished={setBootFinished}
+                  bootChecks={bootChecks}
+                  bootFailed={bootFailed}
+                  pathValidation={pathValidation}
                   skip={shouldReduceMotion ?? false}
                 />
               )}
@@ -1421,6 +1707,8 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
                 <StepSystemScan
                   checks={checks}
                   scanDone={scanDone}
+                  installingTools={installingTools}
+                  onInstallTool={installTool}
                   agentStatusText={
                     selectedProfile === 'intelligence' 
                       ? 'AI-First profile: AI agents verified and pre-scanned.'
@@ -1435,6 +1723,8 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
                   setShell={setCustomShell}
                   checks={checks}
                   systemShell={systemShell}
+                  installingTools={installingTools}
+                  onInstallTool={installTool}
                 />
               )}
 
@@ -1462,7 +1752,7 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
 
               {currentStep === 'activation' && (
                 <StepActivation
-                  path={workspacePath}
+                  path={pathValidation.normalizedPath || workspacePath}
                   themeName={getThemeDisplayName()}
                   layoutName={getLayoutDisplayName()}
                   shellName={getShellDisplayName()}
@@ -1481,6 +1771,7 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
           disabled={stepIndex === 0}
           variant="ghost"
           className="text-xs h-8 px-3 font-semibold text-[var(--text-secondary)] disabled:opacity-30 hover:bg-[var(--surface-color)]/40 hover:text-[var(--text-primary)] transition-all"
+          style={{ visibility: stepIndex === 0 ? 'hidden' : 'visible' }}
         >
           Back
         </Button>
@@ -1507,13 +1798,20 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
         <Button
           onClick={goNext}
           disabled={!canProceed()}
-          className={`text-xs h-8 px-4 font-bold border transition-all ${
+          className={`text-xs h-8 px-4 font-bold border transition-all flex items-center gap-1.5 ${
             canProceed()
               ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)] text-[var(--accent-contrast)] hover:brightness-110 active:scale-[0.98]'
               : 'bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)] opacity-50'
           }`}
         >
-          {currentStep === 'activation' ? 'Enter Workspace' : 'Continue'}
+          {currentStep === 'activation' ? (
+            'Enter Workspace'
+          ) : (
+            <>
+              Continue
+              <ArrowRight size={13} className="shrink-0" />
+            </>
+          )}
         </Button>
       </div>
 

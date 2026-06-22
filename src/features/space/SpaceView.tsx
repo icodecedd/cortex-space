@@ -279,7 +279,17 @@ export const SpaceView = React.memo(({
                   </div>
                 ))}
              </div>
-          ) : (
+           ) : isMaximized && focusedPaneId ? (
+              // Maximized mode: render only the focused pane at full size, bypassing
+              // the resizable layout so handles and non-focused panes don't appear.
+              (() => {
+                const focusedPane = allPanes.find(p => p.id === focusedPaneId);
+                if (focusedPane) {
+                  return renderTerminalPane(focusedPane, true);
+                }
+                return renderLayout(layoutTree);
+              })()
+            ) : (
             renderLayout(layoutTree)
           )}
         </DndContext>

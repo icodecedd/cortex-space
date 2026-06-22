@@ -16,6 +16,14 @@ use portable_pty::{native_pty_system, CommandBuilder, PtySize, MasterPty, Child}
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
+#[derive(Serialize)]
+struct WorkspacePathValidation {
+    valid: bool,
+    normalized_path: Option<String>,
+    message: String,
+    can_write: bool,
+}
+
 #[derive(Serialize, Clone)]
 struct PtyOutputPayload {
     id: String,
@@ -128,16 +136,18 @@ async fn spawn_pty<R: Runtime>(
 
             if shell_to_use.contains("pwsh.exe") || shell_to_use.contains("powershell.exe") {
                 if let Some(ref cmd_str) = command {
+                    // Pass the command directly — do NOT wrap inside another
+                    // shell invocation. The inner "pwsh.exe -Command <cmd>"
+                    // pattern spawns a transient shell that exits after the
+                    // command completes, leaving the PTY attached to a dead
+                    // process and producing a blank terminal.
                     main_cmd.args([
                         "-NoLogo",
                         "-ExecutionPolicy",
                         "Bypass",
                         "-NoExit",
                         "-Command",
-                        &format!(
-                            "{} -NoLogo -ExecutionPolicy Bypass -Command {}",
-                            shell_to_use, cmd_str
-                        ),
+                        cmd_str,
                     ]);
                 } else {
                     main_cmd.args(["-NoLogo", "-ExecutionPolicy", "Bypass"]);
@@ -162,9 +172,9 @@ async fn spawn_pty<R: Runtime>(
             main_cmd.env("TERM", "xterm-256color");
             main_cmd.env("COLORTERM", "truecolor");
 
-            match pty_pair.slave.spawn_command(main_cmd) {
+             match pty_pair.slave.spawn_command(main_cmd) {
                 Ok(c) => c,
-                Err(_) if shell_to_use == "pwsh.exe" => {
+                Err(_) => {
                     let mut ps_cmd = CommandBuilder::new("powershell.exe");
                     if let Some(ref cmd_str) = command {
                         ps_cmd.args([
@@ -198,9 +208,8 @@ async fn spawn_pty<R: Runtime>(
                     pty_pair
                         .slave
                         .spawn_command(ps_cmd)
-                        .map_err(|e| format!("Failed to spawn powershell: {}", e))?
+                        .map_err(|e| format!("Failed to spawn preferred shell ({}) and fallback powershell.exe: {}", shell_to_use, e))?
                 }
-                Err(e) => return Err(format!("Failed to spawn {}: {}", shell_to_use, e)),
             }
         } else {
             let shell_to_use = shell.unwrap_or_else(|| {
@@ -251,7 +260,11 @@ async fn spawn_pty<R: Runtime>(
             .take_writer()
             .map_err(|e| format!("Failed to take writer: {}", e))?;
 
-        Ok((pty_pair.master, writer, child, reader))
+        // Explicit error type annotation required: multiple `From<_> for String`
+        // impls (tauri_utils, url, uuid) make Rust unable to infer `E` at the
+        // `??` call-site (E0282 / E0283). Pinning it to `String` resolves the
+        // ambiguity without changing runtime behaviour.
+        Ok::<_, String>((pty_pair.master, writer, child, reader))
     })
     .await
     .map_err(|e| e.to_string())??
@@ -408,6 +421,96 @@ async fn validate_directory(path: String) -> bool {
     })
     .await
     .unwrap_or(false)
+}
+
+#[tauri::command]
+async fn validate_workspace_path(path: String) -> WorkspacePathValidation {
+    tokio::task::spawn_blocking(move || {
+        let trimmed = path.trim();
+        let Some(home_dir) = home::home_dir() else {
+            return WorkspacePathValidation {
+                valid: false,
+                normalized_path: None,
+                message: "Unable to resolve the home directory.".to_string(),
+                can_write: false,
+            };
+        };
+
+        let candidate = if trimmed.is_empty() {
+            home_dir
+        } else if trimmed == "~" {
+            home_dir
+        } else if let Some(rest) = trimmed.strip_prefix("~/").or_else(|| trimmed.strip_prefix("~\\")) {
+            home_dir.join(rest)
+        } else {
+            let raw = std::path::PathBuf::from(trimmed);
+            if raw.is_absolute() {
+                raw
+            } else {
+                home_dir.join(raw)
+            }
+        };
+
+        let normalized = candidate.to_string_lossy().to_string();
+
+        if !candidate.exists() {
+            return WorkspacePathValidation {
+                valid: false,
+                normalized_path: Some(normalized),
+                message: "Directory does not exist.".to_string(),
+                can_write: false,
+            };
+        }
+
+        if !candidate.is_dir() {
+            return WorkspacePathValidation {
+                valid: false,
+                normalized_path: Some(normalized),
+                message: "Path exists, but it is not a directory.".to_string(),
+                can_write: false,
+            };
+        }
+
+        let probe_id = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or_default();
+        let probe_path = candidate.join(format!(
+            ".cortex-write-test-{}-{}",
+            std::process::id(),
+            probe_id
+        ));
+        let can_write = std::fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(&probe_path)
+            .and_then(|mut file| file.write_all(b"ok"))
+            .is_ok();
+
+        if can_write {
+            let _ = std::fs::remove_file(&probe_path);
+            WorkspacePathValidation {
+                valid: true,
+                normalized_path: Some(normalized),
+                message: "Directory exists and is writable.".to_string(),
+                can_write: true,
+            }
+        } else {
+            WorkspacePathValidation {
+                valid: false,
+                normalized_path: Some(normalized),
+                message: "Directory exists, but Cortex cannot write to it.".to_string(),
+                can_write: false,
+            }
+        }
+    })
+    .await
+    .unwrap_or_else(|e| WorkspacePathValidation {
+        valid: false,
+        normalized_path: None,
+        message: format!("Path validation failed: {}", e),
+        can_write: false,
+    })
 }
 
 #[tauri::command]
@@ -582,6 +685,162 @@ async fn check_command(command: String) -> bool {
 }
 
 #[tauri::command]
+async fn check_node_version() -> Result<String, String> {
+    tokio::task::spawn_blocking(|| {
+        let mut cmd = std::process::Command::new("node");
+        cmd.arg("--version");
+        #[cfg(windows)]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        let output = cmd
+            .output()
+            .map_err(|e| format!("Node.js is unavailable: {}", e))?;
+        if !output.status.success() {
+            return Err("Node.js version check failed.".to_string());
+        }
+
+        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if version.is_empty() {
+            Err("Node.js did not report a version.".to_string())
+        } else {
+            Ok(version)
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn check_git_version() -> Result<String, String> {
+    tokio::task::spawn_blocking(|| {
+        let mut cmd = std::process::Command::new("git");
+        cmd.arg("--version");
+        #[cfg(windows)]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        let output = cmd
+            .output()
+            .map_err(|e| format!("Git is unavailable: {}", e))?;
+        if !output.status.success() {
+            return Err("Git version check failed.".to_string());
+        }
+
+        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if version.is_empty() {
+            Err("Git did not report a version.".to_string())
+        } else {
+            Ok(version)
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn run_install_command(program: &str, args: &[&str]) -> Result<(), String> {
+    let mut cmd = std::process::Command::new(program);
+    cmd.args(args);
+    #[cfg(windows)]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Failed to start {}: {}", program, e))?;
+
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let detail = if !stderr.is_empty() { stderr } else { stdout };
+
+    Err(if detail.is_empty() {
+        format!("{} exited with status {:?}", program, output.status.code())
+    } else {
+        detail
+    })
+}
+
+#[tauri::command]
+async fn install_dev_tool(tool: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        let normalized = tool.trim().to_ascii_lowercase();
+        if normalized != "node" && normalized != "git" {
+            return Err(format!("Unsupported tool: {}", tool));
+        }
+
+        #[cfg(windows)]
+        {
+            let package_id = match normalized.as_str() {
+                "node" => "OpenJS.NodeJS.LTS",
+                "git" => "Git.Git",
+                _ => unreachable!(),
+            };
+
+            return run_install_command(
+                "winget",
+                &[
+                    "install",
+                    "--id",
+                    package_id,
+                    "--exact",
+                    "--silent",
+                    "--accept-package-agreements",
+                    "--accept-source-agreements",
+                ],
+            )
+            .map_err(|e| {
+                format!(
+                    "Install failed through winget. Install winget/App Installer or run the installer manually. {}",
+                    e
+                )
+            });
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            let package = match normalized.as_str() {
+                "node" => "node",
+                "git" => "git",
+                _ => unreachable!(),
+            };
+            return run_install_command("brew", &["install", package]).map_err(|e| {
+                format!(
+                    "Install failed through Homebrew. Install Homebrew or install {} manually. {}",
+                    package, e
+                )
+            });
+        }
+
+        #[cfg(all(unix, not(target_os = "macos")))]
+        {
+            let package = match normalized.as_str() {
+                "node" => "nodejs",
+                "git" => "git",
+                _ => unreachable!(),
+            };
+
+            if run_install_command("sh", &["-c", "command -v apt-get"]).is_ok() {
+                return run_install_command("sudo", &["apt-get", "install", "-y", package]);
+            }
+            if run_install_command("sh", &["-c", "command -v dnf"]).is_ok() {
+                return run_install_command("sudo", &["dnf", "install", "-y", package]);
+            }
+            if run_install_command("sh", &["-c", "command -v pacman"]).is_ok() {
+                return run_install_command("sudo", &["pacman", "-S", "--noconfirm", package]);
+            }
+
+            Err(format!(
+                "No supported package manager found for automatic {} installation.",
+                normalized
+            ))
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 fn get_agents_dir<R: Runtime>(app: AppHandle<R>) -> Result<String, String> {
     let path = app
         .path()
@@ -696,8 +955,12 @@ pub fn run() {
             resize_pty,
             kill_pty,
             validate_directory,
+            validate_workspace_path,
             get_home_dir,
             get_default_shell,
+            check_node_version,
+            check_git_version,
+            install_dev_tool,
             check_port,
             is_port_blocked,
             check_port_lsof,

@@ -35,7 +35,7 @@ export function LayoutGridPreview({ config, layoutNode, isActive, className }: L
             "flex-1 border-[0.5px] transition-all duration-300",
             isActive
               ? "bg-[var(--accent-primary)]/15 border-[var(--accent-primary)]/40 shadow-[inset_0_0_8px_rgba(var(--accent-primary-rgb),0.1)]"
-              : "bg-neutral-900/80 border-neutral-800 group-hover:border-neutral-700/50 group-hover:bg-neutral-800/20",
+              : "bg-[var(--surface-color)]/60 border-[var(--border-color)] group-hover:border-[var(--border-color)]/60 group-hover:bg-[var(--text-primary)]/[0.03]",
             isRoot && "rounded-sm"
           )}
         />

@@ -22,10 +22,10 @@ export const UpdateToast = ({
   onDismiss,
 }: UpdateToastProps) => {
   return (
-    <div className="flex w-full max-w-md gap-4 rounded-xl border border-zinc-800 bg-[#121212] p-4 text-left shadow-2xl">
+    <div className="flex w-full max-w-md gap-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-color)] p-4 text-left shadow-2xl">
       {/* Icon Container: Square icon container sits on the far left */}
       <div className="flex-shrink-0">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-800/50 text-zinc-400">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--surface-color)] text-[var(--text-secondary)]">
           <Zap size={20} />
         </div>
       </div>
@@ -35,15 +35,15 @@ export const UpdateToast = ({
         {/* Header Row */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-zinc-100">
+            <span className="text-sm font-bold text-[var(--text-primary)]">
               A new update is available
             </span>
-            <span className="font-light text-zinc-600">|</span>
-            <span className="text-sm font-medium text-zinc-500">{version}</span>
+            <span className="font-light text-[var(--border-color)]">|</span>
+            <span className="text-sm font-medium text-[var(--text-secondary)]">{version}</span>
           </div>
           <button 
             onClick={onDismiss}
-            className="text-zinc-500 transition-colors hover:text-zinc-300"
+            className="text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
             aria-label="Dismiss"
           >
             <X size={16} />
@@ -51,7 +51,7 @@ export const UpdateToast = ({
         </div>
 
         {/* Description */}
-        <p className="mt-1 text-xs font-normal leading-relaxed text-zinc-400">
+        <p className="mt-1 text-xs font-normal leading-relaxed text-[var(--text-secondary)]">
           Includes the all new dashboard view. Pages and exports will now load faster.
         </p>
 
@@ -60,7 +60,7 @@ export const UpdateToast = ({
           {/* Primary Button ("Install now") */}
           <button
             onClick={onInstall}
-            className="rounded-lg bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-100 transition-colors hover:bg-zinc-700 active:scale-[0.98]"
+            className="rounded-lg bg-[var(--accent-primary)] px-4 py-2 text-xs font-semibold text-[var(--accent-contrast)] transition-all hover:brightness-110 active:scale-[0.98]"
           >
             Install now
           </button>
@@ -68,7 +68,7 @@ export const UpdateToast = ({
           {/* Secondary Button ("Skip this update") */}
           <button
             onClick={onDismiss}
-            className="rounded-lg border border-zinc-800 bg-transparent px-4 py-2 text-xs font-semibold text-zinc-400 transition-colors hover:bg-zinc-800/50 active:scale-[0.98]"
+            className="rounded-lg border border-[var(--border-color)] bg-transparent px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-all hover:bg-[var(--surface-color)] hover:text-[var(--text-primary)] active:scale-[0.98]"
           >
             Skip this update
           </button>

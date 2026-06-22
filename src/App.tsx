@@ -13,9 +13,7 @@ import { AppHeader } from "./components/layout/AppHeader";
 import { AppFooter } from "./components/layout/AppFooter";
 import { SplashScreen } from "./components/screens/SplashScreen";
 import { ModeSelectorScreen } from "./components/screens/ModeSelectorScreen";
-import { AgentOnboardingScreen } from "./components/screens/AgentOnboardingScreen";
 import { FirstRunOnboardingScreen } from "./components/screens/FirstRunOnboardingScreen";
-import { useAgents } from "./hooks/useAgents";
 import { getSetting, setSetting } from "./lib/store";
 import { useFocusSettings } from "./hooks/useFocusSettings";
 import { useDemoSettings } from "./hooks/useDemoSettings";
@@ -101,7 +99,6 @@ function AppInner() {
   const [appState, setAppState] = useState<AppState>("splash");
   const [splashKey, setSplashKey] = useState(0);
   const [splashTimerDone, setSplashTimerDone] = useState(false);
-  const { agents, installAgent, isInitialized } = useAgents();
 
   // ── Dialog state (pure UI — does not affect workspace logic) ────────────
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -194,13 +191,16 @@ function AppInner() {
     let cleanup: (() => void) | undefined;
 
     getSetting("startup.showSplashAnimation", true).then(async (showSplash) => {
-      const hasOnboarded = await getSetting(
-        "startup.hasOnboardedAgents",
-        false
-      );
+      const [hasCompletedOnboarding, hasOnboarded] = await Promise.all([
+        getSetting("startup.hasCompletedOnboarding", false),
+        getSetting("startup.hasOnboardedAgents", false),
+      ]);
 
       if (!showSplash) {
-        const nextState = hasOnboarded ? "running" : "agent-setup";
+        const nextState =
+          hasCompletedOnboarding || hasOnboarded
+            ? "running"
+            : "first-run-onboarding";
         setAppState(nextState);
         if (nextState === "running") initWorkspace();
         return;
@@ -231,13 +231,13 @@ function AppInner() {
       if (hasOnboarded || hasCompletedOnboarding) {
         setAppState("running");
         initWorkspace();
-      } else if (isInitialized) {
+      } else {
         // First-time user — redirect to the full first-run onboarding flow
         setAppState("first-run-onboarding");
       }
     }
     evaluateTransition();
-  }, [appState, splashTimerDone, isInitialized, initWorkspace]);
+  }, [appState, splashTimerDone, initWorkspace]);
 
   // ── Keyboard shortcuts ───────────────────────────────────────────────────
   useAppShortcuts({
@@ -349,20 +349,6 @@ function AppInner() {
               <SplashScreen
                 splashKey={splashKey}
                 reducedMotion={colorSchemeSettings.reducedMotion}
-              />
-            )}
-
-            {appState === "agent-setup" && (
-              <AgentOnboardingScreen
-                agents={agents}
-                installAgent={installAgent}
-                isInitialized={isInitialized}
-                onBack={() => setAppState("splash")}
-                onComplete={async () => {
-                  await setSetting("startup.hasOnboardedAgents", true);
-                  setAppState("running");
-                  initWorkspace();
-                }}
               />
             )}
 
