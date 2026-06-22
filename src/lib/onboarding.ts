@@ -43,7 +43,7 @@ export const INITIAL_BOOT_CHECKS: SysCheck[] = [
 // ── Starter Profile Data ──────────────────────────────────────────────────────
 
 export interface Profile {
-  id: 'zen' | 'intelligence' | 'pro';
+  id: 'zen' | 'intelligence' | 'pro' | 'creator';
   name: string;
   badge: string;
   themeId: string;
@@ -69,7 +69,7 @@ export const PROFILES: Profile[] = [
     description: 'A focused, distraction-free environment. Standard color palettes with no extra agent processes.',
     includedAgentIds: [],
     includedAgentLabels: [],
-    color: '#00F2FE',
+    color: '#D97757',
   },
   {
     id: 'intelligence',
@@ -97,5 +97,18 @@ export const PROFILES: Profile[] = [
     includedAgentIds: ['agent-opencode', 'agent-codex'],
     includedAgentLabels: ['OPENCODE', 'CODEX'],
     color: '#88C0D0',
+  },
+  {
+    id: 'creator',
+    name: "The Creator's Crucible",
+    badge: 'CREATOR',
+    themeId: 'cortex',
+    themeName: 'Cortex Default',
+    layoutName: '2x2 Grid',
+    shellLabel: 'Default Shell',
+    description: 'A comprehensive sandbox playground. Deploys all 5 default AI agents in a clean 2x2 grid.',
+    includedAgentIds: ['agent-gemini', 'agent-claude', 'agent-antigravity', 'agent-opencode', 'agent-codex'],
+    includedAgentLabels: ['GEMINI', 'CLAUDE', 'ANTIGRAVITY', 'OPENCODE', 'CODEX'],
+    color: '#A855F7',
   },
 ];

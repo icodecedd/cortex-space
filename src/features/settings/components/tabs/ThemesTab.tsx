@@ -47,6 +47,20 @@ function normalizeThemeInput(parsed: any): ThemeDefinition {
       light: parsed.light,
       isCustom: true
     };
+  } else if (parsed.light && typeof parsed.light === 'object') {
+    const requiredPalette = ['bg', 'headerBg', 'footerBg', 'surface', 'border', 'textPrimary', 'textSecondary', 'accent'];
+    for (const key of requiredPalette) {
+      if (!parsed.light[key]) {
+        throw new Error(`Missing required theme palette property under light: ${key}`);
+      }
+    }
+    return {
+      id: parsed.id,
+      name: parsed.name,
+      dark: parsed.dark,
+      light: parsed.light,
+      isCustom: true
+    };
   } else {
     const required = ['bg', 'headerBg', 'footerBg', 'surface', 'border', 'textPrimary', 'textSecondary', 'accent'];
     for (const key of required) {
@@ -69,7 +83,8 @@ function normalizeThemeInput(parsed: any): ThemeDefinition {
         ansi: parsed.ansi
       },
       light: parsed.light,
-      isCustom: true
+      isCustom: true,
+      isLegacy: true
     };
   }
 }
@@ -241,13 +256,27 @@ export function ThemesTab({
                         {/* The Pills */}
                         <div className="flex gap-0.5">
                           {(() => {
-                            const previewPalette = resolvedScheme === 'light'
-                              ? (t.light || {
-                                  bg: "#FAFAFA",
-                                  surface: "#FFFFFF",
-                                  accent: t.dark.accent
-                                })
-                              : t.dark;
+                            const previewPalette = (() => {
+                              if (t.light && t.dark) {
+                                return resolvedScheme === 'light' ? t.light : t.dark;
+                              }
+                              if (t.light) return t.light;
+                              if (t.dark) {
+                                if (resolvedScheme === 'light' && t.isLegacy) {
+                                  return {
+                                    bg: "#FAFAFA",
+                                    surface: "#FFFFFF",
+                                    accent: t.dark.accent
+                                  };
+                                }
+                                return t.dark;
+                              }
+                              return {
+                                bg: "#FAFAFA",
+                                surface: "#FFFFFF",
+                                accent: "#000000"
+                              };
+                            })();
                             return (
                               <>
                                 <div

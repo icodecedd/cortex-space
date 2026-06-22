@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 
-import { DirectoryPreset } from "@/types";
+import { DirectoryPreset } from "@/lib";
 
 interface PresetManagerProps {
   presets: DirectoryPreset[];
@@ -13,8 +13,14 @@ interface PresetManagerProps {
   rootPath: string;
 }
 
-export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: PresetManagerProps) {
-  const isDuplicate = presets.some(p => p.path === rootPath);
+export function PresetManager({
+  presets,
+  onSelect,
+  onRemove,
+  onAdd,
+  rootPath,
+}: PresetManagerProps) {
+  const isDuplicate = presets.some((p) => p.path === rootPath);
 
   return (
     <div className="mt-8">
@@ -22,7 +28,7 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
         <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-50">
           Quick Access Library
         </div>
-        {(rootPath && !isDuplicate) && (
+        {rootPath && !isDuplicate && (
           <Button
             variant="ghost"
             onClick={onAdd}
@@ -33,9 +39,9 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
           </Button>
         )}
       </div>
-      
+
       {presets.length === 0 ? (
-        <EmptyState 
+        <EmptyState
           icon={Database}
           compact
           title="No Presets Saved"
@@ -47,11 +53,13 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
           {presets.map((preset, index) => {
             const isCurrent = preset.path === rootPath;
             return (
-              <div 
-                key={preset.id} 
+              <div
+                key={preset.id}
                 className={cn(
                   "group animate-in fade-in slide-in-from-left-4 duration-500 flex items-center bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.05] border rounded-xl pl-4 pr-1.5 py-1.5 transition-all cursor-default",
-                  isCurrent ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.05)]" : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
+                  isCurrent
+                    ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.05)]"
+                    : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50",
                 )}
                 style={{ transitionDelay: `${index * 50}ms` }}
               >
@@ -59,7 +67,9 @@ export function PresetManager({ presets, onSelect, onRemove, onAdd, rootPath }: 
                   onClick={() => onSelect(preset.path)}
                   className={cn(
                     "text-[12px] font-bold tracking-tight transition-colors pr-3 border-r border-[var(--border-color)]",
-                    isCurrent ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)] opacity-60 group-hover:opacity-100"
+                    isCurrent
+                      ? "text-[var(--accent-primary)]"
+                      : "text-[var(--text-primary)] opacity-60 group-hover:opacity-100",
                   )}
                 >
                   {preset.label}

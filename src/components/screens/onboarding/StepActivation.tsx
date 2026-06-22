@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Settings, ChevronDown, ChevronRight } from '@/components/ui/icons';
-import type { Agent } from '@/types';
-import type { FlowMode, Profile } from '@/types/onboarding';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
+import type { Agent } from '@/lib';
+import type { FlowMode, Profile } from '@/lib/onboarding';
 import { LayoutThumbnail } from './StepPickProfile';
 
 // Step: Activation (Final Review — used by both flows)
@@ -55,7 +56,7 @@ export function StepActivation({
           {flowMode === 'starter' ? 'Configuration Receipt' : 'Configuration Summary'}
         </h2>
         <p className="text-xs text-[var(--text-secondary)]">
-          {flowMode === 'starter' 
+          {flowMode === 'starter'
             ? 'Review your starter pack details below. Expand the details block if you want to inspect raw variables.'
             : 'Verify your custom configuration details below. Your workspace will launch directly with these parameters.'}
         </p>
@@ -66,14 +67,14 @@ export function StepActivation({
       {flowMode === 'starter' && profile ? (
         /* Scannable 3-column receipt (Theme, Agents, Layout) */
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-2xl border border-[var(--border-color)]/30 bg-[var(--surface-color)]/10 p-5 divide-y md:divide-y-0 md:divide-x divide-[var(--border-color)]/25">
-          
+
           {/* Column 1: Theme */}
           <div className="flex flex-col gap-3 pb-4 md:pb-0 md:pr-4">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-55">
               01 / Visual Theme
             </span>
             <div className="flex items-center gap-2">
-              <div 
+              <div
                 className="w-4 h-4 rounded-full border border-black/10 shadow-sm"
                 style={{ backgroundColor: profile.color }}
               />
@@ -187,7 +188,7 @@ export function StepActivation({
       )}
 
       <div className="text-[10px] text-[var(--text-secondary)] opacity-55 leading-relaxed bg-[var(--surface-color)]/30 border border-[var(--border-color)]/25 rounded-lg p-3">
-        Your settings are stored locally in settings.json. You can alter these parameters at any time by triggering the global configuration panel (<kbd className="font-mono px-1 py-0.5 border rounded border-[var(--border-color)]">Cmd+,</kbd> or <kbd className="font-mono px-1 py-0.5 border rounded border-[var(--border-color)]">Ctrl+,</kbd>).
+        Your settings are stored locally in settings.json. You can alter these parameters at any time by triggering the global configuration panel (<KbdGroup className="gap-0.5"><Kbd>Cmd</Kbd><Kbd>,</Kbd></KbdGroup> or <KbdGroup className="gap-0.5"><Kbd>Ctrl</Kbd><Kbd>,</Kbd></KbdGroup>).
       </div>
     </div>
   );

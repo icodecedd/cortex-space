@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/icons";
 import { Reorder } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Workspace } from "@/types";
+import { Workspace } from "@/lib";
 import {
   InteractiveTab,
   COLOR_MAP,

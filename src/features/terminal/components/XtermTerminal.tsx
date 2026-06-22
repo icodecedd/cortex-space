@@ -6,7 +6,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CornerDownLeft, X } from '@/components/ui/icons';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme, ThemePalette } from '@/hooks/useTheme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { usePty } from '@/hooks/usePty';
 import { Button } from "@/components/ui/button";
@@ -134,39 +134,49 @@ export function XtermTerminal({
     loadSettings();
   }, []);
 
-  const getThemePalette = useCallback((themeName: string, scheme: 'light' | 'dark') => {
+  const getThemePalette = useCallback((themeName: string, scheme: 'light' | 'dark'): ThemePalette => {
     const themeDef = allThemes.find(t => t.id === themeName) || allThemes.find(t => t.id === 'cortex');
+    const defaultPalette: ThemePalette = {
+      bg: scheme === 'dark' ? '#09090b' : '#ffffff',
+      headerBg: scheme === 'dark' ? '#0f0f11' : '#f5f5f7',
+      footerBg: scheme === 'dark' ? '#09090b' : '#ffffff',
+      surface: scheme === 'dark' ? '#0f0f11' : '#ffffff',
+      border: scheme === 'dark' ? '#1d1d20' : '#d1d1d1',
+      textPrimary: scheme === 'dark' ? '#ffffff' : '#000000',
+      textSecondary: scheme === 'dark' ? '#A3A3A3' : '#525252',
+      accent: '#ffffff',
+      ansi: {}
+    };
+
     if (!themeDef) {
-      return {
-        bg: scheme === 'dark' ? '#09090b' : '#ffffff',
-        headerBg: scheme === 'dark' ? '#0f0f11' : '#f5f5f7',
-        footerBg: scheme === 'dark' ? '#09090b' : '#ffffff',
-        surface: scheme === 'dark' ? '#0f0f11' : '#ffffff',
-        border: scheme === 'dark' ? '#1d1d20' : '#d1d1d1',
-        textPrimary: scheme === 'dark' ? '#ffffff' : '#000000',
-        textSecondary: scheme === 'dark' ? '#A3A3A3' : '#525252',
-        accent: '#ffffff',
-        ansi: {}
-      };
+      return defaultPalette;
     }
-    if (scheme === 'light') {
-      return themeDef.light || {
-        bg: "#FAFAFA",
-        headerBg: "#FFFFFF",
-        footerBg: "#F0F0F0",
-        surface: "#FFFFFF",
-        border: "#E5E7EB",
-        textPrimary: "#111827",
-        textSecondary: "#4B5563",
-        accent: themeDef.dark.accent,
-        ansi: {
-          ...themeDef.dark.ansi,
-          black: '#111827',
-          white: '#FFFFFF'
-        }
-      };
+
+    if (themeDef.light && themeDef.dark) {
+      return scheme === 'light' ? themeDef.light : themeDef.dark;
+    } else if (themeDef.light) {
+      return themeDef.light;
+    } else if (themeDef.dark) {
+      if (scheme === 'light' && themeDef.isLegacy) {
+        return {
+          bg: "#FAFAFA",
+          headerBg: "#FFFFFF",
+          footerBg: "#F0F0F0",
+          surface: "#FFFFFF",
+          border: "#E5E7EB",
+          textPrimary: "#111827",
+          textSecondary: "#4B5563",
+          accent: themeDef.dark.accent,
+          ansi: {
+            ...themeDef.dark.ansi,
+            black: '#111827',
+            white: '#FFFFFF'
+          }
+        };
+      }
+      return themeDef.dark;
     }
-    return themeDef.dark;
+    return defaultPalette;
   }, [allThemes]);
 
   const getActiveAnsiColors = useCallback((themeName: string, scheme: 'light' | 'dark') => {

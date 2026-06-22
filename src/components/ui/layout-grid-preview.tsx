@@ -2,7 +2,7 @@ import React from "react";
 import { LayoutConfig } from "@/lib/setup-constants";
 import { configToLayoutNode, getPaneCount } from "@/lib/setup-utils";
 import { cn } from "@/lib/utils";
-import { LayoutNode, SplitNode } from "@/types";
+import { LayoutNode, SplitNode } from "@/lib";
 
 interface LayoutGridPreviewProps {
   config?: LayoutConfig;
@@ -11,7 +11,12 @@ interface LayoutGridPreviewProps {
   className?: string;
 }
 
-export function LayoutGridPreview({ config, layoutNode, isActive, className }: LayoutGridPreviewProps) {
+export function LayoutGridPreview({
+  config,
+  layoutNode,
+  isActive,
+  className,
+}: LayoutGridPreviewProps) {
   // Generate mock panes to construct the layout node if config is passed
   const node = React.useMemo(() => {
     if (layoutNode) return layoutNode;
@@ -21,12 +26,15 @@ export function LayoutGridPreview({ config, layoutNode, isActive, className }: L
       id: i + 1,
       name: `Pane ${i + 1}`,
       command: "",
-      isCustom: false
+      isCustom: false,
     }));
     return configToLayoutNode(config, mockPanes);
   }, [config, layoutNode]);
 
-  const renderNode = (n: LayoutNode, isRoot: boolean = false): React.ReactNode => {
+  const renderNode = (
+    n: LayoutNode,
+    isRoot: boolean = false,
+  ): React.ReactNode => {
     if (!n) return null;
     if (n.type === "pane") {
       return (
@@ -36,7 +44,7 @@ export function LayoutGridPreview({ config, layoutNode, isActive, className }: L
             isActive
               ? "bg-[var(--accent-primary)]/15 border-[var(--accent-primary)]/40 shadow-[inset_0_0_8px_rgba(var(--accent-primary-rgb),0.1)]"
               : "bg-[var(--surface-color)]/60 border-[var(--border-color)] group-hover:border-[var(--border-color)]/60 group-hover:bg-[var(--text-primary)]/[0.03]",
-            isRoot && "rounded-sm"
+            isRoot && "rounded-sm",
           )}
         />
       );
@@ -48,7 +56,7 @@ export function LayoutGridPreview({ config, layoutNode, isActive, className }: L
       <div
         className={cn(
           "flex flex-1 gap-[1px]",
-          direction === "vertical" ? "flex-col" : "flex-row"
+          direction === "vertical" ? "flex-col" : "flex-row",
         )}
       >
         <div style={{ flex: ratio }} className="flex flex-1">
@@ -67,7 +75,7 @@ export function LayoutGridPreview({ config, layoutNode, isActive, className }: L
     <div
       className={cn(
         "flex rounded-[4px] overflow-hidden transition-all duration-300",
-        className
+        className,
       )}
     >
       {renderNode(node, true)}

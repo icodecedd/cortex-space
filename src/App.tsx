@@ -6,7 +6,7 @@ import { SpaceView } from "./features/space/SpaceView";
 import { useTheme, ThemeName } from "./hooks/useTheme";
 import { useColorScheme } from "./hooks/useColorScheme";
 import { Toaster } from "@/components/ui/sonner";
-import { AppState } from "./types";
+import { AppState } from "./lib";
 import { useWindowControls } from "./hooks/useWindowControls";
 import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { AppHeader } from "./components/layout/AppHeader";
@@ -26,22 +26,22 @@ import { WorkspaceProvider, useWorkspace } from "./context/WorkspaceContext";
 const KeyboardShortcutsDialog = lazy(() =>
   import("./components/dialogs/KeyboardShortcutsDialog").then((m) => ({
     default: m.KeyboardShortcutsDialog,
-  }))
+  })),
 );
 const SettingsDialog = lazy(() =>
   import("./features/settings/SettingsDialog").then((m) => ({
     default: m.SettingsDialog,
-  }))
+  })),
 );
 const CortexLibraryDialog = lazy(() =>
   import("./features/cortex-library/CortexLibraryDialog").then((m) => ({
     default: m.CortexLibraryDialog,
-  }))
+  })),
 );
 const WorkspaceSwitcherDialog = lazy(() =>
   import("./components/dialogs/WorkspaceSwitcherDialog").then((m) => ({
     default: m.WorkspaceSwitcherDialog,
-  }))
+  })),
 );
 
 declare global {
@@ -143,8 +143,11 @@ function AppInner() {
     toggleZenMode,
     resetToDefaults: resetFocus,
   } = useFocusSettings();
-  const { settings: demoSettings, setDemoSetting, resetToDefaults: resetDemo } =
-    useDemoSettings();
+  const {
+    settings: demoSettings,
+    setDemoSetting,
+    resetToDefaults: resetDemo,
+  } = useDemoSettings();
 
   // ── Global event listeners ───────────────────────────────────────────────
   useEffect(() => {
@@ -166,7 +169,7 @@ function AppInner() {
     return () => {
       window.removeEventListener(
         "cortex:modal-depth-changed",
-        handleDepthChange
+        handleDepthChange,
       );
       window.removeEventListener("keydown", handleGlobalKeyDown);
     };
@@ -272,12 +275,12 @@ function AppInner() {
             command: snippet.command,
             execute,
           },
-        })
+        }),
       );
       setTemplatesOpen(false);
       setSwitcherOpen(false);
     },
-    [activeWorkspaceId]
+    [activeWorkspaceId],
   );
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -422,7 +425,9 @@ function AppInner() {
                         isZenMode={focusSettings.isZenMode}
                         setIsZenMode={(v) => setFocusSetting("isZenMode", v)}
                         zenPadding={colorSchemeSettings.zenPadding}
-                        showPaneHeaders={focusSettings.showPaneHeaders as boolean}
+                        showPaneHeaders={
+                          focusSettings.showPaneHeaders as boolean
+                        }
                         onSplitPane={handleSplitPane}
                         onMovePane={handleMovePane}
                         onKillPane={handleKillPane}
