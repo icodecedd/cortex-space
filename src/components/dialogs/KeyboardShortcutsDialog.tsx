@@ -6,12 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Kbd } from "@/components/ui/kbd";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Settings } from "@/components/ui/icons";
 import { getSettingsGroup, SHORTCUT_DEFAULTS, ShortcutSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { parseShortcutToKeys } from "@/lib/shortcut-utils";
 
 interface KeyboardShortcutsDialogProps {
   open: boolean;
@@ -21,12 +22,14 @@ interface KeyboardShortcutsDialogProps {
 
 export function KeyboardShortcutsDialog({ open, onOpenChange, onCustomize }: KeyboardShortcutsDialogProps) {
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
+  const isMac = typeof window !== 'undefined' && navigator.userAgent.includes('Mac');
 
   useEffect(() => {
     if (open) {
       getSettingsGroup<ShortcutSettings>('shortcuts', SHORTCUT_DEFAULTS).then(setShortcuts);
     }
   }, [open]);
+
 
   const groups: { title: string, items: { label: string, value: string, critical?: boolean, static?: boolean }[] }[] = [
     {
@@ -67,8 +70,8 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, onCustomize }: Key
     {
       title: "Setup Flow Hints",
       items: [
-        { label: "Next Step / Launch", value: "Ctrl + Enter", static: true },
-        { label: "Skip Preview & Launch", value: "Ctrl + Shift + Enter", static: true },
+        { label: "Next Step / Launch", value: "Ctrl+Enter", static: true },
+        { label: "Skip Preview & Launch", value: "Ctrl+Shift+Enter", static: true },
         { label: "Previous Step / Cancel", value: "Esc", static: true },
       ]
     }
@@ -108,15 +111,15 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, onCustomize }: Key
             System-wide keyboard layout controls.
           </DialogDescription>
         </DialogHeader>
-
+ 
         <ScrollArea className="flex-1 min-h-0">
           <div className="flex flex-col gap-6 px-6 py-4 pr-10 pb-8">
             {groups.map((group, idx) => (
               <div key={idx}>
-                <h4 className="text-[10px] tracking-wider text-[var(--accent-primary)] font-bold mb-3 font-mono opacity-80">
+                <h4 className="text-[10px] tracking-wider text-[var(--accent-primary)] font-bold mb-3 font-sans opacity-80">
                   {group.title}
                 </h4>
-                <div className="flex flex-col gap-3.5 font-mono text-[12px]">
+                <div className="flex flex-col gap-3.5 font-sans text-[12.5px] font-medium">
                   {group.items.map((item, itemIdx) => (
                     <div 
                       key={itemIdx} 
@@ -126,13 +129,24 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, onCustomize }: Key
                       )}
                     >
                       <span className="text-[var(--text-secondary)]/90">{item.label}</span>
-                      <Kbd className={cn(
-                        "min-w-[40px] flex justify-center",
-                        item.critical ? "text-[#F85149] border-[#F85149]/20 bg-[#F85149]/5" : "",
-                        item.static ? "bg-transparent border-none text-[var(--text-secondary)] opacity-60 italic" : ""
-                      )}>
-                        {item.value}
-                      </Kbd>
+                      {item.value === "unassigned" ? (
+                        <span className="text-[var(--text-secondary)]/40 italic text-[11px]">unassigned</span>
+                      ) : (
+                        <KbdGroup className="gap-1 flex items-center justify-end">
+                          {parseShortcutToKeys(item.value, isMac).map((key, keyIdx) => (
+                            <Kbd
+                              key={keyIdx}
+                              className={cn(
+                                "min-w-5 h-5 px-1.5 text-[10px] flex items-center justify-center font-mono bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20",
+                                item.critical ? "text-[#F85149] border-[#F85149]/30 bg-[#F85149]/5" : "",
+                                item.static ? "bg-transparent border-none text-[var(--text-secondary)] opacity-60 italic font-sans" : ""
+                              )}
+                            >
+                              {key}
+                            </Kbd>
+                          ))}
+                        </KbdGroup>
+                      )}
                     </div>
                   ))}
                 </div>

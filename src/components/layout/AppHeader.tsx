@@ -77,6 +77,18 @@ export const AppHeader = React.memo(({
 }: AppHeaderProps) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = React.useState(false);
+  const isMac = typeof window !== 'undefined' && navigator.userAgent.includes('Mac');
+
+  const formatShortcut = React.useCallback((val: string) => {
+    if (isMac) {
+      return val
+        .replace(/Ctrl/g, "⌘")
+        .replace(/Shift/g, "⇧")
+        .replace(/Alt/g, "⌥")
+        .replace(/\+/g, "");
+    }
+    return val;
+  }, [isMac]);
 
   // Shared Context Menu & Rename Dialog State
   const [contextWorkspaceId, setContextWorkspaceId] = React.useState<string | null>(null);
@@ -323,7 +335,7 @@ export const AppHeader = React.memo(({
                               <X size={14} />
                               <span className="font-bold text-xs tracking-tight">Close Space</span>
                             </div>
-                            <span className="text-[10px] opacity-60 font-mono font-bold tracking-widest uppercase">Ctrl+W</span>
+                             <span className="text-[10px] opacity-60 font-mono font-bold tracking-widest uppercase">{isMac ? "⌘W" : "Ctrl+W"}</span>
                           </ContextMenuItem>
                         </ContextMenuContent>
                       </ContextMenu>
@@ -343,9 +355,9 @@ export const AppHeader = React.memo(({
                       <Plus size={14} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
-                    {HEADER_CONTENT.NEW_WORKSPACE} {HEADER_CONTENT.NEW_WORKSPACE_SHORTCUT}
-                  </TooltipContent>
+                   <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
+                     {HEADER_CONTENT.NEW_WORKSPACE} {formatShortcut(HEADER_CONTENT.NEW_WORKSPACE_SHORTCUT)}
+                   </TooltipContent>
                 </Tooltip>
             </Reorder.Group>
           </div>
@@ -371,9 +383,9 @@ export const AppHeader = React.memo(({
                 <Rocket size={14} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
-              {HEADER_CONTENT.TEMPLATES} {HEADER_CONTENT.TEMPLATES_SHORTCUT}
-            </TooltipContent>
+             <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
+               {HEADER_CONTENT.TEMPLATES} {formatShortcut(HEADER_CONTENT.TEMPLATES_SHORTCUT)}
+             </TooltipContent>
           </Tooltip>
         )}
 
@@ -390,9 +402,9 @@ export const AppHeader = React.memo(({
                 <Keyboard size={14} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
-              {HEADER_CONTENT.SHORTCUTS} {HEADER_CONTENT.SHORTCUTS_SHORTCUT}
-            </TooltipContent>
+             <TooltipContent side="bottom" sideOffset={4} className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]">
+               {HEADER_CONTENT.SHORTCUTS} {formatShortcut(HEADER_CONTENT.SHORTCUTS_SHORTCUT)}
+             </TooltipContent>
           </Tooltip>
         )}
 

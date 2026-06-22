@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { ShortcutSettings, SHORTCUT_DEFAULTS } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
-import { getShortcutString } from "@/lib/shortcut-utils";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { getShortcutString, parseShortcutToKeys } from "@/lib/shortcut-utils";
 import { RotateCcw, Trash2, Monitor, Terminal as TerminalIcon, Zap, Command, AlertTriangle } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { SettingsCard } from "../shared/SettingsUI";
 import { ConfirmActionDialog } from "@/components/dialogs/ConfirmActionDialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+const isMac = typeof window !== 'undefined' && navigator.userAgent.includes('Mac');
 
 /** Human-readable labels for every shortcut key, used in conflict messages. */
 const SHORTCUT_LABELS: Record<keyof ShortcutSettings, string> = {
@@ -167,8 +169,8 @@ export function ShortcutsTab({
           description="Hardcoded hotkeys for the workspace initialization process."
         >
           <div className="space-y-1">
-             <StaticShortcutItem label="Next Step / Launch" value="Ctrl + Enter" />
-             <StaticShortcutItem label="Skip Preview & Launch" value="Ctrl + Shift + Enter" />
+             <StaticShortcutItem label="Next Step / Launch" value="Ctrl+Enter" />
+             <StaticShortcutItem label="Skip Preview & Launch" value="Ctrl+Shift+Enter" />
              <StaticShortcutItem label="Previous Step / Cancel" value="Esc" />
           </div>
         </SettingsCard>
@@ -181,7 +183,13 @@ function StaticShortcutItem({ label, value }: { label: string; value: string }) 
   return (
     <div className="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--text-primary)]/[0.02] transition-colors">
       <span className="text-[12px] font-bold text-[var(--text-secondary)]">{label}</span>
-      <Kbd className="bg-transparent border-none p-0 text-[var(--text-secondary)] opacity-60 italic">{value}</Kbd>
+      <KbdGroup className="gap-1 flex items-center justify-end">
+        {parseShortcutToKeys(value, isMac).map((key, idx) => (
+          <Kbd key={idx} className="min-w-5 h-5 px-1.5 text-[10px] flex items-center justify-center font-mono bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20 text-[var(--text-secondary)] opacity-60 font-sans italic">
+            {key}
+          </Kbd>
+        ))}
+      </KbdGroup>
     </div>
   );
 }
@@ -317,12 +325,19 @@ function ShortcutItem({ label, shortcutKey, currentValue, defaultValue, onChange
                 {isUnassigned ? (
                   <span className="text-[var(--text-secondary)]/40 italic font-medium">unassigned</span>
                 ) : (
-                  <Kbd className={cn(
-                    "bg-transparent border-none p-0 text-[var(--text-primary)] transition-colors",
-                    critical && "text-ansi-red"
-                  )}>
-                    {currentValue}
-                  </Kbd>
+                  <KbdGroup className="gap-1 flex items-center justify-end">
+                    {parseShortcutToKeys(currentValue, isMac).map((key, idx) => (
+                      <Kbd
+                        key={idx}
+                        className={cn(
+                          "min-w-5 h-5 px-1.5 text-[10px] flex items-center justify-center font-mono bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20 text-[var(--text-primary)] transition-colors",
+                          critical && "text-ansi-red border-red-500/20 bg-red-500/5 font-sans"
+                        )}
+                      >
+                        {key}
+                      </Kbd>
+                    ))}
+                  </KbdGroup>
                 )}
               </>
             )}
@@ -379,9 +394,15 @@ function ShortcutItem({ label, shortcutKey, currentValue, defaultValue, onChange
             <div className="mx-2 mb-1 flex items-center justify-between gap-3 rounded-md border border-amber-500/25 bg-amber-500/8 px-3 py-2">
               <div className="flex items-center gap-2 min-w-0">
                 <AlertTriangle size={11} className="text-amber-400 shrink-0" />
-                <span className="text-[10px] text-amber-300/90 font-medium leading-tight">
-                  <span className="font-mono text-amber-200">{pendingValue}</span>
-                  {" is already used by "}
+                <span className="text-[10px] text-amber-300/90 font-medium leading-tight flex items-center gap-1.5 flex-wrap">
+                  <KbdGroup className="gap-1 flex items-center">
+                    {parseShortcutToKeys(pendingValue, isMac).map((key, idx) => (
+                      <Kbd key={idx} className="bg-amber-500/20 border-amber-500/30 text-amber-200 px-1 py-0.5 h-4.5 text-[9px] font-mono font-bold leading-none flex items-center justify-center">
+                        {key}
+                      </Kbd>
+                    ))}
+                  </KbdGroup>
+                  <span>is already used by</span>
                   <span className="font-bold text-amber-200">{SHORTCUT_LABELS[conflictKey]}</span>
                 </span>
               </div>

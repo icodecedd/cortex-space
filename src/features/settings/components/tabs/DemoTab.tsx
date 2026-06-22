@@ -60,7 +60,6 @@ export function DemoTab({
           title="Destructive Operations" 
           icon={<AlertTriangle size={16} className="text-red-500" />}
           description="High-level system resets and environment wipes."
-          onReset={onResetDemo}
         >
           <SettingsRow
             label="Test Agent Onboarding"

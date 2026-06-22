@@ -8,14 +8,22 @@
 
 :root {
   /* Dynamic Theme Variables - Neutral Zinc Base */
-  --bg-color: #09090b;
-  --surface-color: #0f0f11;
-  --border-color: #1d1d20;
+  --bg-color: #0c0c0e;
+  --surface-color: #121215;
+  --border-color: #202024;
   --text-primary: #ffffff;
   --text-secondary: #a1a1aa; /* Zinc 400 */
-  --accent-primary: #FF66B2;
-  --accent-primary-rgb: 255, 102, 178;
+  --accent-primary: #eb7978;
+  --accent-primary-rgb: 235, 121, 120;
   --accent-contrast: #000000;
+
+  /* Copper theme constants for custom gradients */
+  --copper-light: #de6f50;
+  --copper: #D97757;
+  --copper-dark: #9c3c24;
+  --copper-light-rgb: 222, 111, 80;
+  --copper-rgb: 217, 119, 87;
+  --copper-dark-rgb: 156, 60, 36;
 
   /* Emil Kowalski Easing & Timing */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -205,6 +213,43 @@ h4 {
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+/* Cortex Default Theme Custom Overrides */
+[data-theme="cortex"] .btn-tactile.primary {
+  background: linear-gradient(to right, var(--copper-light), var(--copper), var(--copper-dark));
+  color: #ffffff;
+  border-color: var(--copper-dark);
+}
+
+[data-theme="cortex"] .btn-tactile.primary:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 16px rgba(var(--copper-rgb), 0.35);
+}
+
+[data-theme="cortex"] h1,
+[data-theme="cortex"] h2,
+[data-theme="cortex"] .text-metallic {
+  background: linear-gradient(to right, #09090b, #18181b, #3f3f46);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.dark[data-theme="cortex"] h1,
+.dark[data-theme="cortex"] h2,
+.dark[data-theme="cortex"] .text-metallic {
+  background: linear-gradient(to right, #ffffff, #f4f4f5, #a1a1aa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+[data-theme="cortex"] h1 span,
+[data-theme="cortex"] h2 span {
+  -webkit-text-fill-color: currentColor;
 }
 
 .mono {
@@ -799,21 +844,15 @@ body, #root {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* ── Alignment of buttons with text (under the icon) ── */
-/* When there is an icon, only the visually FIRST button gets the large offset */
-.cn-toast:has([data-icon]) [data-cancel] {
-  margin-left: 54px !important; /* 36px icon + 18px gap */
+/* Align the visually first button (Dismiss/Cancel) with the text block */
+.cn-toast [data-cancel],
+.cn-toast .cn-toast-cancel {
+  margin-left: 32px !important;
 }
 
-/* If no cancel button, action button gets the offset */
-.cn-toast:has([data-icon]):not(:has([data-cancel])) [data-button] {
-  margin-left: 54px !important;
-}
-
-/* The second button in the group only needs a small gap */
-.cn-toast [data-cancel] + [data-button],
-.cn-toast [data-button] + [data-cancel] {
-  margin-left: 6px !important;
+/* The visually second button in the group (Undo/Action) only needs a small gap */
+.cn-toast .cn-toast-action {
+  margin-left: 8px !important;
 }
 
 /* ========================================================

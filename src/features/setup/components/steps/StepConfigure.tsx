@@ -4,7 +4,7 @@ import { PaneConfig } from "@/lib/setup-constants";
 import { PaneConfigCard } from "../ui-parts/PaneConfigCard";
 import { useState } from "react";
 import { Snippet, Agent } from "@/types";
-import { toTitleCase, cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils";
 import { Combobox } from "@/components/ui/combobox";
 import { Spotlight } from "@/components/ui/spotlight";
 

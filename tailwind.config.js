@@ -27,6 +27,9 @@ export default {
           DEFAULT: "var(--accent-primary)",
           foreground: "var(--accent-contrast)",
         },
+        'copper-light': 'var(--copper-light)',
+        copper: 'var(--copper)',
+        'copper-dark': 'var(--copper-dark)',
         secondary: {
           DEFAULT: "var(--surface-color)",
           foreground: "var(--text-primary)",

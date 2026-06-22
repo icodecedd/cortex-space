@@ -1,6 +1,6 @@
 export const ASSETS = {
-  LOGO: "/cortex-logo.png",
-  LOGO_FALLBACK: "/tauri.svg"
+  LOGO: "/cortex-new-logo.png",
+  LOGO_FALLBACK: "/cortex-logo-reimagined.png"
 };
 
 export const SPLASH_CONTENT = {
@@ -17,12 +17,12 @@ export const MODE_SELECTOR_CONTENT = {
   NORMAL_MODE: {
     TITLE: "Terminal Mode",
     DESCRIPTION: "Classic terminal experience with multi-pane support",
-    SHORTCUT_LABEL: "Ctrl + N"
+    SHORTCUT_LABEL: "Ctrl+N"
   },
   AGENTS_MODE: {
     TITLE: "AI Assisted Mode",
     DESCRIPTION: "AI-powered environment for collaborative development",
-    SHORTCUT_LABEL: "Ctrl + A"
+    SHORTCUT_LABEL: "Ctrl+A"
   },
   HINTS: {
     TEMPLATES: "Templates",

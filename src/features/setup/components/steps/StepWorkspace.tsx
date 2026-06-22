@@ -1,13 +1,12 @@
 import { FolderOpen, Lock, X, Save, Database, Layout, Zap } from "@/components/ui/icons";
 import { useState } from "react";
-import { motion, Variants, m } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LayoutType, LayoutConfig, SavedLayout } from "@/lib/setup-constants";
 import { LayoutSelector } from "../ui-parts/LayoutSelector";
 import { PresetManager } from "../ui-parts/PresetManager";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spotlight } from "@/components/ui/spotlight";
 
@@ -156,8 +155,9 @@ export function StepWorkspace({
                 <div className="hidden md:block w-px h-6 bg-white/10 mx-1" />
                 <Button
                   onClick={handleBrowse}
-                  className="btn-tactile primary h-9 px-5 font-bold text-xs tracking-wider rounded-lg"
+                  className="btn-tactile primary h-9 px-4 font-bold text-xs tracking-wider rounded-lg flex items-center gap-1.5"
                 >
+                  <FolderOpen size={13} />
                   BROWSE
                 </Button>
               </div>
@@ -289,8 +289,9 @@ export function StepWorkspace({
                       <Button
                         onClick={handleSaveLayout}
                         disabled={isInvalid}
-                        className="btn-tactile primary h-9 px-5 font-bold text-xs tracking-wider rounded-lg"
+                        className="btn-tactile primary h-9 px-4 font-bold text-xs tracking-wider rounded-lg flex items-center gap-1.5"
                       >
+                        <Save size={13} />
                         SAVE CONFIG
                       </Button>
                     </div>

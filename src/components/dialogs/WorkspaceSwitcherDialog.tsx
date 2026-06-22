@@ -10,7 +10,8 @@ import { ThemeDefinition } from "@/hooks/useTheme";
 import { LayoutPreviewIcon } from "@/components/ui/layout-preview-icon";
 import { Search, Folder, Terminal, Bot, Zap, Rocket, Settings, Keyboard, Maximize, Palette, ChevronRightSquare, Code, Play, Command, X } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
-import { Kbd } from "@/components/ui/kbd";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { parseShortcutToKeys } from "@/lib/shortcut-utils";
 import { EmptyState } from "@/components/ui/empty-state";
 
 type PaletteItem = 
@@ -316,9 +317,13 @@ export function WorkspaceSwitcherDialog({
                           </div>
                         </div>
                       ) : item.shortcut && (
-                        <span className="text-[12px] font-mono text-[var(--text-secondary)] font-bold transition-colors">
-                          {item.shortcut}
-                        </span>
+                        <KbdGroup className="gap-1">
+                          {parseShortcutToKeys(item.shortcut, isMac).map((key, idx) => (
+                            <Kbd key={idx} className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1.5 font-mono">
+                              {key}
+                            </Kbd>
+                          ))}
+                        </KbdGroup>
                       )}
                     </div>
                   </div>
@@ -339,7 +344,13 @@ export function WorkspaceSwitcherDialog({
               <span>Select</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-bold">Shift+Enter</Kbd>
+              <KbdGroup className="gap-1">
+                {parseShortcutToKeys("Shift+Enter", false).map((key, idx) => (
+                  <Kbd key={idx} className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] font-bold">
+                    {key}
+                  </Kbd>
+                ))}
+              </KbdGroup>
               <span>Instant Run</span>
             </div>
           </div>

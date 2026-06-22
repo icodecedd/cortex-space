@@ -58,6 +58,7 @@ function ToastIcon({
 
   return (
     <div
+      data-icon=""
       style={{
         position: "relative",
         flexShrink: 0,

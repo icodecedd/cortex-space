@@ -200,14 +200,14 @@ export const DEFAULT_THEMES: Record<string, ThemeDefinition> = {
     id: "cortex",
     name: "Cortex Default",
     dark: {
-      bg: "#09090b",
-      headerBg: "#0f0f11",
-      footerBg: "#09090b",
-      surface: "#0f0f11",
-      border: "#1d1d20",
+      bg: "#0c0c0e",
+      headerBg: "#121215",
+      footerBg: "#0c0c0e",
+      surface: "#121215",
+      border: "#202024",
       textPrimary: "#FFFFFF",
       textSecondary: "#A3A3A3",
-      accent: "#FF66B2",
+      accent: "#D97757",
       ansi: {
         black: "#111111",
         red: "#ff5555",
@@ -227,7 +227,7 @@ export const DEFAULT_THEMES: Record<string, ThemeDefinition> = {
       border: "#D1D1D1",
       textPrimary: "#000000",
       textSecondary: "#525252",
-      accent: "#FF66B2",
+      accent: "#D97757",
       ansi: {
         black: "#000000",
         red: "#D13438",
@@ -483,9 +483,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // All CSS variable writes are batched in a single requestAnimationFrame
   // to avoid triggering multiple style recalculations per theme change.
-  const applyThemeToDocument = useCallback((config: ThemePalette) => {
+  const applyThemeToDocument = useCallback((config: ThemePalette, themeId?: string) => {
     requestAnimationFrame(() => {
       const root = document.documentElement;
+      if (themeId) {
+        root.setAttribute("data-theme", themeId);
+      }
 
       const setHexAndRgb = (propName: string, hex: string) => {
         if (!hex) return;
@@ -549,7 +552,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         resolvedScheme === "light"
           ? themeDef.light || generateLightPalette(themeDef.dark)
           : themeDef.dark;
-      applyThemeToDocument(palette);
+      applyThemeToDocument(palette, theme);
       setSetting("cortex_theme", theme);
     }
   }, [theme, resolvedScheme, isInitialized, allThemesMap, applyThemeToDocument]);
@@ -581,7 +584,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         resolvedScheme === "light"
           ? def.light || generateLightPalette(def.dark)
           : def.dark;
-      applyThemeToDocument(palette);
+      applyThemeToDocument(palette, def.id);
     },
     [resolvedScheme, applyThemeToDocument]
   );
@@ -592,7 +595,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       resolvedScheme === "light"
         ? themeDef.light || generateLightPalette(themeDef.dark)
         : themeDef.dark;
-    applyThemeToDocument(palette);
+    applyThemeToDocument(palette, theme);
   }, [theme, resolvedScheme, allThemesMap, applyThemeToDocument]);
 
   const contextValue = useMemo(

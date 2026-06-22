@@ -1,4 +1,3 @@
-import React from "react";
 import { Zap, X } from "@/components/ui/icons";
 
 export interface UpdateToastProps {

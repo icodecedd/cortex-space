@@ -212,7 +212,7 @@ export function AboutTab() {
           <div className="flex flex-col items-center py-6 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-[var(--border-color)]/40 flex items-center justify-center shadow-inner border border-[var(--border-color)] p-2.5 group hover:border-[var(--accent-primary)]/40 transition-colors duration-500">
               <img
-                src="/cortex-logo.png"
+                src="/cortex-new-logo.png"
                 alt="Cortex Logo"
                 className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all duration-700"
               />
@@ -241,7 +241,7 @@ export function AboutTab() {
               </Button>
               <Button 
                 variant="outline" 
-                className="h-8 text-[10px] px-3 font-bold bg-[var(--text-primary)]/[0.03] border-[var(--border-color)]/20 hover:bg-[var(--text-primary)]/[0.05] transition-all"
+                className="h-8 text-[10px] px-3 font-bold bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-950 text-white border-zinc-700/50 hover:border-zinc-500 hover:brightness-110 shadow-md transition-all"
                 onClick={handleViewGithub}
               >
                 <Github size={12} className="mr-2" /> View GitHub

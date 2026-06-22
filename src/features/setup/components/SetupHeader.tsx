@@ -21,7 +21,7 @@ export function SetupHeader({ step, mode, onBack }: SetupHeaderProps) {
           <div className="relative">
             <m.div 
               layout
-              className="relative z-10 bg-[var(--accent-primary)] flex items-center justify-center overflow-hidden transition-all duration-700 shadow-md"
+              className="relative z-10 flex items-center justify-center overflow-hidden transition-all duration-700 shadow-md"
               style={{
                 width: step > 1 ? '32px' : '48px',
                 height: step > 1 ? '32px' : '48px',

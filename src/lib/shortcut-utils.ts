@@ -64,3 +64,27 @@ export function getShortcutString(e: KeyboardEvent | React.KeyboardEvent): strin
   
   return parts.join('+');
 }
+
+/**
+ * Splits a shortcut string (e.g. "Ctrl+Shift+T") into an array of individual key names/symbols.
+ * Maps modifier names to standard Mac symbols if isMac is true.
+ */
+export function parseShortcutToKeys(shortcut: string, isMac: boolean): string[] {
+  if (!shortcut || shortcut === "unassigned") return [];
+  
+  // Split by '+' (with surrounding whitespace, if any)
+  const parts = shortcut.split(/\s*\+\s*/).filter(Boolean);
+  
+  if (isMac) {
+    return parts.map(part => {
+      const p = part.trim();
+      if (p === 'Ctrl') return '⌘';
+      if (p === 'Shift') return '⇧';
+      if (p === 'Alt') return '⌥';
+      return p;
+    });
+  }
+  
+  return parts.map(part => part.trim());
+}
+

@@ -4,7 +4,8 @@ import { Terminal, Users, Cpu } from "@/components/ui/icons";
 import { motion, useReducedMotion, Variants } from "framer-motion";
 import { Mode } from "@/types";
 import { setSetting, getSetting } from "@/lib/store";
-import { Kbd } from "@/components/ui/kbd";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { parseShortcutToKeys } from "@/lib/shortcut-utils";
 import { MODE_SELECTOR_CONTENT, ASSETS } from "@/lib/content";
 import { SpotlightCard } from "@/components/ui/spotlight";
 
@@ -18,6 +19,7 @@ interface ModeSelectorScreenProps {
 export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortcutHints = true, showTemplatesHint = true }: ModeSelectorScreenProps) => {
   const shouldReduceMotion = useReducedMotion();
   const [lastMode, setLastMode] = useState<Mode | null>(null);
+  const isMac = typeof window !== 'undefined' && navigator.userAgent.includes('Mac');
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -84,7 +86,7 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
         <div className="flex flex-col items-start gap-10 text-left">
           <motion.div
             variants={itemVariants}
-            className="w-20 h-20 rounded-[2rem] bg-[var(--accent-primary)] flex items-center justify-center overflow-hidden shadow-[0_20px_40px_-10px_rgba(var(--accent-primary-rgb),0.3)] relative group"
+            className="w-20 h-20 rounded-[2rem] flex items-center justify-center overflow-hidden shadow-[0_20px_40px_-10px_rgba(var(--accent-primary-rgb),0.3)] relative group"
           >
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             <img
@@ -125,16 +127,34 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
               <div className="flex flex-wrap gap-x-8 gap-y-4">
                 {showTemplatesHint && (
                   <div className="flex items-center gap-3 text-[var(--text-secondary)] text-xs font-bold hover:text-[var(--text-primary)] transition-colors cursor-default">
-                    <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)]">⌘ ⇧ T</Kbd>
+                    <KbdGroup className="gap-1">
+                      {parseShortcutToKeys("Ctrl+Shift+T", isMac).map((key, idx) => (
+                        <Kbd key={idx} className="bg-[var(--text-primary)]/5 border-[var(--border-color)]">
+                          {key}
+                        </Kbd>
+                      ))}
+                    </KbdGroup>
                     <span className="tracking-tight">{MODE_SELECTOR_CONTENT.HINTS.TEMPLATES}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-3 text-[var(--text-secondary)] text-xs font-bold hover:text-[var(--text-primary)] transition-colors cursor-default">
-                  <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)]">⌘ T</Kbd>
+                  <KbdGroup className="gap-1">
+                    {parseShortcutToKeys("Ctrl+T", isMac).map((key, idx) => (
+                      <Kbd key={idx} className="bg-[var(--text-primary)]/5 border-[var(--border-color)]">
+                        {key}
+                      </Kbd>
+                    ))}
+                  </KbdGroup>
                   <span className="tracking-tight">{MODE_SELECTOR_CONTENT.HINTS.NEW_SPACE}</span>
                 </div>
                 <div className="flex items-center gap-3 text-[var(--text-secondary)] text-xs font-bold hover:text-[var(--text-primary)] transition-colors cursor-default">
-                  <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)]">⌘ ,</Kbd>
+                  <KbdGroup className="gap-1">
+                    {parseShortcutToKeys("Ctrl+,", isMac).map((key, idx) => (
+                      <Kbd key={idx} className="bg-[var(--text-primary)]/5 border-[var(--border-color)]">
+                        {key}
+                      </Kbd>
+                    ))}
+                  </KbdGroup>
                   <span className="tracking-tight">{MODE_SELECTOR_CONTENT.HINTS.SETTINGS}</span>
                 </div>
               </div>
@@ -145,9 +165,9 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
         {/* Right Column: Mode Selection Cards (Staggered & Offset) */}
         <div className="flex flex-col gap-6 w-full relative">
           {/* Subtle connecting line or graphic could go here */}
-          
-          <motion.div 
-            variants={itemVariants} 
+
+          <motion.div
+            variants={itemVariants}
             onClick={() => handleSelectMode("normal")}
             className="transform md:translate-x-4"
           >
@@ -186,9 +206,13 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
                       {MODE_SELECTOR_CONTENT.NORMAL_MODE.TITLE}
                     </h3>
                     {showShortcutHints && (
-                      <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 group-hover:opacity-100 transition-opacity">
-                        {MODE_SELECTOR_CONTENT.NORMAL_MODE.SHORTCUT_LABEL}
-                      </span>
+                      <KbdGroup className="gap-1 opacity-30 group-hover:opacity-100 transition-opacity">
+                        {parseShortcutToKeys("Ctrl+N", isMac).map((key, idx) => (
+                          <Kbd key={idx} className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1 h-4 flex items-center justify-center font-mono">
+                            {key}
+                          </Kbd>
+                        ))}
+                      </KbdGroup>
                     )}
                   </div>
                   <p className="text-sm font-medium text-[var(--text-secondary)] leading-snug opacity-60 group-hover:opacity-90 transition-opacity max-w-[280px]">
@@ -199,8 +223,8 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
             </SpotlightCard>
           </motion.div>
 
-          <motion.div 
-            variants={itemVariants} 
+          <motion.div
+            variants={itemVariants}
             onClick={() => handleSelectMode("agents")}
             className="transform md:-translate-x-4"
           >
@@ -231,7 +255,7 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
                   >
                     <Users size={40} className="text-[var(--text-secondary)] group-hover:text-[var(--accent-primary)] transition-colors" />
                   </motion.div>
-                  <motion.div 
+                  <motion.div
                     className="absolute -bottom-1 -right-1 bg-[var(--accent-primary)] rounded-full p-1 shadow-[0_0_10px_rgba(var(--accent-primary-rgb),0.5)]"
                     animate={{
                       scale: [1, 1.2, 1],
@@ -252,9 +276,13 @@ export const ModeSelectorScreen = React.memo(({ onSelectMode, onBack, showShortc
                       {MODE_SELECTOR_CONTENT.AGENTS_MODE.TITLE}
                     </h3>
                     {showShortcutHints && (
-                      <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 group-hover:opacity-100 transition-opacity">
-                        {MODE_SELECTOR_CONTENT.AGENTS_MODE.SHORTCUT_LABEL}
-                      </span>
+                      <KbdGroup className="gap-1 opacity-30 group-hover:opacity-100 transition-opacity">
+                        {parseShortcutToKeys("Ctrl+A", isMac).map((key, idx) => (
+                          <Kbd key={idx} className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1 h-4 flex items-center justify-center font-mono">
+                            {key}
+                          </Kbd>
+                        ))}
+                      </KbdGroup>
                     )}
                   </div>
                   <p className="text-sm font-medium text-[var(--text-secondary)] leading-snug opacity-60 group-hover:opacity-90 transition-opacity max-w-[280px]">

@@ -24,27 +24,9 @@ export const AppFooter = React.memo(({ theme, setTheme, allThemes }: AppFooterPr
   const activeThemeName = allThemes.find(t => t.id === theme)?.name || theme;
 
   return (
-    <footer className="h-8 bg-[var(--bg-color)] border-t border-white/5 flex items-center justify-between flex-shrink-0 select-none z-50 px-4">
-      {/* Left Side: Dynamic Status & Info (Asymmetric) */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-ansi-green shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-          <span className="text-[9px] font-black font-mono text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-50">
-            System Operational
-          </span>
-        </div>
-        
-        <div className="hidden md:flex items-center gap-4 text-[9px] font-bold font-mono text-[var(--text-secondary)] opacity-30">
-          <div className="w-px h-3 bg-white/10" />
-          <span className="tracking-tighter">NODE_ENV: PRODUCTION</span>
-          <div className="w-px h-3 bg-white/10" />
-          <span className="tracking-tighter">PID: 7729</span>
-        </div>
-      </div>
-
+    <footer className="h-8 bg-[var(--bg-color)] border-t border-white/5 flex items-center justify-end flex-shrink-0 select-none z-50 px-4">
       {/* Right Side: Theme Switcher & Actions */}
       <div className="flex items-center gap-4">
-        <div className="w-px h-4 bg-white/10" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
