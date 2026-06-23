@@ -21,15 +21,21 @@ import {
   Archive,
   RotateCcw,
   Trash2,
+  Cpu,
+  Palette,
 } from "@/components/ui/icons";
 import { ViewToggle, ViewMode } from "@/components/ui/view-toggle";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
+import { useAgents } from "@/hooks/useAgents";
 
 import { WorkspacesTab } from "./components/WorkspacesTab";
 import { SnippetsTab } from "./components/SnippetsTab";
 import { PresetsTab } from "./components/PresetsTab";
 import { LayoutsTab } from "./components/LayoutsTab";
+import { AgentsTab } from "./components/AgentsTab";
+import { ThemesTab } from "./components/ThemesTab";
 
 interface CortexLibraryDialogProps {
   isOpen: boolean;
@@ -52,6 +58,14 @@ interface CortexLibraryDialogProps {
   onArchiveTemplates?: (ids: string[]) => void;
   onUnarchiveTemplate?: (id: string) => void;
   onUnarchiveTemplates?: (ids: string[]) => void;
+  theme: ThemeName;
+  allThemes: ThemeDefinition[];
+  resolvedScheme: "light" | "dark";
+  setTheme: (theme: ThemeName) => void;
+  addCustomTheme: (theme: ThemeDefinition) => Promise<void>;
+  removeCustomTheme: (id: string) => Promise<void>;
+  previewTheme: (config: ThemeDefinition) => void;
+  cancelPreview: () => void;
 }
 
 import { DirectoryPreset } from "@/lib";
@@ -77,7 +91,16 @@ export function CortexLibraryDialog({
   onArchiveTemplates,
   onUnarchiveTemplate,
   onUnarchiveTemplates,
+  theme,
+  allThemes,
+  resolvedScheme,
+  setTheme,
+  addCustomTheme,
+  removeCustomTheme,
+  previewTheme,
+  cancelPreview,
 }: CortexLibraryDialogProps) {
+  const { agents } = useAgents();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("workspaces");
   const [viewMode, setViewMode] = useState<ViewMode>("card");
@@ -107,12 +130,16 @@ export function CortexLibraryDialog({
   const [isAddingSnippet, setIsAddSnippet] = useState(false);
   const [isAddingPreset, setIsAddingPreset] = useState(false);
   const [isAddingLayout, setIsAddingLayout] = useState(false);
+  const [isAddingAgent, setIsAddingAgent] = useState(false);
+  const [isAddingTheme, setIsAddingTheme] = useState(false);
 
   // Reset adding states when tab changes to prevent forms staying open in background
   useEffect(() => {
     setIsAddSnippet(false);
     setIsAddingPreset(false);
     setIsAddingLayout(false);
+    setIsAddingAgent(false);
+    setIsAddingTheme(false);
   }, [activeTab]);
 
   // Persisted sub-tab selection (active vs archived) across sidebar navigation
@@ -120,6 +147,8 @@ export function CortexLibraryDialog({
   const [snippetSubTab, setSnippetSubTab] = useState("active");
   const [presetSubTab, setPresetSubTab] = useState("active");
   const [layoutSubTab, setLayoutSubTab] = useState("active");
+  const [agentSubTab, setAgentSubTab] = useState("all");
+  const [themeSubTab, setThemeSubTab] = useState("all");
 
   // Asset Management State (Directory Presets & Layouts)
   const [presets, setPresets] = useState<DirectoryPreset[]>([]);
@@ -636,6 +665,26 @@ export function CortexLibraryDialog({
                 label="Layouts"
                 count={savedLayouts.filter((l) => !l.isArchived).length}
               />
+              <LibraryNavButton
+                isActive={activeTab === "agents"}
+                onClick={() => {
+                  setActiveTab("agents");
+                  handleGlobalClearSelection();
+                }}
+                icon={<Cpu size={16} />}
+                label="Agents"
+                count={agents.length}
+              />
+              <LibraryNavButton
+                isActive={activeTab === "themes"}
+                onClick={() => {
+                  setActiveTab("themes");
+                  handleGlobalClearSelection();
+                }}
+                icon={<Palette size={16} />}
+                label="Themes"
+                count={allThemes.length}
+              />
             </nav>
           </div>
           {/* Main Dynamic View Area */}
@@ -648,6 +697,8 @@ export function CortexLibraryDialog({
                   {activeTab === "commands" && "Terminal Snippets"}
                   {activeTab === "presets" && "Directory Presets"}
                   {activeTab === "layouts" && "Layout Configurations"}
+                  {activeTab === "agents" && "AI Agents"}
+                  {activeTab === "themes" && "Interface Themes"}
                 </h3>
                 <p className="text-[10px] text-[var(--text-secondary)]/75 font-medium">
                   {activeTab === "workspaces" &&
@@ -658,6 +709,10 @@ export function CortexLibraryDialog({
                     "Favorite frequently accessed directory paths."}
                   {activeTab === "layouts" &&
                     "Define and customize terminal splits and sizes."}
+                  {activeTab === "agents" &&
+                    "Configure and maintain your AI agent library. Agents can be deployed in terminal panes."}
+                  {activeTab === "themes" &&
+                    "Manage your visual interface library, import custom themes, or copy standard schemas."}
                 </p>
               </div>
 
@@ -811,7 +866,17 @@ export function CortexLibraryDialog({
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60" />
                   <Input
-                    placeholder={`Filter ${activeTab === "workspaces" ? "templates" : activeTab === "commands" ? "snippets" : "presets & layouts"}...`}
+                    placeholder={`Filter ${
+                      activeTab === "workspaces"
+                        ? "templates"
+                        : activeTab === "commands"
+                          ? "snippets"
+                          : activeTab === "agents"
+                            ? "agents"
+                            : activeTab === "themes"
+                              ? "themes"
+                              : "presets & layouts"
+                    }...`}
                     className="pl-9 pr-10 text-[13px] h-[38px] bg-[var(--text-primary)]/[0.03] border-[var(--border-color)] focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]/40 transition-all text-[var(--text-primary)]"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -908,6 +973,34 @@ export function CortexLibraryDialog({
                     activeSubTab={layoutSubTab}
                     onSubTabChange={setLayoutSubTab}
                     layoutCustomMode={layoutCustomMode}
+                  />
+                )}
+                {activeTab === "agents" && (
+                  <AgentsTab
+                    searchQuery={searchQuery}
+                    viewMode={viewMode}
+                    isAdding={isAddingAgent}
+                    setIsAdding={setIsAddingAgent}
+                    activeSubTab={agentSubTab}
+                    onSubTabChange={setAgentSubTab}
+                  />
+                )}
+                {activeTab === "themes" && (
+                  <ThemesTab
+                    theme={theme}
+                    allThemes={allThemes}
+                    resolvedScheme={resolvedScheme}
+                    setTheme={setTheme}
+                    addCustomTheme={addCustomTheme}
+                    removeCustomTheme={removeCustomTheme}
+                    previewTheme={previewTheme}
+                    cancelPreview={cancelPreview}
+                    searchQuery={searchQuery}
+                    viewMode={viewMode}
+                    isAdding={isAddingTheme}
+                    setIsAdding={setIsAddingTheme}
+                    activeSubTab={themeSubTab}
+                    onSubTabChange={setThemeSubTab}
                   />
                 )}
               </div>

@@ -323,14 +323,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         if (rgb) root.style.setProperty(`${varName}-rgb`, rgb);
       });
 
-      const isLightAccent =
-        config.accent &&
-        (config.accent.toLowerCase() === "#ffffff" ||
-          config.accent.toLowerCase() === "#e6e6e3");
-      root.style.setProperty(
-        "--accent-contrast",
-        isLightAccent ? "#000000" : "#ffffff"
-      );
+      // Respect the theme's mode for button text contrast:
+      // - In dark mode, the accent button background is typically bright, so the text should be a dark color based on the theme (e.g., config.bg or config.surface).
+      // - In light mode, the accent button background is typically dark/saturated, so the text should be a light color based on the theme (e.g., config.bg, config.surface, or white).
+      const resolvedDark = isDark !== undefined ? isDark : true;
+      const accentContrast = resolvedDark
+        ? (config.bg || "#0c0c0e")
+        : (config.bg && config.bg.toLowerCase() !== "#ffffff" ? config.bg : "#ffffff");
+
+      root.style.setProperty("--accent-contrast", accentContrast);
 
       // Write standard shadcn CSS variables if raw colors are available
       if (config.raw) {

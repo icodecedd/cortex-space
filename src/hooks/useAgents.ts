@@ -164,96 +164,6 @@ export function useAgents() {
     [],
   );
 
-  const addAgent = useCallback(
-    async (
-      label: string,
-      command: string,
-      installCommand?: string,
-      downloadUrl?: string,
-    ) => {
-      const trimmedLabel = label?.trim();
-      const trimmedCommand = command?.trim();
-      const trimmedInstallCommand = installCommand?.trim();
-      const trimmedDownloadUrl = downloadUrl?.trim();
-
-      if (!trimmedCommand) {
-        toast.error("Failed to add agent", {
-          description: "Enter a valid command to register the agent.",
-        });
-        return;
-      }
-
-      const isDuplicate = globalAgents.some(
-        (a) => a.command.trim() === trimmedCommand,
-      );
-
-      if (isDuplicate) {
-        toast.error("Agent cannot be added", {
-          description: "An agent with this command already exists.",
-        });
-        return;
-      }
-
-      let finalLabel = trimmedLabel || trimmedCommand.toUpperCase();
-
-      // Normalize standard names like 'freebuff' to 'Freebuff'
-      if (finalLabel.toLowerCase() === "freebuff") {
-        finalLabel = "Freebuff";
-      }
-
-      const newAgent: Agent = {
-        id: crypto.randomUUID(),
-        label: finalLabel,
-        command: trimmedCommand,
-        status: "not-installed",
-        downloadUrl: trimmedDownloadUrl || undefined,
-        installCommand: trimmedInstallCommand || undefined,
-        isDefault: false,
-      };
-
-      globalAgents = [...globalAgents, newAgent];
-      notify();
-      await writeToStore(globalAgents);
-      window.dispatchEvent(new Event("cortex:agents-updated"));
-
-      toast.success(`${newAgent.label} added successfully`, {
-        description: "The agent is now in your agent library.",
-      });
-
-      // Check if it's already installed
-      try {
-        const isInstalled = await invoke<boolean>("check_command", {
-          command: trimmedCommand,
-        });
-        if (isInstalled) {
-          await updateAgentStatus(newAgent.id, "installed");
-        }
-      } catch (e) {
-        console.error("Verification failed for new agent:", newAgent.label, e);
-      }
-    },
-    [updateAgentStatus],
-  );
-
-  const deleteAgent = useCallback(async (id: string) => {
-    const agent = globalAgents.find((a) => a.id === id);
-    if (agent?.isDefault) {
-      toast.error("Agent cannot be deleted", {
-        description: "Default agents must remain in your library.",
-      });
-      return;
-    }
-
-    globalAgents = globalAgents.filter((a) => a.id !== id);
-    notify();
-    await writeToStore(globalAgents);
-    window.dispatchEvent(new Event("cortex:agents-updated"));
-
-    toast.success(`${agent?.label || "Agent"} removed successfully`, {
-      description: "The agent has been removed from your library.",
-    });
-  }, []);
-
   const installAgent = useCallback(
     async (id: string) => {
       const agent = globalAgents.find((a) => a.id === id);
@@ -309,9 +219,193 @@ export function useAgents() {
     [updateAgentStatus],
   );
 
+  const addAgent = useCallback(
+    async (
+      label: string,
+      command: string,
+      installCommand?: string,
+      downloadUrl?: string,
+      icon?: string,
+    ) => {
+      const trimmedLabel = label?.trim();
+      const trimmedCommand = command?.trim();
+      const trimmedInstallCommand = installCommand?.trim();
+      const trimmedDownloadUrl = downloadUrl?.trim();
+      const trimmedIcon = icon?.trim();
+
+      if (!trimmedCommand) {
+        toast.error("Failed to add agent", {
+          description: "Enter a valid command to register the agent.",
+        });
+        return;
+      }
+
+      const isDuplicate = globalAgents.some(
+        (a) => a.command.trim() === trimmedCommand,
+      );
+
+      if (isDuplicate) {
+        toast.error("Agent cannot be added", {
+          description: "An agent with this command already exists.",
+        });
+        return;
+      }
+
+      let finalLabel = trimmedLabel || trimmedCommand.toUpperCase();
+
+      // Normalize standard names like 'freebuff' to 'Freebuff'
+      if (finalLabel.toLowerCase() === "freebuff") {
+        finalLabel = "Freebuff";
+      }
+
+      const newAgent: Agent = {
+        id: crypto.randomUUID(),
+        label: finalLabel,
+        command: trimmedCommand,
+        status: "not-installed",
+        downloadUrl: trimmedDownloadUrl || undefined,
+        installCommand: trimmedInstallCommand || undefined,
+        isDefault: false,
+        icon: trimmedIcon || undefined,
+      };
+
+      globalAgents = [...globalAgents, newAgent];
+      notify();
+      await writeToStore(globalAgents);
+      window.dispatchEvent(new Event("cortex:agents-updated"));
+
+      toast.success(`${newAgent.label} added successfully`, {
+        description: "The agent is now in your agent library.",
+      });
+
+      // Check if it's already installed
+      try {
+        const isInstalled = await invoke<boolean>("check_command", {
+          command: trimmedCommand,
+        });
+        if (isInstalled) {
+          await updateAgentStatus(newAgent.id, "installed");
+        } else if (trimmedInstallCommand) {
+          // Auto trigger installation!
+          installAgent(newAgent.id);
+        }
+      } catch (e) {
+        console.error("Verification failed for new agent:", newAgent.label, e);
+      }
+    },
+    [updateAgentStatus, installAgent],
+  );
+
+  const editAgent = useCallback(
+    async (
+      id: string,
+      label: string,
+      command: string,
+      installCommand?: string,
+      downloadUrl?: string,
+      icon?: string,
+    ) => {
+      const trimmedLabel = label?.trim();
+      const trimmedCommand = command?.trim();
+      const trimmedInstallCommand = installCommand?.trim();
+      const trimmedDownloadUrl = downloadUrl?.trim();
+      const trimmedIcon = icon?.trim();
+
+      if (!trimmedCommand) {
+        toast.error("Failed to update agent", {
+          description: "Enter a valid command to update the agent.",
+        });
+        return;
+      }
+
+      const isDuplicate = globalAgents.some(
+        (a) => a.id !== id && a.command.trim() === trimmedCommand,
+      );
+
+      if (isDuplicate) {
+        toast.error("Agent cannot be updated", {
+          description: "An agent with this command already exists.",
+        });
+        return;
+      }
+
+      let finalLabel = trimmedLabel || trimmedCommand.toUpperCase();
+      if (finalLabel.toLowerCase() === "freebuff") {
+        finalLabel = "Freebuff";
+      }
+
+      const existingAgent = globalAgents.find((a) => a.id === id);
+      if (!existingAgent) return;
+
+      const isCommandChanged = existingAgent.command !== trimmedCommand;
+      const isInstallCommandChanged = existingAgent.installCommand !== trimmedInstallCommand;
+
+      globalAgents = globalAgents.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              label: finalLabel,
+              command: trimmedCommand,
+              installCommand: trimmedInstallCommand || undefined,
+              downloadUrl: trimmedDownloadUrl || undefined,
+              icon: trimmedIcon || undefined,
+              status: isCommandChanged ? "not-installed" : a.status,
+            }
+          : a,
+      );
+
+      notify();
+      await writeToStore(globalAgents);
+      window.dispatchEvent(new Event("cortex:agents-updated"));
+
+      toast.success(`${finalLabel} updated successfully`);
+
+      if (isCommandChanged) {
+        try {
+          const isInstalled = await invoke<boolean>("check_command", {
+            command: trimmedCommand,
+          });
+          if (isInstalled) {
+            await updateAgentStatus(id, "installed");
+          } else if (trimmedInstallCommand) {
+            installAgent(id);
+          }
+        } catch (e) {
+          console.error("Verification failed for updated agent:", finalLabel, e);
+        }
+      } else if (isInstallCommandChanged && trimmedInstallCommand) {
+        const updatedAgent = globalAgents.find((a) => a.id === id);
+        if (updatedAgent && updatedAgent.status !== "installed" && updatedAgent.status !== "installing") {
+          installAgent(id);
+        }
+      }
+    },
+    [updateAgentStatus, installAgent],
+  );
+
+  const deleteAgent = useCallback(async (id: string) => {
+    const agent = globalAgents.find((a) => a.id === id);
+    if (agent?.isDefault) {
+      toast.error("Agent cannot be deleted", {
+        description: "Default agents must remain in your library.",
+      });
+      return;
+    }
+
+    globalAgents = globalAgents.filter((a) => a.id !== id);
+    notify();
+    await writeToStore(globalAgents);
+    window.dispatchEvent(new Event("cortex:agents-updated"));
+
+    toast.success(`${agent?.label || "Agent"} removed successfully`, {
+      description: "The agent has been removed from your library.",
+    });
+  }, []);
+
   return {
     agents,
     addAgent,
+    editAgent,
     deleteAgent,
     installAgent,
     isInitialized,

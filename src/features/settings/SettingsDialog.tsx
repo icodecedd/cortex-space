@@ -11,10 +11,8 @@ import {
   Settings2,
   Keyboard,
   Terminal,
-  Palette,
   FlaskConical,
-  Info,
-  Cpu
+  Info
 } from "@/components/ui/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 
@@ -34,7 +32,7 @@ import {
 
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
 import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
-import { useColorScheme } from "@/hooks/useColorScheme";
+
 import { toast } from "sonner";
 
 
@@ -42,8 +40,7 @@ import { toast } from "sonner";
 import { GeneralTab } from "./components/tabs/GeneralTab";
 import { ShortcutsTab } from "./components/tabs/ShortcutsTab";
 import { TerminalTab } from "./components/tabs/TerminalTab";
-import { ThemesTab } from "./components/tabs/ThemesTab";
-import { AgentsTab } from "./components/tabs/AgentsTab";
+
 import { DemoTab } from "./components/tabs/DemoTab";
 import { AboutTab } from "./components/tabs/AboutTab";
 
@@ -57,10 +54,6 @@ interface SettingsDialogProps {
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
   allThemes: ThemeDefinition[];
-  addCustomTheme: (theme: ThemeDefinition) => Promise<void>;
-  removeCustomTheme: (id: string) => Promise<void>;
-  previewTheme: (config: ThemeDefinition) => void;
-  cancelPreview: () => void;
   colorScheme: ColorScheme;
   setColorScheme: (scheme: ColorScheme) => void;
   uiFontScale: number;
@@ -85,10 +78,6 @@ export function SettingsDialog({
   theme,
   setTheme,
   allThemes,
-  addCustomTheme,
-  removeCustomTheme,
-  previewTheme,
-  cancelPreview,
   colorScheme,
   setColorScheme,
   uiFontScale,
@@ -105,7 +94,7 @@ export function SettingsDialog({
   setDemoSetting,
   resetDemo,
 }: SettingsDialogProps) {
-  const { resolvedScheme } = useColorScheme();
+
   const [defaultPath, setDefaultPath] = useState<string>("");
   const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -278,7 +267,7 @@ export function SettingsDialog({
           onValueChange={setActiveTab}
           className="w-full flex-1 flex flex-col overflow-hidden mt-4"
         >
-          <TabsList className={`w-full grid shrink-0 ${import.meta.env.DEV ? 'grid-cols-7' : 'grid-cols-6'}`}>
+          <TabsList className={`w-full grid shrink-0 ${import.meta.env.DEV ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="general" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Settings2 size={13} /> General
             </TabsTrigger>
@@ -287,12 +276,6 @@ export function SettingsDialog({
             </TabsTrigger>
             <TabsTrigger value="terminal" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Terminal size={13} /> Terminal
-            </TabsTrigger>
-            <TabsTrigger value="themes" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
-              <Palette size={13} /> Themes
-            </TabsTrigger>
-            <TabsTrigger value="agents" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
-              <Cpu size={13} /> Agents
             </TabsTrigger>
             {import.meta.env.DEV && (
               <TabsTrigger value="demo" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
@@ -341,6 +324,9 @@ export function SettingsDialog({
               setFocusSetting={setFocusSetting}
               onResetFocus={resetFocus}
               onFactoryReset={handleFactoryReset}
+              theme={theme}
+              setTheme={setTheme}
+              allThemes={allThemes}
             />
           </TabsContent>
 
@@ -365,22 +351,7 @@ export function SettingsDialog({
             />
           </TabsContent>
 
-          <TabsContent value="themes" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>
-            <ThemesTab
-              theme={theme}
-              allThemes={allThemes}
-              resolvedScheme={resolvedScheme}
-              setTheme={setTheme}
-              addCustomTheme={addCustomTheme}
-              removeCustomTheme={removeCustomTheme}
-              previewTheme={previewTheme}
-              cancelPreview={cancelPreview}
-            />
-          </TabsContent>
 
-          <TabsContent value="agents" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>
-            <AgentsTab />
-          </TabsContent>
 
            {import.meta.env.DEV && (
             <TabsContent value="demo" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>

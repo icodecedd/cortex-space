@@ -73,6 +73,7 @@ export interface Agent {
   installCommand?: string;
   version?: string;
   errorMessage?: string;
+  icon?: string;
 }
 
 export type PaletteItem = 

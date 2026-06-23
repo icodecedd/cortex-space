@@ -20,8 +20,31 @@ import { Button } from "@/components/ui/button";
 import { useState, useRef } from "react";
 import { Kbd } from "@/components/ui/kbd";
 import { extractVariables, resolveVariables } from "@/lib/snippet-utils";
-import { toTitleCase } from "@/lib/utils";
+import { toTitleCase, cn } from "@/lib/utils";
 import { Spotlight } from "@/components/ui/spotlight";
+import * as LobeIcons from "@lobehub/icons";
+
+function resolveLobeIcon(name: string | undefined): any {
+  if (!name || !name.trim()) return null;
+  const trimmed = name.trim();
+  
+  // 1. Exact match
+  if ((LobeIcons as any)[trimmed]) return (LobeIcons as any)[trimmed];
+
+  // 2. Capitalized match (e.g. 'gemini' -> 'Gemini')
+  const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  if ((LobeIcons as any)[capitalized]) return (LobeIcons as any)[capitalized];
+
+  // 3. Case-insensitive TOC lookup
+  const match = (LobeIcons.toc || []).find(
+    (item: any) => item.id.toLowerCase() === trimmed.toLowerCase()
+  );
+  if (match && (LobeIcons as any)[match.id]) {
+    return (LobeIcons as any)[match.id];
+  }
+
+  return null;
+}
 
 interface PendingSnippet {
   originalCommand: string;
@@ -57,6 +80,49 @@ export function PaneConfigCard({
   const promptInputRef = useRef<HTMLInputElement>(null);
 
   const isPopulated = (pane.command || "").trim() !== "";
+
+  const getAgentIcon = () => {
+    if (!isPopulated) {
+      return mode === "agents" ? <Cpu size={20} /> : <Terminal size={20} />;
+    }
+    if (mode === "normal") {
+      return <Terminal size={20} />;
+    }
+    const agent = agents.find((a) => a.command === pane.command);
+    if (!agent) {
+      return <Cpu size={20} />;
+    }
+    
+    // 0. Check if the icon is a base64 string
+    if (agent.icon && agent.icon.startsWith("data:image/")) {
+      return (
+        <img
+          src={agent.icon}
+          className="w-5 h-5 object-contain rounded-md"
+          alt={agent.label}
+        />
+      );
+    }
+    
+    // 1. Try matching explicitly saved icon name
+    let IconComponent = resolveLobeIcon(agent.icon);
+    
+    // 2. Try matching the label (e.g. "Gemini" -> Gemini)
+    if (!IconComponent) {
+      IconComponent = resolveLobeIcon(agent.label);
+    }
+
+    // 3. Try matching the command (e.g. "gemini" -> Gemini)
+    if (!IconComponent) {
+      IconComponent = resolveLobeIcon(agent.command);
+    }
+
+    if (IconComponent) {
+      return IconComponent.Color ? <IconComponent.Color size={22} /> : <IconComponent size={22} />;
+    }
+
+    return <Cpu size={20} />;
+  };
 
   const handleSnippetSelect = (snippet: Snippet) => {
     const variables = extractVariables(snippet.command);
@@ -140,12 +206,16 @@ export function PaneConfigCard({
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
-              className={`
-                w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500
-                ${isPopulated ? "bg-[var(--accent-primary)] text-[var(--accent-contrast)] shadow-md" : "bg-[var(--text-primary)]/5 text-[var(--text-secondary)]"}
-              `}
+              className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500",
+                isPopulated
+                  ? mode === "agents" && agents.some((a) => a.command === pane.command)
+                    ? "bg-[var(--surface-color)] border border-[var(--border-color)]/30 shadow-sm"
+                    : "bg-[var(--accent-primary)] text-[var(--accent-contrast)] shadow-md"
+                  : "bg-[var(--text-primary)]/5 text-[var(--text-secondary)]"
+              )}
             >
-              {mode === "agents" ? <Cpu size={20} /> : <Terminal size={20} />}
+              {getAgentIcon()}
             </motion.div>
             <div className="flex flex-col">
               <span className="text-[9px] font-bold text-[var(--accent-primary)] uppercase tracking-wider opacity-60 mb-0.5">

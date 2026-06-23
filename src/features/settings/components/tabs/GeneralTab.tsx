@@ -39,6 +39,9 @@ interface GeneralTabProps {
   reducedMotion: boolean;
   setReducedMotion: (reduced: boolean) => void;
   onResetAppearance: () => void;
+  theme: string;
+  setTheme: (theme: any) => void;
+  allThemes: any[];
   
   // Startup
   showSplash: boolean;
@@ -74,6 +77,9 @@ export function GeneralTab({
   reducedMotion,
   setReducedMotion,
   onResetAppearance,
+  theme,
+  setTheme,
+  allThemes,
   showSplash,
   setShowSplash,
   startupBehavior,
@@ -182,18 +188,19 @@ export function GeneralTab({
             <Select
               value={startupBehavior}
               onValueChange={(v) => setStartupBehavior(v as StartupBehavior)}
+              size="sm"
             >
               <SelectTrigger
                 id="startup-behavior"
-                className="h-8 w-[160px] text-[11px] font-bold border-[var(--border-color)]/20 bg-[var(--surface-color)]/50"
+                className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold"
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent position="popper">
-                <SelectItem value="modeSelector">Mode Selector</SelectItem>
-                <SelectItem value="lastMode">Resume Last Session</SelectItem>
-                <SelectItem value="newTerminal">Always Terminal</SelectItem>
-                <SelectItem value="newAgents">Always AI Assisted</SelectItem>
+                <SelectItem value="modeSelector" className="cursor-pointer hover:bg-white/5 transition-all">Mode Selector</SelectItem>
+                <SelectItem value="lastMode" className="cursor-pointer hover:bg-white/5 transition-all">Resume Last Session</SelectItem>
+                <SelectItem value="newAgents" className="cursor-pointer hover:bg-white/5 transition-all">Always AI Assisted</SelectItem>
+                <SelectItem value="newTerminal" className="cursor-pointer hover:bg-white/5 transition-all">Always Terminal</SelectItem>
               </SelectContent>
             </Select>
           </SettingsRow>
@@ -254,6 +261,35 @@ export function GeneralTab({
                 { value: "light", label: "Light" },
               ]}
             />
+          </SettingsRow>
+          <SettingsRow
+            label="Interface Theme"
+            description="Select your active workspace visual theme."
+            htmlFor="theme-selector"
+          >
+            <Select
+              value={theme}
+              onValueChange={(v) => setTheme(v)}
+              size="sm"
+            >
+              <SelectTrigger
+                id="theme-selector"
+                className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold text-left"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {allThemes.map((t) => (
+                  <SelectItem
+                    key={t.id}
+                    value={t.id}
+                    className="cursor-pointer hover:bg-white/5 transition-all font-bold"
+                  >
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </SettingsRow>
           <SettingsRow
             label="UI Scaling"

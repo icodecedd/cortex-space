@@ -467,10 +467,6 @@ function AppInner() {
           theme={theme}
           setTheme={setTheme}
           allThemes={allThemes}
-          addCustomTheme={addCustomTheme}
-          removeCustomTheme={removeCustomTheme}
-          previewTheme={previewTheme}
-          cancelPreview={cancelPreview}
           colorScheme={colorSchemeSettings.colorScheme}
           setColorScheme={setColorScheme}
           uiFontScale={colorSchemeSettings.uiFontScale}
@@ -508,6 +504,14 @@ function AppInner() {
           onArchiveTemplates={archiveTemplates}
           onUnarchiveTemplate={unarchiveTemplate}
           onUnarchiveTemplates={unarchiveTemplates}
+          theme={theme}
+          allThemes={allThemes}
+          resolvedScheme={resolvedScheme}
+          setTheme={setTheme}
+          addCustomTheme={addCustomTheme}
+          removeCustomTheme={removeCustomTheme}
+          previewTheme={previewTheme}
+          cancelPreview={cancelPreview}
         />
         <WorkspaceSwitcherDialog
           isOpen={switcherOpen}

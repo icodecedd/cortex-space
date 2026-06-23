@@ -62,7 +62,7 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
   ]);
 
   // Option A configuration states
-  const [selectedProfile, setSelectedProfile] = useState<'zen' | 'intelligence' | 'pro' | 'creator' | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<'zen' | 'intelligence' | 'pro' | 'creator' | 'hacker' | null>(null);
   const [proShellPreference, setProShellPreference] = useState('powershell.exe');
 
   // Option B configuration states
@@ -71,6 +71,8 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
   const [customFontSize, setCustomFontSize] = useState(12);
   const [customFontFamily, setCustomFontFamily] = useState('JetBrains Mono');
   const [customLayout, setCustomLayout] = useState<'grid' | 'count'>('grid');
+  const [customShowFloatingHeader, setCustomShowFloatingHeader] = useState(true);
+  const [customHeaderVisibility, setCustomHeaderVisibility] = useState<'hover' | 'always'>('hover');
 
   // Theme & Agent bindings
   const { setTheme, allThemes } = useTheme();
@@ -412,6 +414,8 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
 
         await setSetting('terminal.fontSize', customFontSize);
         await setSetting('terminal.fontFamily', customFontFamily);
+        await setSetting('demo.showFloatingTerminalHeader', customShowFloatingHeader);
+        await setSetting('demo.terminalHeaderVisibility', customHeaderVisibility);
       }
 
       await Promise.all([
@@ -662,6 +666,10 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
                   setCustomFontFamily={setCustomFontFamily}
                   customLayout={customLayout}
                   setCustomLayout={setCustomLayout}
+                  customShowFloatingHeader={customShowFloatingHeader}
+                  setCustomShowFloatingHeader={setCustomShowFloatingHeader}
+                  customHeaderVisibility={customHeaderVisibility}
+                  setCustomHeaderVisibility={setCustomHeaderVisibility}
                 />
               )}
 

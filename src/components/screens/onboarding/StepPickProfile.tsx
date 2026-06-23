@@ -41,8 +41,8 @@ export function StepPickProfile({
   proShell,
   setProShell,
 }: {
-  selected: "zen" | "intelligence" | "pro" | "creator" | null;
-  onSelect: (id: "zen" | "intelligence" | "pro" | "creator") => void;
+  selected: "zen" | "intelligence" | "pro" | "creator" | "hacker" | null;
+  onSelect: (id: "zen" | "intelligence" | "pro" | "creator" | "hacker") => void;
   proShell: string;
   setProShell: (v: string) => void;
 }) {

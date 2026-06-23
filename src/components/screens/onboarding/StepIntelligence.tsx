@@ -1,9 +1,30 @@
 import { useState } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import {
-  Cpu, CheckCircle2, Loader2, Download
-} from '@/components/ui/icons';
+import { CheckCircle2, Loader2, Download, Cpu } from '@/components/ui/icons';
+import * as LobeIcons from '@lobehub/icons';
+
+function resolveLobeIcon(name: string | undefined): any {
+  if (!name || !name.trim()) return null;
+  const trimmed = name.trim();
+  
+  // 1. Exact match
+  if ((LobeIcons as any)[trimmed]) return (LobeIcons as any)[trimmed];
+
+  // 2. Capitalized match (e.g. 'gemini' -> 'Gemini')
+  const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  if ((LobeIcons as any)[capitalized]) return (LobeIcons as any)[capitalized];
+
+  // 3. Case-insensitive TOC lookup
+  const match = (LobeIcons.toc || []).find(
+    (item: any) => item.id.toLowerCase() === trimmed.toLowerCase()
+  );
+  if (match && (LobeIcons as any)[match.id]) {
+    return (LobeIcons as any)[match.id];
+  }
+
+  return null;
+}
 
 // Step B4: Intelligence (Agent Installation)
 export function StepIntelligence({
@@ -32,8 +53,40 @@ export function StepIntelligence({
     setInstallingAll(false);
   };
 
+  const getAgentIcon = (agent: any) => {
+    // 0. Check if the icon is a base64 string
+    if (agent.icon && agent.icon.startsWith("data:image/")) {
+      return (
+        <img
+          src={agent.icon}
+          className="w-7 h-7 object-contain rounded-md"
+          alt={agent.label}
+        />
+      );
+    }
+
+    // 1. Try matching explicitly saved icon name
+    let IconComponent = resolveLobeIcon(agent.icon);
+    
+    // 2. Try matching the label (e.g. "Gemini" -> Gemini)
+    if (!IconComponent) {
+      IconComponent = resolveLobeIcon(agent.label);
+    }
+
+    // 3. Try matching the command (e.g. "gemini" -> Gemini)
+    if (!IconComponent) {
+      IconComponent = resolveLobeIcon(agent.command);
+    }
+
+    if (IconComponent) {
+      return IconComponent.Color ? <IconComponent.Color size={28} /> : <IconComponent size={28} />;
+    }
+
+    return <Cpu size={28} className="text-[var(--accent-primary)] opacity-80" />;
+  };
+
   return (
-    <div className="flex flex-col gap-6 w-full max-w-xl">
+    <div className="flex flex-col gap-6 w-full max-w-2xl">
       <div className="flex flex-col gap-1.5">
         <span className="text-[10px] font-bold tracking-widest text-[var(--accent-primary)] uppercase">
           AI Intelligence Setup
@@ -77,79 +130,93 @@ export function StepIntelligence({
 
       <div className="w-full h-[1px] bg-[var(--border-color)] opacity-20" />
 
-      {!isInitialized ? (
-        <div className="flex items-center justify-center p-8 border border-dashed border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]/20 gap-3">
-          <Loader2 size={16} className="animate-spin text-[var(--accent-primary)]" />
-          <span className="font-mono text-xs text-[var(--text-secondary)]">Scanning agent repositories...</span>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {agents.filter(a => a.isDefault).map((agent) => (
-            <div
-              key={agent.id}
-              className="flex items-center justify-between p-3.5 border border-[var(--border-color)] rounded-xl bg-[var(--surface-color)]/30 hover:bg-[var(--surface-color)]/60 transition-colors gap-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  agent.status === 'installed' 
-                    ? 'bg-[var(--ansi-green)]/10 text-[var(--ansi-green)]' 
-                    : 'bg-[var(--surface-color)] text-[var(--text-secondary)]'
-                }`}>
-                  <Cpu size={15} />
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="text-xs font-bold text-[var(--text-primary)]">{agent.label}</span>
-                  <span className="text-[9px] font-mono text-[var(--text-secondary)] opacity-60">cmd: {agent.command}</span>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {defaultAgents.map((agent) => (
+          <div
+            key={agent.id}
+            className="flex flex-col justify-between p-4 border border-[var(--border-color)] rounded-xl bg-[var(--surface-color)]/30 hover:bg-[var(--surface-color)]/60 transition-colors gap-4 group"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5 text-[var(--text-primary)] group-hover:scale-105 transition-transform duration-300">
+                {getAgentIcon(agent)}
               </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <AnimatePresence mode="wait">
-                  {agent.status === 'installed' && (
-                    <m.div key="inst" className="flex items-center gap-1.5 font-bold text-[9px] text-[var(--ansi-green)] uppercase">
-                      <span>Detected</span>
-                      <CheckCircle2 size={13} />
-                    </m.div>
-                  )}
-                  {agent.status === 'installing' && (
-                    <m.div key="instg" className="flex items-center gap-1.5 font-bold text-[9px] text-[var(--accent-primary)] uppercase">
-                      <span>Installing</span>
-                      <Loader2 size={13} className="animate-spin" />
-                    </m.div>
-                  )}
-                  {agent.status === 'not-installed' && (
-                    <m.button
-                      key="notinst"
-                      type="button"
-                      onClick={() => installAgent(agent.id)}
-                      className="px-2.5 py-1 text-[10px] font-bold border border-[var(--border-color)] rounded-lg bg-[var(--surface-color)] hover:border-[var(--accent-primary)]/50 hover:text-[var(--accent-primary)] transition-all flex items-center gap-1 active:scale-[0.97]"
-                    >
-                      <Download size={11} />
-                      Install
-                    </m.button>
-                  )}
-                  {agent.status === 'error' && (
-                    <m.div key="err" className="flex items-center gap-1.5">
-                      <span className="font-bold text-[9px] text-[var(--ansi-red)] uppercase">Failed</span>
-                      <button
-                        type="button"
-                        onClick={() => installAgent(agent.id)}
-                        className="px-1.5 py-0.5 rounded border border-[var(--border-color)] bg-[var(--surface-color)] text-[9px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                      >
-                        Retry
-                      </button>
-                    </m.div>
-                  )}
-                </AnimatePresence>
+              <div className="flex flex-col text-left">
+                <span className="text-sm font-bold text-[var(--text-primary)]">{agent.label}</span>
+                <span className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed line-clamp-2">
+                  {agent.description || `Pre-packaged ${agent.label} intelligence agent.`}
+                </span>
               </div>
             </div>
-          ))}
 
-          <div className="text-center font-mono text-[10px] text-[var(--text-secondary)] opacity-70">
-            {activeCount} of {agents.filter(a => a.isDefault).length} default agents configured successfully
+            <div className="flex items-center justify-between border-t border-[var(--border-color)]/30 pt-3 mt-auto">
+              <span className="text-[9px] font-mono text-[var(--text-secondary)] opacity-60 truncate max-w-[100px]" title={`cmd: ${agent.command}`}>
+                {agent.command}
+              </span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {!isInitialized ? (
+                  <div className="flex items-center gap-1.5 font-bold text-[10px] text-[var(--text-secondary)] uppercase">
+                    <Loader2 size={12} className="animate-spin" />
+                    <span>Checking...</span>
+                  </div>
+                ) : (
+                  <AnimatePresence mode="wait">
+                    {agent.status === 'installed' && (
+                      <m.div key="inst" className="flex items-center gap-1.5 font-bold text-[10px] text-[var(--ansi-green)] uppercase">
+                        <span>Installed</span>
+                        <CheckCircle2 size={13} />
+                      </m.div>
+                    )}
+                    {agent.status === 'installing' && (
+                      <m.div key="instg" className="flex items-center gap-1.5 font-bold text-[10px] text-[var(--accent-primary)] uppercase">
+                        <span>Installing</span>
+                        <Loader2 size={13} className="animate-spin" />
+                      </m.div>
+                    )}
+                    {agent.status === 'not-installed' && (
+                      <div key="notinst" className="flex items-center gap-2">
+                        {agent.installCommand ? (
+                          <>
+                            <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Available</span>
+                            <m.button
+                              type="button"
+                              onClick={() => installAgent(agent.id)}
+                              className="px-2.5 py-1 text-[10px] font-bold border border-[var(--border-color)] rounded-lg bg-[var(--surface-color)] hover:border-[var(--accent-primary)]/50 hover:text-[var(--accent-primary)] transition-all flex items-center gap-1 active:scale-[0.97]"
+                            >
+                              <Download size={11} />
+                              Install
+                            </m.button>
+                          </>
+                        ) : (
+                          <span className="text-[9px] font-bold text-[var(--ansi-red)] uppercase">Unavailable</span>
+                        )}
+                      </div>
+                    )}
+                    {agent.status === 'error' && (
+                      <m.div key="err" className="flex items-center gap-2">
+                        <span className="font-bold text-[9px] text-[var(--ansi-red)] uppercase">Unavailable</span>
+                        <button
+                          type="button"
+                          onClick={() => installAgent(agent.id)}
+                          className="px-2 py-1 rounded border border-[var(--border-color)] bg-[var(--surface-color)] text-[9px] font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                        >
+                          Retry
+                        </button>
+                      </m.div>
+                    )}
+                  </AnimatePresence>
+                )}
+              </div>
+            </div>
           </div>
+        ))}
+      </div>
+
+      {isInitialized && (
+        <div className="text-center font-mono text-[10px] text-[var(--text-secondary)] opacity-70">
+          {activeCount} of {defaultAgents.length} default agents configured successfully
         </div>
       )}
     </div>
   );
 }
+

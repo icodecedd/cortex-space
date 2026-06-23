@@ -132,10 +132,11 @@ export function TerminalTab({
                 return "JetBrains Mono";
               })()}
               onValueChange={(v) => updateSetting("fontFamily", v)}
+              size="sm"
             >
               <SelectTrigger
                 id="font-family-select"
-                className="h-8 w-[180px] text-[11px] font-mono border-[var(--border-color)]/20 bg-[var(--surface-color)]/50"
+                className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -144,7 +145,7 @@ export function TerminalTab({
                   <SelectItem
                     key={f.value}
                     value={f.value}
-                    className="font-mono text-[11px]"
+                    className="cursor-pointer hover:bg-white/5 transition-all"
                   >
                     {f.label}
                   </SelectItem>

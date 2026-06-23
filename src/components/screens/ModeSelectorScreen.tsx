@@ -203,75 +203,8 @@ export const ModeSelectorScreen = React.memo(
 
             <motion.div
               variants={itemVariants}
-              onClick={() => handleSelectMode("normal")}
-              className="transform md:translate-x-4"
-            >
-              <SpotlightCard
-                className={`group cursor-pointer transition-all duration-500 ambient-glow-card !p-8 border-white/5 hover:border-[var(--accent-primary)]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ${
-                  lastMode === "normal"
-                    ? "active-glow !border-[var(--accent-primary)]/20"
-                    : ""
-                }`}
-              >
-                <div className="flex items-center gap-8 relative">
-                  <div className="absolute -top-4 -right-4 flex items-center gap-2">
-                    {lastMode === "normal" && (
-                      <span className="text-[9px] font-black text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-3 py-1 rounded-full uppercase tracking-[0.15em] shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.1)]">
-                        Last Session
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="p-5 rounded-3xl bg-[var(--text-primary)]/5 border border-white/5 group-hover:border-[var(--accent-primary)]/40 group-hover:bg-[var(--accent-primary)]/5 transition-all duration-500 group-hover:scale-110 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                    <motion.div
-                      animate={{
-                        y: [0, -4, 0],
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                    >
-                      <Terminal
-                        size={40}
-                        className="text-[var(--text-secondary)] group-hover:text-[var(--accent-primary)] transition-colors"
-                      />
-                    </motion.div>
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter group-hover:text-[var(--accent-primary)] transition-colors">
-                        {MODE_SELECTOR_CONTENT.NORMAL_MODE.TITLE}
-                      </h3>
-                      {showShortcutHints && (
-                        <KbdGroup className="gap-1 opacity-30 group-hover:opacity-100 transition-opacity">
-                          {parseShortcutToKeys("Ctrl+N", isMac).map(
-                            (key, idx) => (
-                              <Kbd
-                                key={idx}
-                                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1 h-4 flex items-center justify-center font-mono"
-                              >
-                                {key}
-                              </Kbd>
-                            ),
-                          )}
-                        </KbdGroup>
-                      )}
-                    </div>
-                    <p className="text-sm font-medium text-[var(--text-secondary)] leading-snug opacity-60 group-hover:opacity-90 transition-opacity max-w-[280px]">
-                      {MODE_SELECTOR_CONTENT.NORMAL_MODE.DESCRIPTION}
-                    </p>
-                  </div>
-                </div>
-              </SpotlightCard>
-            </motion.div>
-
-            <motion.div
-              variants={itemVariants}
               onClick={() => handleSelectMode("agents")}
-              className="transform md:-translate-x-4"
+              className="transform md:translate-x-4"
             >
               <SpotlightCard
                 className={`group cursor-pointer transition-all duration-500 ambient-glow-card !p-8 border-white/5 hover:border-[var(--accent-primary)]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ${
@@ -288,7 +221,7 @@ export const ModeSelectorScreen = React.memo(
                       </span>
                     )}
                   </div>
-
+ 
                   <div className="p-5 rounded-3xl bg-[var(--text-primary)]/5 border border-white/5 group-hover:border-[var(--accent-primary)]/40 group-hover:bg-[var(--accent-primary)]/5 transition-all duration-500 group-hover:scale-110 relative shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                     <motion.div
                       animate={{
@@ -322,7 +255,7 @@ export const ModeSelectorScreen = React.memo(
                       />
                     </motion.div>
                   </div>
-
+ 
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter group-hover:text-[var(--accent-primary)] transition-colors">
@@ -345,6 +278,73 @@ export const ModeSelectorScreen = React.memo(
                     </div>
                     <p className="text-sm font-medium text-[var(--text-secondary)] leading-snug opacity-60 group-hover:opacity-90 transition-opacity max-w-[280px]">
                       {MODE_SELECTOR_CONTENT.AGENTS_MODE.DESCRIPTION}
+                    </p>
+                  </div>
+                </div>
+              </SpotlightCard>
+            </motion.div>
+ 
+            <motion.div
+              variants={itemVariants}
+              onClick={() => handleSelectMode("normal")}
+              className="transform md:-translate-x-4"
+            >
+              <SpotlightCard
+                className={`group cursor-pointer transition-all duration-500 ambient-glow-card !p-8 border-white/5 hover:border-[var(--accent-primary)]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ${
+                  lastMode === "normal"
+                    ? "active-glow !border-[var(--accent-primary)]/20"
+                    : ""
+                }`}
+              >
+                <div className="flex items-center gap-8 relative">
+                  <div className="absolute -top-4 -right-4 flex items-center gap-2">
+                    {lastMode === "normal" && (
+                      <span className="text-[9px] font-black text-[var(--accent-primary)] bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-3 py-1 rounded-full uppercase tracking-[0.15em] shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.1)]">
+                        Last Session
+                      </span>
+                    )}
+                  </div>
+ 
+                  <div className="p-5 rounded-3xl bg-[var(--text-primary)]/5 border border-white/5 group-hover:border-[var(--accent-primary)]/40 group-hover:bg-[var(--accent-primary)]/5 transition-all duration-500 group-hover:scale-110 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                    <motion.div
+                      animate={{
+                        y: [0, -4, 0],
+                      }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      <Terminal
+                        size={40}
+                        className="text-[var(--text-secondary)] group-hover:text-[var(--accent-primary)] transition-colors"
+                      />
+                    </motion.div>
+                  </div>
+ 
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-2xl font-bold text-[var(--text-primary)] tracking-tighter group-hover:text-[var(--accent-primary)] transition-colors">
+                        {MODE_SELECTOR_CONTENT.NORMAL_MODE.TITLE}
+                      </h3>
+                      {showShortcutHints && (
+                        <KbdGroup className="gap-1 opacity-30 group-hover:opacity-100 transition-opacity">
+                          {parseShortcutToKeys("Ctrl+N", isMac).map(
+                            (key, idx) => (
+                              <Kbd
+                                key={idx}
+                                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1 h-4 flex items-center justify-center font-mono"
+                              >
+                                {key}
+                              </Kbd>
+                            ),
+                          )}
+                        </KbdGroup>
+                      )}
+                    </div>
+                    <p className="text-sm font-medium text-[var(--text-secondary)] leading-snug opacity-60 group-hover:opacity-90 transition-opacity max-w-[280px]">
+                      {MODE_SELECTOR_CONTENT.NORMAL_MODE.DESCRIPTION}
                     </p>
                   </div>
                 </div>
