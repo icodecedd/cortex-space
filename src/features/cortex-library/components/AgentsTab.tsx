@@ -210,15 +210,25 @@ export function AgentsTab({
     [agents]
   );
 
+  const customAgents = useMemo(
+    () => agents.filter((a) => !a.isDefault),
+    [agents]
+  );
+
   const filtered = useMemo(() => {
-    const list = activeSubTab === "installed" ? installedAgents : activeAgents;
+    let list = activeAgents;
+    if (activeSubTab === "installed") {
+      list = installedAgents;
+    } else if (activeSubTab === "custom") {
+      list = customAgents;
+    }
     return list.filter(
       (a) =>
         a.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
         a.command.toLowerCase().includes(searchQuery.toLowerCase()) ||
         getAgentMeta(a.id).description.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [activeSubTab, activeAgents, installedAgents, searchQuery]);
+  }, [activeSubTab, activeAgents, installedAgents, customAgents, searchQuery]);
 
   const renderContent = () => {
     if (filtered.length === 0) {
@@ -293,7 +303,7 @@ export function AgentsTab({
                 </CardHeader>
 
                 <CardFooter className="px-4 py-2 border-t border-[var(--border-color)] bg-[var(--bg-color)]/20 flex items-center justify-between mt-auto gap-4">
-                  <span className="text-[9px] font-mono text-[var(--text-secondary)] opacity-60 truncate max-w-[120px]" title={`cmd: ${agent.command}`}>
+                  <span className="text-[9px] text-[var(--text-secondary)] opacity-60 truncate max-w-[120px]" title={`cmd: ${agent.command}`}>
                     {agent.command}
                   </span>
 
@@ -422,7 +432,7 @@ export function AgentsTab({
                     >
                       <div className="p-4">
                         <p className="text-[9px] font-bold tracking-widest text-red-400/70 mb-2">Installation Error Output</p>
-                        <pre className="text-[10px] font-mono text-red-300/80 whitespace-pre-wrap break-all leading-relaxed max-h-40 overflow-y-auto scrollbar-thin">{agent.errorMessage}</pre>
+                        <pre className="text-[10px] text-red-300/80 whitespace-pre-wrap break-all leading-relaxed max-h-40 overflow-y-auto scrollbar-thin">{agent.errorMessage}</pre>
                       </div>
                     </m.div>
                   )}
@@ -474,7 +484,7 @@ export function AgentsTab({
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-[11px] font-mono opacity-80">{agent.command}</span>
+                <span className="text-[11px] opacity-80">{agent.command}</span>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1.5">
@@ -554,7 +564,7 @@ export function AgentsTab({
                 <Input
                   autoFocus
                   placeholder="e.g. copilot"
-                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] font-mono h-9"
+                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9"
                   value={newCommand}
                   onChange={(e) => setNewCommand(e.target.value)}
                 />
@@ -589,7 +599,7 @@ export function AgentsTab({
                 </label>
                 <Input
                   placeholder="e.g. npm install -g @github/copilot-cli"
-                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[11px] font-mono h-9"
+                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[11px] h-9"
                   value={newInstallCommand}
                   onChange={(e) => setNewInstallCommand(e.target.value)}
                 />
@@ -744,6 +754,12 @@ export function AgentsTab({
             >
               Installed ({installedAgents.length})
             </TabsTrigger>
+            <TabsTrigger
+              value="custom"
+              className="text-[11px] font-bold tracking-wider"
+            >
+              Custom ({customAgents.length})
+            </TabsTrigger>
           </TabsList>
 
           <Button
@@ -770,6 +786,7 @@ export function AgentsTab({
 
         <TabsContent value="all">{renderContent()}</TabsContent>
         <TabsContent value="installed">{renderContent()}</TabsContent>
+        <TabsContent value="custom">{renderContent()}</TabsContent>
       </Tabs>
     </div>
   );

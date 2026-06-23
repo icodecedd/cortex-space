@@ -209,7 +209,7 @@ export function StepPickProfile({
                         value={proShell}
                         onChange={(e) => setProShell(e.target.value)}
                         placeholder="e.g. powershell.exe, bash, zsh"
-                        className="h-8 font-mono text-xs bg-[var(--bg-color)] border-[var(--border-color)]"
+                        className="h-8 text-xs bg-[var(--bg-color)] border-[var(--border-color)]"
                       />
                       <div className="flex gap-1">
                         {["powershell.exe", "cmd.exe", "wsl.exe"].map((sh) => (
@@ -217,7 +217,7 @@ export function StepPickProfile({
                             key={sh}
                             type="button"
                             onClick={() => setProShell(sh)}
-                            className={`px-2 rounded font-mono text-[9px] font-bold border transition-colors ${
+                            className={`px-2 rounded text-[9px] font-bold border transition-colors ${
                               proShell === sh
                                 ? "bg-[var(--accent-primary)] text-[var(--accent-contrast)] border-[var(--accent-primary)]"
                                 : "bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/35"

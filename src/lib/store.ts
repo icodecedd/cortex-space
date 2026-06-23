@@ -97,6 +97,8 @@ export interface AppearanceSettings {
   uiFontScale: number;
   zenPadding: number;
   reducedMotion: boolean;
+  shimmerPreset: string;
+  shimmerDuration: number;
 }
 
 export interface ShortcutSettings {
@@ -123,6 +125,7 @@ export interface FocusSettings {
   isZenMode: boolean;
   showTabs: boolean;
   showStatusBar: boolean;
+  showPaneHeaders: boolean;
   customLayoutMode: 'grid' | 'count';
 }
 

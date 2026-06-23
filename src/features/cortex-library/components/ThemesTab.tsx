@@ -463,7 +463,7 @@ export function ThemesTab({
               placeholder='{ "id": "my-theme", "name": "My Theme", "dark": { "bg": "#...", ... }, "light": { ... } }'
               value={jsonInput}
               onChange={(e) => setJsonInput(e.target.value)}
-              className="min-h-[140px] font-mono text-[11px] bg-[var(--bg-color)]/40 border-[var(--border-color)]/25 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)]"
+              className="min-h-[140px] text-[11px] bg-[var(--bg-color)]/40 border-[var(--border-color)]/25 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] text-[var(--text-primary)]"
             />
             <div className="flex justify-end gap-2">
               <Button

@@ -315,7 +315,7 @@ export function PaneConfigCard({
                               <span className="text-xs font-bold text-[var(--text-primary)] group-hover/snippet:text-[var(--accent-primary)] transition-colors">
                                 {snippet.label}
                               </span>
-                              <span className="text-[10px] font-mono text-[var(--text-secondary)] truncate opacity-40 group-hover/snippet:opacity-70 transition-opacity">
+                              <span className="text-[10px] text-[var(--text-secondary)] truncate opacity-40 group-hover/snippet:opacity-70 transition-opacity">
                                 {snippet.command}
                               </span>
                             </button>
@@ -359,7 +359,7 @@ export function PaneConfigCard({
                       ? "npm run dev"
                       : "Command..."
                 }
-                className="w-full h-10 bg-white/5 border-transparent hover:bg-white/[0.08] focus-visible:bg-[var(--bg-color)] focus-visible:border-[var(--accent-primary)]/40 text-xs font-mono placeholder:text-[var(--text-secondary)]/20 transition-all rounded-lg shadow-none focus-visible:ring-0 font-bold"
+                className="w-full h-10 bg-white/5 border-transparent hover:bg-white/[0.08] focus-visible:bg-[var(--bg-color)] focus-visible:border-[var(--accent-primary)]/40 text-xs placeholder:text-[var(--text-secondary)]/20 transition-all rounded-lg shadow-none focus-visible:ring-0 font-bold"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-focus-within/input:opacity-100 transition-opacity pointer-events-none">
                 <div className="w-1 h-3 bg-[var(--accent-primary)] animate-pulse rounded-full" />
@@ -398,7 +398,7 @@ export function PaneConfigCard({
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-[var(--text-primary)]/90">
                       Value for{" "}
-                      <span className="text-[var(--accent-primary)] font-mono">
+                      <span className="text-[var(--accent-primary)]">
                         {pendingSnippet.variables[pendingSnippet.currentIndex]}
                       </span>
                     </label>
@@ -436,7 +436,7 @@ export function PaneConfigCard({
                         <Kbd className="text-[9px]">Esc</Kbd> Skip
                       </div>
                     </div>
-                    <div className="font-mono text-[var(--accent-primary)]">
+                    <div className="text-[var(--accent-primary)]">
                       {pendingSnippet.currentIndex + 1} /{" "}
                       {pendingSnippet.variables.length}
                     </div>

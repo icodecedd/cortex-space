@@ -62,6 +62,10 @@ interface SettingsDialogProps {
   setZenPadding: (padding: number) => void;
   reducedMotion: boolean;
   setReducedMotion: (reduced: boolean) => void;
+  shimmerPreset: string;
+  setShimmerPreset: (preset: string) => void;
+  shimmerDuration: number;
+  setShimmerDuration: (v: number) => void;
   onResetAppearance: () => void;
   focusSettings: FocusSettings;
   setFocusSetting: <K extends keyof FocusSettings>(key: K, value: FocusSettings[K]) => Promise<void>;
@@ -86,6 +90,10 @@ export function SettingsDialog({
   setZenPadding,
   reducedMotion,
   setReducedMotion,
+  shimmerPreset,
+  setShimmerPreset,
+  shimmerDuration,
+  setShimmerDuration,
   onResetAppearance,
   focusSettings,
   setFocusSetting,
@@ -297,6 +305,10 @@ export function SettingsDialog({
               setZenPadding={setZenPadding}
               reducedMotion={reducedMotion}
               setReducedMotion={setReducedMotion}
+              shimmerPreset={shimmerPreset}
+              setShimmerPreset={setShimmerPreset}
+              shimmerDuration={shimmerDuration}
+              setShimmerDuration={setShimmerDuration}
               onResetAppearance={onResetAppearance}
               showSplash={showSplash}
               setShowSplash={(v) => handleStartupToggle("startup.showSplashAnimation", setShowSplash, v)}

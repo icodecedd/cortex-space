@@ -221,7 +221,7 @@ export function AboutTab() {
               <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
                 Cortex Space
               </h2>
-              <p className="text-xs text-[var(--text-secondary)] mt-1 font-mono opacity-60">
+              <p className="text-xs text-[var(--text-secondary)] mt-1 opacity-60">
                 Release v0.1.0-alpha
               </p>
             </div>
@@ -313,7 +313,7 @@ export function AboutTab() {
                             <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-pulse" />
                             <span className="text-[11px] font-bold text-[var(--text-primary)]">Update Available</span>
                           </div>
-                          <span className="text-[9.5px] font-mono font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] px-1.5 py-0.5 rounded">
+                          <span className="text-[9.5px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] px-1.5 py-0.5 rounded">
                             {updateVersion}
                           </span>
                         </div>
@@ -321,7 +321,7 @@ export function AboutTab() {
                         {updateBody && (
                           <div className="bg-[var(--text-primary)]/[0.02] border border-[var(--border-color)]/10 rounded-lg p-2.5 max-h-32 overflow-y-auto scrollbar-thin">
                             <p className="text-[9px] font-bold tracking-widest text-[var(--text-secondary)] uppercase mb-1">Release Highlights</p>
-                            <pre className="text-[10px] font-mono text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed opacity-80">{updateBody}</pre>
+                            <pre className="text-[10px] text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed opacity-80">{updateBody}</pre>
                           </div>
                         )}
 
@@ -351,7 +351,7 @@ export function AboutTab() {
                           <span className="text-[var(--text-primary)]">
                             {status === "downloading" ? "Downloading Update..." : "Installing Update..."}
                           </span>
-                          <span className="font-mono text-[var(--accent-primary)]">{progress}%</span>
+                          <span className="text-[var(--accent-primary)]">{progress}%</span>
                         </div>
 
                         <div className="h-1.5 w-full bg-[var(--border-color)]/20 rounded-full overflow-hidden">
@@ -383,7 +383,7 @@ export function AboutTab() {
 
                         {errorMsg && (
                           <div className="bg-red-500/[0.02] border border-red-500/10 rounded-lg p-2.5">
-                            <pre className="text-[9.5px] font-mono text-red-400 whitespace-pre-wrap break-all leading-normal">{errorMsg}</pre>
+                            <pre className="text-[9.5px] text-red-400 whitespace-pre-wrap break-all leading-normal">{errorMsg}</pre>
                           </div>
                         )}
 

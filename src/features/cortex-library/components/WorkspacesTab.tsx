@@ -210,12 +210,12 @@ export function WorkspacesTab({
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-[11px] font-mono text-[var(--text-secondary)]/70">
+                <span className="text-[11px] text-[var(--text-secondary)]/70">
                   {truncatePath(template.rootPath, 25)}
                 </span>
               </TableCell>
               <TableCell>
-                <span className="text-[10px] text-[var(--text-secondary)]/60 font-mono">
+                <span className="text-[10px] text-[var(--text-secondary)]/60">
                   {formatTimeAgo(template.createdAt)}
                 </span>
               </TableCell>
@@ -347,12 +347,12 @@ export function WorkspacesTab({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[11px] font-mono">
+                    <span className="text-[11px]">
                       {truncatePath(template.rootPath, 25)}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[10px] font-mono">
+                    <span className="text-[10px]">
                       {formatTimeAgo(template.createdAt)}
                     </span>
                   </TableCell>
@@ -491,7 +491,7 @@ function TemplateCard({
                 {template.name}
               </CardTitle>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
+            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] min-w-0">
               <Folder size={10} className="shrink-0 opacity-80" />
               <span className="block flex-1 truncate whitespace-nowrap">
                 {truncatePath(template.rootPath, 35)}

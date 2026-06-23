@@ -149,7 +149,7 @@ export function StepIntelligence({
             </div>
 
             <div className="flex items-center justify-between border-t border-[var(--border-color)]/30 pt-3 mt-auto">
-              <span className="text-[9px] font-mono text-[var(--text-secondary)] opacity-60 truncate max-w-[100px]" title={`cmd: ${agent.command}`}>
+              <span className="text-[9px] text-[var(--text-secondary)] opacity-60 truncate max-w-[100px]" title={`cmd: ${agent.command}`}>
                 {agent.command}
               </span>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -212,7 +212,7 @@ export function StepIntelligence({
       </div>
 
       {isInitialized && (
-        <div className="text-center font-mono text-[10px] text-[var(--text-secondary)] opacity-70">
+        <div className="text-center text-[10px] text-[var(--text-secondary)] opacity-70">
           {activeCount} of {defaultAgents.length} default agents configured successfully
         </div>
       )}

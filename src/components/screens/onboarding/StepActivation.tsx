@@ -102,9 +102,9 @@ export function StepActivation({
                   <div key={agent.id} className="flex items-center justify-between gap-2 bg-[var(--bg-color)]/20 p-2 rounded border border-[var(--border-color)]/10">
                     <div className="flex flex-col min-w-0">
                       <span className="text-[10px] font-bold text-[var(--text-primary)] truncate">{agent.label}</span>
-                      <span className="text-[8px] font-mono text-[var(--text-secondary)] opacity-60 truncate">{agent.command}</span>
+                      <span className="text-[8px] text-[var(--text-secondary)] opacity-60 truncate">{agent.command}</span>
                     </div>
-                    <span className="text-[8px] font-mono font-bold uppercase shrink-0" style={{
+                    <span className="text-[8px] font-bold uppercase shrink-0" style={{
                       color: agent.status === 'installed' ? 'var(--ansi-green, #10B981)' : 'var(--accent-primary)'
                     }}>
                       {agent.status === 'installed' ? 'Installed' : 'To Install'}
@@ -126,7 +126,7 @@ export function StepActivation({
                 <span className="text-[11px] font-bold text-[var(--text-primary)]">
                   {profile.layoutName}
                 </span>
-                <span className="text-[9px] font-mono text-[var(--text-secondary)] opacity-60">
+                <span className="text-[9px] text-[var(--text-secondary)] opacity-60">
                   Shell: {profile.shellValue || profile.shellLabel}
                 </span>
               </div>
@@ -139,7 +139,7 @@ export function StepActivation({
         </div>
       ) : (
         /* Default Custom Review Table */
-        <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]/20 divide-y divide-[var(--border-color)]/30 overflow-hidden font-mono text-xs">
+        <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]/20 divide-y divide-[var(--border-color)]/30 overflow-hidden text-xs">
           {summaryRows.map(([key, val]) => (
             <div key={key} className="flex justify-between items-center p-3 gap-4">
               <span className="text-[var(--text-secondary)] opacity-60 font-bold">{key}</span>
@@ -173,7 +173,7 @@ export function StepActivation({
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className="overflow-hidden border-t border-[var(--border-color)]/20"
               >
-                <div className="flex flex-col bg-[var(--bg-color)]/20 divide-y divide-[var(--border-color)]/30 font-mono text-[10px]">
+                <div className="flex flex-col bg-[var(--bg-color)]/20 divide-y divide-[var(--border-color)]/30 text-[10px]">
                   {summaryRows.map(([key, val]) => (
                     <div key={key} className="flex justify-between items-center p-2.5 gap-4">
                       <span className="text-[var(--text-secondary)] opacity-60 font-bold">{key}</span>

@@ -61,6 +61,7 @@ export const SpaceView = React.memo(
     config,
     isZenMode,
     zenPadding = 32,
+    showPaneHeaders = true,
     onSplitPane,
     onMovePane,
     onKillPane,
@@ -220,6 +221,7 @@ export const SpaceView = React.memo(
               rootPath={config.rootPath}
               isZenMode={isZenMode}
               zenPadding={zenPadding}
+              showPaneHeaders={showPaneHeaders}
               isMaximized={isMaximized}
               onMaximize={() => {
                 setFocusedPaneId(pane.id);

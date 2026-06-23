@@ -587,7 +587,7 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
         <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
           Command Center Setup
         </span>
-        <span className="text-[10px] font-mono text-[var(--text-secondary)] opacity-60">
+        <span className="text-[10px] text-[var(--text-secondary)] opacity-60">
           Step {stepIndex + 1} of {steps.length}
         </span>
       </div>

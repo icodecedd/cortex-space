@@ -124,11 +124,17 @@ export function LayoutsTab({
             : "Define and save your preferred terminal grid arrangements, from simple splits to complex layouts."
           }
           iconColor="text-[var(--accent-primary)]/40"
-          action={!isAdding && !searchQuery && savedLayouts.filter(l => l.config.type === layoutCustomMode).length === 0 ? {
-            label: "Install Starter Pack",
-            onClick: onRestoreDefaults,
-            icon: Zap
-          } : undefined}
+          action={!isAdding && !searchQuery ? (
+            savedLayouts.filter(l => l.config.type === layoutCustomMode).length === 0 ? {
+              label: "Install Starter Pack",
+              onClick: onRestoreDefaults,
+              icon: Zap
+            } : {
+              label: "Create Layout",
+              onClick: () => setIsAdding(true),
+              icon: Plus
+            }
+          ) : undefined}
           compact
         />
       );
@@ -183,7 +189,7 @@ export function LayoutsTab({
                 <span className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">{layout.name}</span>
               </TableCell>
               <TableCell>
-                <span className="text-[11px] font-mono text-[var(--text-primary)]/80 font-bold">
+                <span className="text-[11px] text-[var(--text-primary)]/80 font-bold">
                   {layout.config.type === 'grid' ? `${layout.config.rows}X${layout.config.cols}` : `${layout.config.value} PANES`}
                 </span>
               </TableCell>
@@ -294,7 +300,7 @@ export function LayoutsTab({
                     <span className="text-[12px] font-medium text-[var(--text-primary)]/60 tracking-tight">{layout.name}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[11px] font-mono">
+                    <span className="text-[11px]">
                       {layout.config.type === 'grid' ? `${layout.config.rows}X${layout.config.cols}` : `${layout.config.value} PANES`}
                     </span>
                   </TableCell>
@@ -351,7 +357,7 @@ export function LayoutsTab({
                     autoFocus
                     type="number"
                     min={1} max={4}
-                    className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center font-mono"
+                    className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center"
                     value={newLayoutRows === 0 ? "" : newLayoutRows}
                     onChange={(e) => handleNumericInput(e.target.value, setNewLayoutRows, 4)}
                   />
@@ -361,7 +367,7 @@ export function LayoutsTab({
                   <Input
                     type="number"
                     min={1} max={4}
-                    className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center font-mono"
+                    className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center"
                     value={newLayoutCols === 0 ? "" : newLayoutCols}
                     onChange={(e) => handleNumericInput(e.target.value, setNewLayoutCols, 4)}
                   />
@@ -374,7 +380,7 @@ export function LayoutsTab({
                   autoFocus
                   type="number"
                   min={1} max={16}
-                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center font-mono w-24"
+                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9 text-center w-24"
                   value={newLayoutPaneCount === 0 ? "" : newLayoutPaneCount}
                   onChange={(e) => handleNumericInput(e.target.value, setNewLayoutPaneCount, 16)}
                 />
@@ -398,7 +404,7 @@ export function LayoutsTab({
                 isActive={true}
                 className="w-11 h-9 shrink-0"
               />
-              <div className="text-[10px] font-mono text-[var(--text-secondary)]">
+              <div className="text-[10px] text-[var(--text-secondary)]">
                 Identifier:{" "}
                 <span className="text-[var(--accent-primary)] font-bold">
                   {newLayoutName.trim()
@@ -496,7 +502,7 @@ function LayoutCard({ layout, isSelected, onToggleSelection, onArchive, onRestor
                 {layout.name}
               </CardTitle>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
+            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] min-w-0">
                <span className="text-[var(--text-primary)] font-bold">
                  {layout.config.type === 'grid' ? `${layout.config.rows}X${layout.config.cols}` : `${layout.config.value} PANES`}
                </span> LAYOUT

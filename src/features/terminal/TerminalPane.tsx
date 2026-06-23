@@ -13,6 +13,7 @@ interface TerminalPaneProps {
   rootPath?: string;
   isZenMode?: boolean;
   zenPadding?: number;
+  showPaneHeaders?: boolean;
   isMaximized?: boolean;
   onMaximize?: () => void;
   onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
@@ -30,6 +31,7 @@ interface TerminalPaneProps {
   rootPath,
   isZenMode,
   zenPadding,
+  showPaneHeaders,
   isMaximized,
   onMaximize,
   onSplit,
@@ -141,6 +143,7 @@ interface TerminalPaneProps {
           command={pane.command}
           cwd={rootPath}
           isZenMode={isZenMode}
+          showPaneHeaders={showPaneHeaders}
           isMaximized={isMaximized}
           onMaximize={onMaximize}
           name={pane.name}

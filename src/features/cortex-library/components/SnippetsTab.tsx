@@ -207,7 +207,7 @@ export function SnippetsTab({
                     size={10}
                     className="text-[var(--text-secondary)]/50 shrink-0"
                   />
-                  <span className="text-[11px] font-mono text-[var(--text-secondary)]/70 truncate max-w-[300px]">
+                  <span className="text-[11px] text-[var(--text-secondary)]/70 truncate max-w-[300px]">
                     {snippet.command}
                   </span>
                 </div>
@@ -379,7 +379,7 @@ export function SnippetsTab({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[11px] font-mono truncate max-w-[300px]">
+                    <span className="text-[11px] truncate max-w-[300px]">
                       {snippet.command}
                     </span>
                   </TableCell>
@@ -507,7 +507,7 @@ function AddSnippetForm({
           <Input
             autoFocus
             placeholder="e.g. docker-compose up --build"
-            className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] font-mono h-9"
+            className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] h-9"
             value={command}
             onChange={(e) => onCommandChange(e.target.value)}
           />
@@ -595,7 +595,7 @@ function SnippetCard({
                 {snippet.label}
               </CardTitle>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
+            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] min-w-0">
               <ChevronRightSquare size={10} className="shrink-0 opacity-80" />
               <span className="block flex-1 truncate whitespace-nowrap">
                 {snippet.command}

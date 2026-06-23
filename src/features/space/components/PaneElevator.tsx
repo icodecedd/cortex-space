@@ -70,7 +70,7 @@ export function PaneElevator({
         {parseShortcutToKeys(shortcut, isMac).map((key, idx) => (
           <Kbd
             key={idx}
-            className="min-w-4 h-4 px-1 text-[8px] flex items-center justify-center font-mono bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20"
+            className="min-w-4 h-4 px-1 text-[8px] flex items-center justify-center bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20"
           >
             {key}
           </Kbd>
@@ -189,7 +189,7 @@ export function PaneElevator({
         <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0 relative z-10">
           {/* Pane Index Counter (Stylized) */}
           <div 
-            className="flex items-center justify-center w-5 h-5 rounded-lg bg-white/5 text-[10px] font-black font-mono text-[var(--accent-primary)] shrink-0 select-none border border-white/5 shadow-inner"
+            className="flex items-center justify-center w-5 h-5 rounded-lg bg-white/5 text-[10px] font-black text-[var(--accent-primary)] shrink-0 select-none border border-white/5 shadow-inner"
           >
             0{index + 1}
           </div>
@@ -231,7 +231,7 @@ export function PaneElevator({
                   whileTap={{ scale: 0.95 }}
                   onClick={() => openUrl(dp.url)}
                   aria-label={`Connect to localhost:${dp.port}`}
-                  className="flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--accent-primary)]/30 text-[10px] font-black cursor-pointer color-[var(--accent-primary)] bg-[var(--accent-primary)]/5 hover:bg-[var(--accent-primary)]/10 transition-all font-mono tracking-tight"
+                  className="flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--accent-primary)]/30 text-[10px] font-black cursor-pointer color-[var(--accent-primary)] bg-[var(--accent-primary)]/5 hover:bg-[var(--accent-primary)]/10 transition-all tracking-tight"
                 >
                   <m.span
                     animate={{ opacity: [1, 0.4, 1] }}
@@ -253,7 +253,7 @@ export function PaneElevator({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 text-[10px] font-black cursor-pointer text-[var(--text-secondary)] bg-white/5 hover:bg-white/10 transition-all font-mono"
+                  className="flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 text-[10px] font-black cursor-pointer text-[var(--text-secondary)] bg-white/5 hover:bg-white/10 transition-all"
                 >
                   <Globe size={10} />
                   <span>+{overflowPorts.length}</span>
@@ -261,7 +261,7 @@ export function PaneElevator({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-[var(--surface-color)]/90 backdrop-blur-2xl border-white/10 rounded-2xl p-2 shadow-2xl">
                 {overflowPorts.map((dp) => (
-                  <DropdownMenuItem key={dp.port} onClick={() => openUrl(dp.url)} className="rounded-xl px-3 py-2 text-[11px] font-bold font-mono">
+                  <DropdownMenuItem key={dp.port} onClick={() => openUrl(dp.url)} className="rounded-xl px-3 py-2 text-[11px] font-bold">
                     <span className="w-1.5 h-1.5 rounded-full bg-ansi-green mr-3" />
                     <ExternalLink className="mr-3 h-3 w-3 opacity-50" />
                     <span>localhost:{dp.port}</span>

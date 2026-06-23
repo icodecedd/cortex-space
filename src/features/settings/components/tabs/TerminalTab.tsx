@@ -16,6 +16,113 @@ import {
 import { TerminalSettings, DemoSettings } from "@/lib/store";
 import { Layout, Type, MousePointer2, History } from "@/components/ui/icons";
 import { motion, Variants } from "framer-motion";
+import { Label } from "@/components/ui/label";
+
+function HeaderMockup({ type }: { type: "hover" | "always" }) {
+  const isHover = type === "hover";
+  return (
+    <div className="w-full h-full flex flex-col select-none font-sans bg-[#18181b] text-zinc-200">
+      {/* Top window controls */}
+      <div className="h-5 px-2.5 flex items-center gap-1 shrink-0 bg-[#111113] border-b border-zinc-800/80">
+        <div className="w-1.5 h-1.5 rounded-full bg-[#ff5f56]" />
+        <div className="w-1.5 h-1.5 rounded-full bg-[#ffbd2e]" />
+        <div className="w-1.5 h-1.5 rounded-full bg-[#27c93f]" />
+      </div>
+      
+      {/* Window Body */}
+      <div className="flex-1 flex flex-col min-h-0 bg-[#09090b] relative">
+        {/* Mock Pane Header */}
+        {isHover ? (
+          /* Hover mode: faint dotted outline header showing it reveals on hover */
+          <div className="h-[18px] border-b border-dashed border-zinc-800/60 bg-zinc-900/10 px-2 flex items-center justify-between opacity-30">
+            <div className="h-1 w-8 rounded bg-zinc-700" />
+            <div className="flex gap-1">
+              <div className="w-2 h-2 rounded-full bg-zinc-800" />
+              <div className="w-2 h-2 rounded-full bg-zinc-800" />
+            </div>
+          </div>
+        ) : (
+          /* Always Mode: solid visible header bar */
+          <div className="h-[18px] border-b border-zinc-800 bg-[#121214] px-2 flex items-center justify-between">
+            <div className="h-1 w-8 rounded bg-zinc-400" />
+            <div className="flex gap-1">
+              <div className="w-2 h-2 rounded bg-zinc-800" />
+              <div className="w-2 h-2 rounded bg-zinc-800" />
+            </div>
+          </div>
+        )}
+        
+        {/* Terminal Content Mock */}
+        <div className="flex-1 p-2 flex flex-col gap-1.5 text-[6px]">
+          <div className="flex items-center gap-1">
+            <span className="text-emerald-500 font-bold">~</span>
+            <div className="h-1.5 w-16 rounded bg-zinc-800" />
+          </div>
+          <div className="h-1.5 w-24 rounded bg-zinc-900/60" />
+          <div className="h-1.5 w-20 rounded bg-zinc-900/60" />
+        </div>
+        
+        {/* Mock cursor arrow hovering near the top right for Hover Mode */}
+        {isHover && (
+          <div className="absolute top-[10px] right-[16px] pointer-events-none opacity-80">
+            <svg className="w-3.5 h-3.5 text-zinc-400 fill-zinc-400 stroke-zinc-900" viewBox="0 0 24 24" strokeWidth="1.5">
+              <path d="M4.5 3v15.5l4.5-4.5 4 8.5 2.5-1.2-4-8.3 6.5.5L4.5 3z" />
+            </svg>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface HeaderVisibilityCardProps {
+  value: "hover" | "always";
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}
+
+function HeaderVisibilityCard({ value, label, selected, onClick }: HeaderVisibilityCardProps) {
+  return (
+    <div 
+      onClick={onClick}
+      className="flex flex-col cursor-pointer group"
+    >
+      {/* Window Mockup Card */}
+      <div 
+        className={`relative w-full h-[110px] rounded-xl overflow-hidden border-2 hover:-translate-y-[2px] transition-all duration-300 ease-[var(--ease-out)] ${
+          selected 
+            ? "border-[var(--accent-primary)] shadow-[0_0_12px_rgba(var(--accent-primary-rgb),0.2)] dark:shadow-[0_0_12px_rgba(var(--accent-primary-rgb),0.15)]" 
+            : "border-neutral-200 dark:border-zinc-800 hover:border-neutral-300 dark:hover:border-zinc-700 bg-background"
+        }`}
+      >
+        <HeaderMockup type={value} />
+      </div>
+      
+      {/* Radio Label */}
+      <div className="flex items-center gap-2 mt-2.5 px-1 min-w-0">
+        <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all duration-200 shrink-0 ${
+          selected 
+            ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-[var(--accent-contrast)]" 
+            : "border-neutral-300 dark:border-zinc-700 bg-transparent group-hover:border-neutral-400 dark:group-hover:border-zinc-600"
+        }`}>
+          {selected && (
+            <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+        <span className={`text-[12px] font-semibold transition-colors duration-200 truncate ${
+          selected 
+            ? "text-[var(--text-primary)]" 
+            : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
+        }`}>
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 interface TerminalTabProps {
   ts: TerminalSettings;
@@ -96,19 +203,34 @@ export function TerminalTab({
               onCheckedChange={(v) => setDemoSetting("showFloatingTerminalHeader", v)}
             />
           </SettingsRow>
-          <SettingsRow
-            label="Header Visibility"
-            description="Choose if the header should be always visible or reveal on hover."
-          >
-            <SegmentedControl<'hover' | 'always'>
-              value={demo.terminalHeaderVisibility || 'hover'}
-              onChange={(v) => setDemoSetting("terminalHeaderVisibility", v)}
-              options={[
-                { value: "hover", label: "Reveal on Hover" },
-                { value: "always", label: "Always Visible" },
-              ]}
-            />
-          </SettingsRow>
+          <div className="group/row flex flex-col gap-3.5 p-2 rounded-lg transition-all duration-300 hover:bg-[var(--text-primary)]/[0.03]">
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <Label
+                className="text-[13px] font-bold cursor-pointer transition-colors group-hover/row:text-[var(--text-primary)]"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Header Visibility
+              </Label>
+              <span className="text-[11px] leading-relaxed font-medium" style={{ color: "var(--text-secondary)", opacity: 0.85 }}>
+                Choose if the header should be always visible or reveal on hover.
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <HeaderVisibilityCard
+                value="hover"
+                label="Reveal on Hover"
+                selected={(demo.terminalHeaderVisibility || "hover") === "hover"}
+                onClick={() => setDemoSetting("terminalHeaderVisibility", "hover")}
+              />
+              <HeaderVisibilityCard
+                value="always"
+                label="Always Visible"
+                selected={(demo.terminalHeaderVisibility || "hover") === "always"}
+                onClick={() => setDemoSetting("terminalHeaderVisibility", "always")}
+              />
+            </div>
+          </div>
         </SettingsCard>
       </motion.div>
 
@@ -170,7 +292,7 @@ export function TerminalTab({
                 onValueCommit={([v]) => commitSettings({ fontSize: v })}
                 className="flex-1"
               />
-              <span className="text-[11px] font-mono w-[32px] text-right text-[var(--text-secondary)]">
+              <span className="text-[11px] w-[32px] text-right text-[var(--text-secondary)]">
                 {ts.fontSize}px
               </span>
             </div>
@@ -196,7 +318,7 @@ export function TerminalTab({
                 }
                 className="flex-1"
               />
-              <span className="text-[11px] font-mono w-[32px] text-right text-[var(--text-secondary)]">
+              <span className="text-[11px] w-[32px] text-right text-[var(--text-secondary)]">
                 {ts.lineHeight.toFixed(1)}
               </span>
             </div>
@@ -222,7 +344,7 @@ export function TerminalTab({
                 }
                 className="flex-1"
               />
-              <span className="text-[11px] font-mono w-[32px] text-right text-[var(--text-secondary)]">
+              <span className="text-[11px] w-[32px] text-right text-[var(--text-secondary)]">
                 {ts.letterSpacing}px
               </span>
             </div>
@@ -289,7 +411,7 @@ export function TerminalTab({
                 );
                 updateSetting("scrollbackLines", v);
               }}
-              className="w-[110px] h-8 text-[11px] font-mono text-right bg-[var(--bg-color)]/50 border-[var(--border-color)]/20"
+              className="w-[110px] h-8 text-[11px] text-right bg-[var(--bg-color)]/50 border-[var(--border-color)]/20"
             />
           </SettingsRow>
         </SettingsCard>

@@ -117,6 +117,18 @@ export function useColorScheme() {
     await setSetting(`${PREFIX}.reducedMotion`, reduced);
   }, []);
 
+  const setShimmerPreset = useCallback(async (preset: string) => {
+    globalSettings = { ...globalSettings, shimmerPreset: preset };
+    notifyListeners();
+    await setSetting(`${PREFIX}.shimmerPreset`, preset);
+  }, []);
+
+  const setShimmerDuration = useCallback(async (duration: number) => {
+    globalSettings = { ...globalSettings, shimmerDuration: duration };
+    notifyListeners();
+    await setSetting(`${PREFIX}.shimmerDuration`, duration);
+  }, []);
+
   const resetToDefaults = useCallback(async () => {
     globalSettings = APPEARANCE_DEFAULTS;
     globalResolvedScheme = applyColorScheme(APPEARANCE_DEFAULTS.colorScheme);
@@ -125,5 +137,5 @@ export function useColorScheme() {
     await setSettingsGroup<AppearanceSettings>(PREFIX, APPEARANCE_DEFAULTS);
   }, []);
 
-  return { settings, resolvedScheme, isLoaded, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, resetToDefaults };
+  return { settings, resolvedScheme, isLoaded, setColorScheme, setUiFontScale, setZenPadding, setReducedMotion, setShimmerPreset, setShimmerDuration, resetToDefaults };
 }

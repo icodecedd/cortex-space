@@ -45,6 +45,7 @@ interface XtermTerminalProps {
   command?: string;
   cwd?: string;
   isZenMode?: boolean;
+  showPaneHeaders?: boolean;
   isMaximized?: boolean;
   onMaximize?: () => void;
   name?: string;
@@ -61,6 +62,7 @@ export function XtermTerminal({
   command,
   cwd,
   isZenMode = false,
+  showPaneHeaders,
   isMaximized = false,
   onMaximize,
   name,
@@ -82,6 +84,7 @@ export function XtermTerminal({
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
   const [showFloatingHeader, setShowFloatingHeader] = useState(true);
   const [headerVisibility, setHeaderVisibility] = useState<'hover' | 'always'>('hover');
+  const headerVisible = showPaneHeaders !== undefined ? showPaneHeaders : showFloatingHeader;
   const [detectedPorts, setDetectedPorts] = useState<DetectedPort[]>([]);
 
   const [pendingSnippet, setPendingSnippet] = useState<PendingSnippet | null>(null);
@@ -841,7 +844,7 @@ export function XtermTerminal({
       el.removeEventListener('transitionend', onTransitionEnd);
       clearTimeout(fallbackTimer);
     };
-  }, [isMaximized, isZenMode, showFloatingHeader, headerVisibility]);
+  }, [isMaximized, isZenMode, headerVisible, headerVisibility]);
 
   useEffect(() => {
     const handleFocus = () => { if (xtermRef.current && isFocused && isReady) xtermRef.current.focus(); };
@@ -929,7 +932,7 @@ export function XtermTerminal({
   };
 
   const getTerminalPaddingTop = () => {
-    if (isZenMode || !showFloatingHeader) return '0px';
+    if (isZenMode || !headerVisible) return '0px';
     return headerVisibility === 'always' ? '40px' : '0px';
   };
 
@@ -946,7 +949,7 @@ export function XtermTerminal({
         background: 'var(--bg-color)'
       }}
     >
-      {showFloatingHeader && (
+      {headerVisible && (
         <PaneElevator
           paneId={paneId}
           name={name}

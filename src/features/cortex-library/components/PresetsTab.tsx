@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Folder,
   Trash2,
@@ -7,6 +7,9 @@ import {
   FolderOpen,
   Archive,
   RotateCcw,
+  AlertCircle,
+  CheckCircle2,
+  X,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -14,7 +17,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { truncatePath, cn } from "@/lib/utils";
 import { open } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Spotlight } from "@/components/ui/spotlight";
 import {
   Tooltip,
   TooltipContent,
@@ -69,6 +74,44 @@ export function PresetsTab({
   onSubTabChange,
 }: PresetsTabProps) {
   const [newPresetPath, setNewPresetPath] = useState("");
+  const [pathError, setPathError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+
+  // Synchronize/reset validation state when the form is toggled
+  useEffect(() => {
+    if (!isAdding) {
+      setNewPresetPath("");
+      setPathError(null);
+      setIsValidating(false);
+    }
+  }, [isAdding]);
+
+  // Debounced validation for manual text entries
+  useEffect(() => {
+    const trimmed = newPresetPath.trim();
+    if (!trimmed) {
+      setPathError(null);
+      return;
+    }
+
+    setIsValidating(true);
+    const timer = setTimeout(async () => {
+      try {
+        const isValid = await invoke<boolean>("validate_directory", { path: trimmed });
+        if (!isValid) {
+          setPathError("Directory path does not exist or is not a valid folder.");
+        } else {
+          setPathError(null);
+        }
+      } catch (err) {
+        setPathError("Failed to validate directory path.");
+      } finally {
+        setIsValidating(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [newPresetPath]);
 
   const activePresets = presets.filter((p) => !p.isArchived);
   const archivedPresets = presets.filter((p) => p.isArchived);
@@ -100,9 +143,26 @@ export function PresetsTab({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const trimmedPath = newPresetPath.trim();
-    if (!trimmedPath) return;
+    if (!trimmedPath || pathError || isValidating) return;
+
+    setIsValidating(true);
+    try {
+      const isValid = await invoke<boolean>("validate_directory", { path: trimmedPath });
+      if (!isValid) {
+        setPathError("Directory path does not exist or is not a valid folder.");
+        setIsValidating(false);
+        return;
+      }
+    } catch (err) {
+      setPathError("Failed to validate directory path.");
+      setIsValidating(false);
+      return;
+    } finally {
+      setIsValidating(false);
+    }
+
     const derivedName =
       trimmedPath.split(/[\\/]/).filter(Boolean).pop() || "ROOT";
     onAdd(derivedName.toUpperCase(), trimmedPath);
@@ -122,6 +182,11 @@ export function PresetsTab({
               : "Save your frequent workspace paths for faster setup and easy access across sessions."
           }
           iconColor="text-[var(--accent-primary)]/40"
+          action={!isAdding && !searchQuery ? {
+            label: "Add Preset",
+            onClick: () => setIsAdding(true),
+            icon: Plus,
+          } : undefined}
           compact
         />
       );
@@ -189,7 +254,7 @@ export function PresetsTab({
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-[11px] font-mono text-[var(--text-secondary)]/70">
+                <span className="text-[11px] text-[var(--text-secondary)]/70 font-medium">
                   {truncatePath(preset.path, 35)}
                 </span>
               </TableCell>
@@ -311,7 +376,7 @@ export function PresetsTab({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[11px] font-mono">
+                    <span className="text-[11px] font-medium text-[var(--text-secondary)]/70">
                       {truncatePath(preset.path, 35)}
                     </span>
                   </TableCell>
@@ -357,33 +422,86 @@ export function PresetsTab({
   return (
     <div className="space-y-6">
       {isAdding && (
-        <Card className="bg-[var(--accent-primary)]/[0.03] border border-[var(--accent-primary)]/20 ring-0 shadow-none p-5 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-300 mb-6">
             <div className="space-y-2 flex-1">
-              <Label className="text-[10px] font-bold text-[var(--accent-primary)]/80 tracking-wider">
+              <Label className="text-[10px] font-bold text-[var(--accent-primary)]/80 tracking-wider block mb-1">
                 Target Directory Path
               </Label>
-              <div className="flex gap-3">
+              
+              <Spotlight
+                className={cn(
+                  "group relative flex items-center gap-2.5 rounded-lg border p-1.5 transition-all duration-500 shadow-sm",
+                  pathError
+                    ? "border-red-500/50 bg-red-500/[0.01]"
+                    : newPresetPath && !pathError && !isValidating
+                    ? "border-emerald-500/30 bg-emerald-500/[0.01]"
+                    : "border-[var(--border-color)] bg-white/[0.01] focus-within:border-[var(--accent-primary)]/40 focus-within:bg-white/[0.03]",
+                )}
+                spotlightColor="rgba(var(--accent-primary-rgb), 0.05)"
+              >
+                <div
+                  className={cn(
+                    "flex items-center justify-center w-8 h-8 rounded-md transition-all duration-500 shrink-0",
+                    pathError
+                      ? "bg-red-500/10 text-red-400"
+                      : newPresetPath && !pathError && !isValidating
+                      ? "bg-emerald-500/10 text-emerald-400"
+                      : "bg-[var(--text-primary)]/5 text-[var(--text-secondary)] group-focus-within:text-[var(--accent-primary)]"
+                  )}
+                >
+                  <FolderOpen size={16} />
+                </div>
+
                 <Input
                   autoFocus
+                  type="text"
                   placeholder="C:\\Users\\...\\Project"
-                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[13px] font-mono h-9 flex-1"
+                  className="flex-1 h-8 border-none bg-transparent px-1 text-xs text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/30 font-bold"
                   value={newPresetPath}
                   onChange={(e) => setNewPresetPath(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newPresetPath.trim() && !pathError && !isValidating) {
+                      handleSave();
+                    }
+                  }}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBrowse}
-                  className="h-9 gap-2 border-[var(--border-color)] bg-[var(--text-primary)]/5 hover:bg-[var(--text-primary)]/10 font-mono text-[10px] font-bold tracking-wider"
-                >
-                  <FolderOpen size={14} /> Browse
-                </Button>
-              </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {newPresetPath && (
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => setNewPresetPath("")}
+                      className="h-7 w-7 text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-400/5 rounded-md transition-all"
+                    >
+                      <X size={14} />
+                    </Button>
+                  )}
+                  <div className="w-px h-5 bg-[var(--border-color)] opacity-40 mx-0.5" />
+                  <Button
+                    onClick={handleBrowse}
+                    className="h-8 px-4 text-[11px] font-bold rounded-md flex items-center gap-1.5 bg-[var(--accent-primary)] text-[var(--accent-contrast)] hover:opacity-90 transition-all"
+                  >
+                    <FolderOpen size={14} />
+                    Browse
+                  </Button>
+                </div>
+              </Spotlight>
+
+              {pathError && (
+                <div className="text-[10px] text-red-400 font-bold mt-1.5 flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200 px-1">
+                  <AlertCircle size={12} /> {pathError}
+                </div>
+              )}
+              {newPresetPath && !pathError && !isValidating && (
+                <div className="text-[10px] text-emerald-400 font-bold mt-1.5 flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200 px-1">
+                  <CheckCircle2 size={12} /> Directory verified.
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-between border-t border-[var(--accent-primary)]/10 pt-4 mt-1">
-              <div className="text-[10px] font-mono text-[var(--text-secondary)] italic">
-                {newPresetPath ? (
+              <div className="text-[10px] text-[var(--text-secondary)]/70 italic font-medium">
+                {newPresetPath && !pathError ? (
                   <>
                     Auto-Labeling as:{" "}
                     <span className="text-[var(--accent-primary)] font-bold">
@@ -409,16 +527,15 @@ export function PresetsTab({
                 <Button
                   size="sm"
                   onClick={handleSave}
-                  disabled={!newPresetPath.trim()}
+                  disabled={!newPresetPath.trim() || !!pathError || isValidating}
                   className="bg-[var(--accent-primary)] text-[var(--accent-contrast)] text-[11px] font-bold h-8 hover:opacity-90 px-6"
                 >
-                  Save Preset
+                  {isValidating ? "Validating..." : "Save Preset"}
                 </Button>
               </div>
             </div>
           </div>
-        </Card>
-      )}
+        )}
 
       <Tabs
         value={activeSubTab}
@@ -515,7 +632,7 @@ function PresetCard({
                 {preset.label}
               </CardTitle>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
+            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]/70 font-medium min-w-0">
               <FolderOpen size={10} className="shrink-0 opacity-80" />
               <span className="block flex-1 truncate whitespace-nowrap">
                 {truncatePath(preset.path, 35)}

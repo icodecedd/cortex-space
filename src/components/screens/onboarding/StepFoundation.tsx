@@ -152,7 +152,7 @@ export function StepFoundation({
                     }}
                     placeholder="Select a workspace folder"
                     autoComplete="off"
-                    className="h-8 border-none bg-transparent px-0.5 font-mono text-xs text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/10 font-bold"
+                    className="h-8 border-none bg-transparent px-0.5 text-xs text-[var(--text-primary)] shadow-none focus-visible:ring-0 placeholder:text-[var(--text-secondary)]/10 font-bold"
                   />
                 </div>
 
@@ -209,7 +209,7 @@ export function StepFoundation({
                 </span>
               )}
               {pathValidation.normalizedPath && (
-                <span className="text-[10px] font-mono text-[var(--text-secondary)] opacity-60 break-all">
+                <span className="text-[10px] text-[var(--text-secondary)] opacity-60 break-all">
                   Resolved path: {pathValidation.normalizedPath}
                 </span>
               )}
@@ -273,7 +273,7 @@ export function StepFoundation({
                         onChange={(e) => setShell(e.target.value)}
                         placeholder={`System Default (Detected: ${systemShell})`}
                         autoComplete="off"
-                        className="h-9 font-mono text-xs bg-[var(--surface-color)] border-[var(--border-color)]"
+                        className="h-9 text-xs bg-[var(--surface-color)] border-[var(--border-color)]"
                       />
                       <div className="flex gap-1.5 shrink-0">
                         {["powershell.exe", "cmd.exe", "wsl.exe"].map((sh) => (
@@ -281,7 +281,7 @@ export function StepFoundation({
                             key={sh}
                             type="button"
                             onClick={() => setShell(sh)}
-                            className={`px-2 rounded text-[10px] font-mono font-bold border transition-colors ${
+                            className={`px-2 rounded text-[10px] font-bold border transition-colors ${
                               shell === sh
                                 ? "bg-[var(--accent-primary)] text-[var(--accent-contrast)] border-[var(--accent-primary)]"
                                 : "bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/40"
@@ -294,7 +294,7 @@ export function StepFoundation({
                     </div>
                     <p className="text-[10px] text-[var(--text-secondary)] opacity-55">
                       Type an executable name (like{" "}
-                      <code className="font-mono">zsh</code>) or select a
+                      <code className="">zsh</code>) or select a
                       pre-populated preset. Leave blank to inherit system shell.
                     </p>
                   </div>
@@ -304,7 +304,7 @@ export function StepFoundation({
                     <span className="text-xs font-bold text-[var(--text-primary)]">
                       System Diagnostics
                     </span>
-                    <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]/20 divide-y divide-[var(--border-color)]/40 overflow-hidden font-mono text-[11px]">
+                    <div className="flex flex-col border border-[var(--border-color)] rounded-xl bg-[var(--bg-color)]/20 divide-y divide-[var(--border-color)]/40 overflow-hidden text-[11px]">
                       {checks.map((check) => (
                         <div
                           key={check.id}

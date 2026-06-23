@@ -126,6 +126,8 @@ function AppInner() {
     setUiFontScale,
     setZenPadding,
     setReducedMotion,
+    setShimmerPreset,
+    setShimmerDuration,
     resetToDefaults: resetAppearance,
   } = useColorScheme();
   const {
@@ -141,8 +143,13 @@ function AppInner() {
     settings: focusSettings,
     setFocusSetting,
     toggleZenMode,
-    resetToDefaults: resetFocus,
+    resetToDefaults: originalResetFocus,
   } = useFocusSettings();
+
+  const resetFocus = useCallback(async () => {
+    await originalResetFocus();
+    await setZenPadding(32);
+  }, [originalResetFocus, setZenPadding]);
   const {
     settings: demoSettings,
     setDemoSetting,
@@ -475,6 +482,10 @@ function AppInner() {
           setZenPadding={setZenPadding}
           reducedMotion={colorSchemeSettings.reducedMotion}
           setReducedMotion={setReducedMotion}
+          shimmerPreset={colorSchemeSettings.shimmerPreset}
+          setShimmerPreset={setShimmerPreset}
+          shimmerDuration={colorSchemeSettings.shimmerDuration}
+          setShimmerDuration={setShimmerDuration}
           onResetAppearance={resetAppearance}
           focusSettings={focusSettings}
           setFocusSetting={setFocusSetting}

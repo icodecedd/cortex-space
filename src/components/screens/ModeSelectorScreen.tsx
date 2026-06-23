@@ -8,6 +8,8 @@ import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { parseShortcutToKeys } from "@/lib/shortcut-utils";
 import { MODE_SELECTOR_CONTENT, ASSETS } from "@/lib/content";
 import { SpotlightCard } from "@/components/ui/spotlight";
+import { GradientShimmer } from "gradient-shimmer";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 interface ModeSelectorScreenProps {
   onSelectMode: (mode: Mode) => void;
@@ -23,6 +25,9 @@ export const ModeSelectorScreen = React.memo(
     showShortcutHints = true,
     showTemplatesHint = true,
   }: ModeSelectorScreenProps) => {
+    const { settings } = useColorScheme();
+    const shimmerPreset = settings.shimmerPreset || "tonic";
+    const shimmerDuration = settings.shimmerDuration || 1.45;
     const shouldReduceMotion = useReducedMotion();
     const [lastMode, setLastMode] = useState<Mode | null>(null);
     const isMac =
@@ -123,8 +128,10 @@ export const ModeSelectorScreen = React.memo(
                     {MODE_SELECTOR_CONTENT.SUBTITLE}
                   </span>
                 </h1>
-                <p className="text-[var(--text-secondary)] text-lg max-w-[460px] leading-relaxed font-medium">
-                  {MODE_SELECTOR_CONTENT.DESCRIPTION}
+                <p className="text-lg max-w-[460px] leading-relaxed font-medium">
+                  <GradientShimmer gradient={shimmerPreset as any} duration={shimmerDuration}>
+                    {MODE_SELECTOR_CONTENT.DESCRIPTION}
+                  </GradientShimmer>
                 </p>
               </motion.div>
 
@@ -267,7 +274,7 @@ export const ModeSelectorScreen = React.memo(
                             (key, idx) => (
                               <Kbd
                                 key={idx}
-                                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1 h-4 flex items-center justify-center font-mono"
+                                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1 h-4 flex items-center justify-center"
                               >
                                 {key}
                               </Kbd>
@@ -334,7 +341,7 @@ export const ModeSelectorScreen = React.memo(
                             (key, idx) => (
                               <Kbd
                                 key={idx}
-                                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1 h-4 flex items-center justify-center font-mono"
+                                className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1 h-4 flex items-center justify-center"
                               >
                                 {key}
                               </Kbd>

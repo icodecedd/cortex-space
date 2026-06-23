@@ -105,7 +105,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
                       <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
                       <div className="flex flex-col">
                         <span className="text-[8px] font-bold text-[var(--text-secondary)] uppercase tracking-wider opacity-30">Terminal 0{pane.id}</span>
-                        <span className="text-xs font-mono text-[var(--text-primary)] truncate max-w-[180px] font-bold">
+                        <span className="text-xs text-[var(--text-primary)] truncate max-w-[180px] font-bold">
                           {pane.command || "system default shell"}
                         </span>
                       </div>
@@ -163,7 +163,7 @@ export function StepPreview({ rootPath, defaultDir, layout, activePanes }: StepP
                     className="flex flex-col items-center justify-center rounded-lg border border-white/5 bg-white/[0.02] group-hover:border-[var(--accent-primary)]/20 group-hover:bg-[var(--accent-primary)]/[0.03] transition-all duration-500"
                   >
                     <Terminal size={12} className="text-[var(--text-secondary)] opacity-20 group-hover:opacity-100 group-hover:text-[var(--accent-primary)] transition-all mb-1" />
-                    <span className="text-[8px] font-mono font-bold text-[var(--text-secondary)] opacity-20 group-hover:opacity-100 group-hover:text-[var(--accent-primary)] transition-all">
+                    <span className="text-[8px] font-bold text-[var(--text-secondary)] opacity-20 group-hover:opacity-100 group-hover:text-[var(--accent-primary)] transition-all">
                       0{pane.id}
                     </span>
                   </div>

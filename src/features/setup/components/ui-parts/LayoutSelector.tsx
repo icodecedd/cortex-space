@@ -81,7 +81,7 @@ export function LayoutSelector({
                       {opt.name}
                     </span>
                     {!opt.isSystem && (
-                      <span className="font-mono text-[8px] text-[var(--text-secondary)] font-bold opacity-40">
+                      <span className="text-[8px] text-[var(--text-secondary)] font-bold opacity-40">
                         {opt.config.type === 'grid' ? `${opt.config.rows}X${opt.config.cols}` : `${opt.config.value} PANES`}
                       </span>
                     )}
@@ -171,7 +171,7 @@ function CustomLayoutForm({
                     max="4" 
                     value={customLayout.rows === 0 ? "" : customLayout.rows}
                     onChange={(e) => handleNumericInput(e.target.value, 'rows')}
-                    className="h-9 w-14 bg-[var(--text-primary)]/5 px-2 font-mono text-xs text-center border-[var(--border-color)] focus:border-[var(--accent-primary)] font-bold rounded-lg transition-all"
+                    className="h-9 w-14 bg-[var(--text-primary)]/5 px-2 text-xs text-center border-[var(--border-color)] focus:border-[var(--accent-primary)] font-bold rounded-lg transition-all"
                   />
                 </div>
                 
@@ -185,7 +185,7 @@ function CustomLayoutForm({
                     max="4" 
                     value={customLayout.cols === 0 ? "" : customLayout.cols}
                     onChange={(e) => handleNumericInput(e.target.value, 'cols')}
-                    className="h-9 w-14 bg-[var(--text-primary)]/5 px-2 font-mono text-xs text-center border-[var(--border-color)] focus:border-[var(--accent-primary)] font-bold rounded-lg transition-all"
+                    className="h-9 w-14 bg-[var(--text-primary)]/5 px-2 text-xs text-center border-[var(--border-color)] focus:border-[var(--accent-primary)] font-bold rounded-lg transition-all"
                   />
                 </div>
               </>
@@ -198,7 +198,7 @@ function CustomLayoutForm({
                   max="16" 
                   value={customLayout.value === 0 ? "" : customLayout.value}
                   onChange={(e) => handleNumericInput(e.target.value, 'value')}
-                  className="h-9 w-14 bg-[var(--text-primary)]/5 px-2 font-mono text-xs text-center border-[var(--border-color)] focus:border-[var(--accent-primary)] font-bold rounded-lg transition-all"
+                  className="h-9 w-14 bg-[var(--text-primary)]/5 px-2 text-xs text-center border-[var(--border-color)] focus:border-[var(--accent-primary)] font-bold rounded-lg transition-all"
                 />
               </div>
             )}
@@ -206,7 +206,7 @@ function CustomLayoutForm({
             <div className="ml-auto flex items-center gap-6 pl-6 border-l border-white/5">
               <div className="flex flex-col items-end gap-0.5">
                 <span className="text-[8px] font-bold uppercase tracking-widest text-[var(--text-secondary)] opacity-40">Live Preview</span>
-                <span className="text-xs font-mono font-bold text-[var(--text-primary)]">
+                <span className="text-xs font-bold text-[var(--text-primary)]">
                   {getPaneCount(customLayout)} <span className="text-[var(--accent-primary)]">ACTIVE</span>
                 </span>
               </div>

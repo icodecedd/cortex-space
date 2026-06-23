@@ -261,7 +261,7 @@ export function WorkspaceSwitcherDialog({
               </button>
             )}
             <div className="flex items-center gap-1.5 pointer-events-none">
-              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] px-1.5 py-0.5 text-[10px] font-mono font-bold">
+              <Kbd className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[var(--text-secondary)] px-1.5 py-0.5 text-[10px] font-bold">
                 ESC
               </Kbd>
             </div>
@@ -415,7 +415,7 @@ export function WorkspaceSwitcherDialog({
                           {item.type === "workspace" && (
                             <>
                               <Folder className="w-3 h-3 shrink-0" />{" "}
-                              <span className="truncate font-mono">
+                              <span className="truncate">
                                 {item.data.config?.rootPath ||
                                   "No directory selected"}
                               </span>
@@ -424,7 +424,7 @@ export function WorkspaceSwitcherDialog({
                           {item.type === "template" && (
                             <>
                               <Rocket className="w-3 h-3 shrink-0" />{" "}
-                              <span className="truncate font-mono">
+                              <span className="truncate">
                                 Launch New Instance
                               </span>
                             </>
@@ -432,7 +432,7 @@ export function WorkspaceSwitcherDialog({
                           {item.type === "snippet" && (
                             <>
                               <ChevronRightSquare className="w-3 h-3 shrink-0" />{" "}
-                              <span className="truncate font-mono opacity-80">
+                              <span className="truncate opacity-80">
                                 {item.data.command}
                               </span>
                             </>
@@ -440,7 +440,7 @@ export function WorkspaceSwitcherDialog({
                           {item.type === "action" && (
                             <>
                               <Zap className="w-3 h-3 shrink-0" />{" "}
-                              <span className="truncate font-mono">
+                              <span className="truncate">
                                 System Command
                               </span>
                             </>
@@ -465,7 +465,7 @@ export function WorkspaceSwitcherDialog({
                             </button>
                           )}
                           <div className="flex items-center gap-1.5 px-1">
-                            <span className="opacity-50 font-mono text-[12px]">
+                            <span className="opacity-50 text-[12px]">
                               {modKey}
                             </span>
                             <span>
@@ -486,7 +486,7 @@ export function WorkspaceSwitcherDialog({
                               (key, idx) => (
                                 <Kbd
                                   key={idx}
-                                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1.5 font-mono"
+                                  className="bg-[var(--text-primary)]/5 border-[var(--border-color)] text-[10px] px-1.5"
                                 >
                                   {key}
                                 </Kbd>

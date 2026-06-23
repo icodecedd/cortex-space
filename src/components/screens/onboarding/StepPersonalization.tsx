@@ -191,7 +191,7 @@ export function StepPersonalization({
             <div className="flex flex-col gap-1">
               <div className="flex justify-between items-center text-[9px] font-bold text-[var(--text-secondary)] uppercase">
                 <span>Size</span>
-                <span className="font-mono text-[var(--accent-primary)]">{customFontSize}px</span>
+                <span className="text-[var(--accent-primary)]">{customFontSize}px</span>
               </div>
               <input
                 type="range"

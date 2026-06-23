@@ -137,7 +137,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, onCustomize }: Key
                             <Kbd
                               key={keyIdx}
                               className={cn(
-                                "min-w-5 h-5 px-1.5 text-[10px] flex items-center justify-center font-mono bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20",
+                                "min-w-5 h-5 px-1.5 text-[10px] flex items-center justify-center bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20",
                                 item.critical ? "text-[#F85149] border-[#F85149]/30 bg-[#F85149]/5" : "",
                                 item.static ? "bg-transparent border-none text-[var(--text-secondary)] opacity-60 italic font-sans" : ""
                               )}

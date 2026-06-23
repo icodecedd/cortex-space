@@ -70,12 +70,15 @@
     "colorScheme": "dark",
     "uiFontScale": 100,
     "zenPadding": 32,
-    "reducedMotion": false
+    "reducedMotion": false,
+    "shimmerPreset": "tonic",
+    "shimmerDuration": 1.45
   },
   "focus": {
     "isZenMode": false,
     "showTabs": false,
     "showStatusBar": false,
+    "showPaneHeaders": true,
     "customLayoutMode": "grid"
   },
   "demo": {

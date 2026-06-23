@@ -624,67 +624,80 @@ export function CortexLibraryDialog({
               </span>
             </div>
 
-            <nav className="flex-1 space-y-1.5">
-              <LibraryNavButton
-                isActive={activeTab === "workspaces"}
-                onClick={() => {
-                  setActiveTab("workspaces");
-                  handleGlobalClearSelection();
-                }}
-                icon={<Rocket size={16} />}
-                label="Workspaces"
-                count={templates.filter((t) => !t.isArchived).length}
-              />
-              <LibraryNavButton
-                isActive={activeTab === "commands"}
-                onClick={() => {
-                  setActiveTab("commands");
-                  handleGlobalClearSelection();
-                }}
-                icon={<Code size={16} />}
-                label="Snippets"
-                count={snippets.filter((s) => !s.isArchived).length}
-              />
-              <LibraryNavButton
-                isActive={activeTab === "presets"}
-                onClick={() => {
-                  setActiveTab("presets");
-                  handleGlobalClearSelection();
-                }}
-                icon={<Database size={16} />}
-                label="Presets"
-                count={presets.filter((p) => !p.isArchived).length}
-              />
-              <LibraryNavButton
-                isActive={activeTab === "layouts"}
-                onClick={() => {
-                  setActiveTab("layouts");
-                  handleGlobalClearSelection();
-                }}
-                icon={<Layers size={16} />}
-                label="Layouts"
-                count={savedLayouts.filter((l) => !l.isArchived).length}
-              />
-              <LibraryNavButton
-                isActive={activeTab === "agents"}
-                onClick={() => {
-                  setActiveTab("agents");
-                  handleGlobalClearSelection();
-                }}
-                icon={<Cpu size={16} />}
-                label="Agents"
-                count={agents.length}
-              />
-              <LibraryNavButton
-                isActive={activeTab === "themes"}
-                onClick={() => {
-                  setActiveTab("themes");
-                  handleGlobalClearSelection();
-                }}
-                icon={<Palette size={16} />}
-                label="Themes"
-                count={allThemes.length}
-              />
+            <nav className="flex-1 space-y-6">
+              {/* Library Resources Category */}
+              <div className="space-y-1.5">
+                <div className="px-4 text-[9px] font-extrabold uppercase tracking-wider text-[var(--text-secondary)]/60 mb-2">
+                  Library Resources
+                </div>
+                <LibraryNavButton
+                  isActive={activeTab === "workspaces"}
+                  onClick={() => {
+                    setActiveTab("workspaces");
+                    handleGlobalClearSelection();
+                  }}
+                  icon={<Rocket size={16} />}
+                  label="Workspaces"
+                  count={templates.filter((t) => !t.isArchived).length}
+                />
+                <LibraryNavButton
+                  isActive={activeTab === "commands"}
+                  onClick={() => {
+                    setActiveTab("commands");
+                    handleGlobalClearSelection();
+                  }}
+                  icon={<Code size={16} />}
+                  label="Snippets"
+                  count={snippets.filter((s) => !s.isArchived).length}
+                />
+                <LibraryNavButton
+                  isActive={activeTab === "presets"}
+                  onClick={() => {
+                    setActiveTab("presets");
+                    handleGlobalClearSelection();
+                  }}
+                  icon={<Database size={16} />}
+                  label="Presets"
+                  count={presets.filter((p) => !p.isArchived).length}
+                />
+                <LibraryNavButton
+                  isActive={activeTab === "layouts"}
+                  onClick={() => {
+                    setActiveTab("layouts");
+                    handleGlobalClearSelection();
+                  }}
+                  icon={<Layers size={16} />}
+                  label="Layouts"
+                  count={savedLayouts.filter((l) => !l.isArchived).length}
+                />
+              </div>
+
+              {/* System Config Category */}
+              <div className="space-y-1.5">
+                <div className="px-4 text-[9px] font-extrabold uppercase tracking-wider text-[var(--text-secondary)]/60 mb-2">
+                  System Config
+                </div>
+                <LibraryNavButton
+                  isActive={activeTab === "agents"}
+                  onClick={() => {
+                    setActiveTab("agents");
+                    handleGlobalClearSelection();
+                  }}
+                  icon={<Cpu size={16} />}
+                  label="Agents"
+                  count={agents.length}
+                />
+                <LibraryNavButton
+                  isActive={activeTab === "themes"}
+                  onClick={() => {
+                    setActiveTab("themes");
+                    handleGlobalClearSelection();
+                  }}
+                  icon={<Palette size={16} />}
+                  label="Themes"
+                  count={allThemes.length}
+                />
+              </div>
             </nav>
           </div>
           {/* Main Dynamic View Area */}
