@@ -300,25 +300,29 @@ export function WorkspaceSwitcherDialog({
                       <div className="relative shrink-0">
                         {item.type === "workspace" && (
                           <div className="relative">
-                            {item.data.config?.layout ? (
-                              <LayoutPreviewIcon
-                                layout={item.data.config.layout}
-                                className={cn(
-                                  "w-12 h-9 border bg-[var(--bg-color)]",
-                                  isSelected
-                                    ? "border-[var(--accent-primary)]/40"
-                                    : "border-[var(--border-color)]",
-                                )}
-                              />
-                            ) : (
-                              <div className="w-12 h-9 border border-[var(--border-color)] bg-[var(--text-primary)]/[0.03] rounded-md flex items-center justify-center">
-                                {item.data.mode === "agents" ? (
-                                  <Bot size={18} className="opacity-40" />
-                                ) : (
-                                  <Terminal size={18} className="opacity-40" />
-                                )}
-                              </div>
-                            )}
+                            {(() => {
+                              const activeTab = item.data.subTabs?.find(t => t.id === item.data.activeSubTabId) || item.data.subTabs?.[0];
+                              const activeLayout = activeTab?.config?.layout;
+                              return activeLayout ? (
+                                <LayoutPreviewIcon
+                                  layout={activeLayout}
+                                  className={cn(
+                                    "w-12 h-9 border bg-[var(--bg-color)]",
+                                    isSelected
+                                      ? "border-[var(--accent-primary)]/40"
+                                      : "border-[var(--border-color)]",
+                                  )}
+                                />
+                              ) : (
+                                <div className="w-12 h-9 border border-[var(--border-color)] bg-[var(--text-primary)]/[0.03] rounded-md flex items-center justify-center">
+                                  {item.data.mode === "agents" ? (
+                                    <Bot size={18} className="opacity-40" />
+                                  ) : (
+                                    <Terminal size={18} className="opacity-40" />
+                                  )}
+                                </div>
+                              );
+                            })()}
                             {activeWorkspaceId === item.data.id && (
                               <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[var(--accent-primary)] rounded-full border-2 border-[var(--surface-color)]" />
                             )}

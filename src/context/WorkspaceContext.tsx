@@ -22,7 +22,7 @@ import {
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
-import { type Workspace, type Mode, type SpaceTemplate } from "../lib";
+import { type Workspace, type Mode, type SpaceTemplate, type SubTab } from "../lib";
 import { useSpaceTemplates } from "../hooks/useSpaceTemplates";
 import { useSnippets } from "../hooks/useSnippets";
 import {
@@ -83,6 +83,17 @@ export interface WorkspaceContextValue {
   handleNewWorkspaceToRight: (targetId: string) => void;
   handleSelectMode: (mode: Mode) => void;
   handleGoBack: (id: string) => void;
+  handleCreateProjectWorkspace: (rootPath: string, name: string) => void;
+  handleUpdateWorkspace: (
+    id: string,
+    updates: Partial<Omit<Workspace, "id" | "subTabs" | "activeSubTabId">>,
+  ) => void;
+
+  // Sub-tab operations
+  handleCreateSubTab: (mode?: Mode, workspaceId?: string) => void;
+  handleCloseSubTab: (id: string) => void;
+  handleSwitchSubTab: (id: string) => void;
+  handleRenameSubTab: (id: string, name: string) => void;
 
   // Pane operations
   handleSplitPane: (
@@ -96,6 +107,7 @@ export interface WorkspaceContextValue {
     dropId: string,
     direction: "top" | "bottom" | "left" | "right",
   ) => void;
+  handleUpdatePaneCommand: (paneId: string, command: string) => void;
 
   // Template operations
   handleLaunchTemplate: (template: SpaceTemplate) => Promise<void>;
@@ -174,8 +186,39 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       );
 
       if (savedWorkspaces.length > 0) {
-        setWorkspaces(savedWorkspaces);
-        setActiveWorkspaceId(savedActiveId || savedWorkspaces[0].id);
+        const migrated = savedWorkspaces.map(w => {
+          const oldW = w as any;
+          if (!oldW.subTabs || oldW.subTabs.length === 0) {
+            if (oldW.status === "active" && oldW.config) {
+              const firstTabId = crypto.randomUUID();
+              return {
+                ...oldW,
+                subTabs: [{
+                  id: firstTabId,
+                  name: "Tab 1",
+                  mode: oldW.mode,
+                  status: oldW.status,
+                  config: {
+                    rootPath: oldW.config.rootPath,
+                    layout: oldW.config.layout,
+                    panes: oldW.config.panes || [],
+                  }
+                }],
+                activeSubTabId: firstTabId
+              };
+            } else {
+              return {
+                ...oldW,
+                subTabs: [],
+                activeSubTabId: null
+              };
+            }
+          }
+          return oldW as Workspace;
+        });
+
+        setWorkspaces(migrated);
+        setActiveWorkspaceId(savedActiveId || migrated[0].id);
         setIsLoaded(true);
         return;
       }
@@ -185,7 +228,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const initialId = crypto.randomUUID();
 
     let mode: Mode = "normal";
-    let status: "mode-select" | "setup" = "mode-select";
+    let status: "mode-select" | "setup" = "setup";
 
     switch (behavior) {
       case "lastMode":
@@ -203,11 +246,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       case "modeSelector":
       default:
         mode = "normal";
-        status = "mode-select";
+        status = "setup";
         break;
     }
 
-    setWorkspaces([{ id: initialId, name: "", mode, config: null, status }]);
+    setWorkspaces([{
+      id: initialId,
+      name: "",
+      mode,
+      config: null,
+      status,
+      subTabs: [],
+      activeSubTabId: null
+    }]);
     setActiveWorkspaceId(initialId);
     setIsLoaded(true);
   }, []);
@@ -241,27 +292,75 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         finalPath ||
         APP_CONTENT.WORKSPACE_DEFAULT_NAME;
       const rootName = formatWorkspaceName(rawName);
-      const updatedConfig = { ...newConfig, rootPath: finalPath };
 
       const current = workspaces.find((w) => w.id === activeWorkspaceId);
-      const activeMode = current?.mode ?? "normal";
+      if (!current) return;
+      const activeMode = current.mode;
 
-      toast.success(APP_CONTENT.WORKSPACE_ACTIVATED(rootName), {
-        description: `Workspace is now active in ${activeMode} mode.`,
-      });
+      if (current.status !== "active" || !current.config?.rootPath) {
+        const firstTabId = crypto.randomUUID();
+        const firstSubTab: SubTab = {
+          id: firstTabId,
+          name: "Tab 1",
+          mode: activeMode,
+          status: "active" as const,
+          config: {
+            rootPath: finalPath,
+            layout: newConfig.layout,
+            panes: newConfig.panes || [],
+          },
+        };
 
-      setWorkspaces((prev) => {
-        return prev.map((w) =>
-          w.id === activeWorkspaceId
-            ? {
+        toast.success(APP_CONTENT.WORKSPACE_ACTIVATED(rootName), {
+          description: `Workspace is now active in ${activeMode} mode.`,
+        });
+
+        setWorkspaces((prev) => {
+          return prev.map((w) =>
+            w.id === activeWorkspaceId
+              ? {
+                  ...w,
+                  name: rootName,
+                  config: { rootPath: finalPath },
+                  status: "active" as const,
+                  subTabs: [firstSubTab],
+                  activeSubTabId: firstTabId,
+                }
+              : w,
+          );
+        });
+      } else {
+        // Project is active; launching layout configuration for a subsequent sub-tab!
+        toast.success("New tab launched successfully", {
+          description: `Sub-tab has been configured.`,
+        });
+
+        setWorkspaces((prev) => {
+          return prev.map((w) => {
+            if (w.id === activeWorkspaceId) {
+              const activeTabId = w.activeSubTabId || (w.subTabs[0]?.id);
+              if (!activeTabId) return w;
+              return {
                 ...w,
-                name: rootName,
-                config: updatedConfig,
-                status: "active" as const,
-              }
-            : w,
-        );
-      });
+                subTabs: w.subTabs.map((t) =>
+                  t.id === activeTabId
+                    ? {
+                        ...t,
+                        status: "active" as const,
+                        config: {
+                          rootPath: w.config!.rootPath,
+                          layout: newConfig.layout,
+                          panes: newConfig.panes || [],
+                        },
+                      }
+                    : t
+                ),
+              };
+            }
+            return w;
+          });
+        });
+      }
     },
     [activeWorkspaceId, workspaces],
   );
@@ -275,37 +374,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const target = workspaces.find((w) => w.id === id);
       if (!target) return;
 
-      if (workspaces.length <= 1) {
-        toast.success("Workspace reset successfully", {
-          description: "Returning to the mode selection screen.",
-        });
-      } else {
-        toast.warning("Workspace closed successfully", {
-          description: "Process connections have been terminated.",
-        });
-      }
+      toast.warning("Workspace closed successfully", {
+        description: "Process connections have been terminated.",
+      });
 
       setWorkspaces((prev) => {
         const index = prev.findIndex((w) => w.id === id);
         if (index === -1) return prev;
 
-        if (prev.length <= 1) {
-          const newId = crypto.randomUUID();
-          setActiveWorkspaceId(newId);
-          return [
-            {
-              id: newId,
-              name: "",
-              mode: "normal" as Mode,
-              config: null,
-              status: "mode-select" as const,
-            },
-          ];
-        }
-
         const updated = prev.filter((w) => w.id !== id);
         if (activeWorkspaceId === id) {
-          setActiveWorkspaceId(updated[Math.max(0, index - 1)].id);
+          if (updated.length > 0) {
+            setActiveWorkspaceId(updated[Math.max(0, index - 1)].id);
+          } else {
+            setActiveWorkspaceId(null);
+          }
         }
 
         return updated;
@@ -334,17 +417,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
               ] || updated[updated.length - 1];
             setActiveWorkspaceId(next.id);
           } else {
-            const newId = crypto.randomUUID();
-            setActiveWorkspaceId(newId);
-            return [
-              {
-                id: newId,
-                name: "",
-                mode: "normal" as Mode,
-                config: null,
-                status: "mode-select" as const,
-              },
-            ];
+            setActiveWorkspaceId(null);
           }
         }
 
@@ -383,6 +456,53 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const handleCreateProjectWorkspace = useCallback((rootPath: string, name: string) => {
+    const newId = crypto.randomUUID();
+    const firstTabId = crypto.randomUUID();
+    const firstSubTab: SubTab = {
+      id: firstTabId,
+      name: "Tab 1",
+      mode: "normal",
+      status: "mode-select" as const,
+      config: null,
+    };
+
+    const newWs: Workspace = {
+      id: newId,
+      name: name || rootPath.split(/[\\/]/).filter(Boolean).pop() || "Project Workspace",
+      mode: "normal",
+      config: { rootPath },
+      status: "active" as const,
+      subTabs: [firstSubTab],
+      activeSubTabId: firstTabId,
+    };
+
+    setWorkspaces((prev) => [...prev, newWs]);
+    setActiveWorkspaceId(newId);
+
+    toast.success("Project workspace created", {
+      description: `Opened ${newWs.name} as a new project.`,
+    });
+  }, []);
+
+  const handleUpdateWorkspace = useCallback(
+    (id: string, updates: Partial<Omit<Workspace, "id" | "subTabs" | "activeSubTabId">>) => {
+      setWorkspaces((prev) =>
+        prev.map((w) => {
+          if (w.id === id) {
+            const next = { ...w, ...updates };
+            if (updates.config !== undefined) {
+              next.config = updates.config ? { ...w.config, ...updates.config } : null;
+            }
+            return next as Workspace;
+          }
+          return w;
+        })
+      );
+    },
+    [],
+  );
+
   const handleNewWorkspaceFlow = useCallback(() => {
     const newId = crypto.randomUUID();
     setWorkspaces((prev) => [
@@ -392,7 +512,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         name: "",
         mode: "normal" as Mode,
         config: null,
-        status: "mode-select" as const,
+        status: "setup" as const,
+        subTabs: [],
+        activeSubTabId: null
       },
     ]);
     setActiveWorkspaceId(newId);
@@ -405,7 +527,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       name: "",
       mode: "normal",
       config: null,
-      status: "mode-select",
+      status: "setup",
+      subTabs: [],
+      activeSubTabId: null
     };
     setWorkspaces((prev) => {
       const index = prev.findIndex((w) => w.id === targetId);
@@ -421,11 +545,25 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     (mode: Mode) => {
       setSetting("startup.lastMode", mode);
       setWorkspaces((prev) =>
-        prev.map((w) =>
-          w.id === activeWorkspaceId
-            ? { ...w, mode, status: "setup" as const }
-            : w,
-        ),
+        prev.map((w) => {
+          if (w.id === activeWorkspaceId) {
+            if (w.status !== "active") {
+              return { ...w, mode, status: "setup" as const };
+            }
+            const activeTabId = w.activeSubTabId || (w.subTabs[0]?.id);
+            if (activeTabId) {
+              return {
+                ...w,
+                subTabs: w.subTabs.map((t) =>
+                  t.id === activeTabId
+                    ? { ...t, mode, status: "setup" as const }
+                    : t
+                ),
+              };
+            }
+          }
+          return w;
+        })
       );
     },
     [activeWorkspaceId],
@@ -433,11 +571,118 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const handleGoBack = useCallback((id: string) => {
     setWorkspaces((prev) =>
-      prev.map((w) =>
-        w.id === id ? { ...w, status: "mode-select" as const } : w,
-      ),
+      prev.map((w) => {
+        if (w.id === id) {
+          if (w.status !== "active") {
+            return { ...w, status: "mode-select" as const };
+          }
+          const activeTabId = w.activeSubTabId || (w.subTabs[0]?.id);
+          if (activeTabId) {
+            return {
+              ...w,
+              subTabs: w.subTabs.map((t) =>
+                t.id === activeTabId
+                  ? { ...t, status: "mode-select" as const }
+                  : t
+              ),
+            };
+          }
+        }
+        return w;
+      })
     );
   }, []);
+
+  // ── Sub-tab operations ───────────────────────────────────────────────────
+
+  const handleCreateSubTab = useCallback((mode: Mode = "normal", workspaceId?: string) => {
+    const targetId = workspaceId || activeWorkspaceId;
+    if (!targetId) return;
+    const newTabId = crypto.randomUUID();
+    setWorkspaces((prev) =>
+      prev.map((w) => {
+        if (w.id === targetId) {
+          const newName = `Tab ${w.subTabs.length + 1}`;
+          const newTab: SubTab = {
+            id: newTabId,
+            name: newName,
+            mode,
+            status: "mode-select" as const,
+            config: null,
+          };
+          return {
+            ...w,
+            subTabs: [...w.subTabs, newTab],
+            activeSubTabId: newTabId,
+          };
+        }
+        return w;
+      })
+    );
+    setActiveWorkspaceId(targetId);
+  }, [activeWorkspaceId]);
+
+  const handleCloseSubTab = useCallback((subTabId: string) => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces((prev) =>
+      prev.map((w) => {
+        if (w.id === activeWorkspaceId) {
+          const index = w.subTabs.findIndex((t) => t.id === subTabId);
+          if (index === -1) return w;
+
+          const updatedTabs = w.subTabs.filter((t) => t.id !== subTabId);
+          if (updatedTabs.length === 0) {
+            return {
+              ...w,
+              subTabs: [],
+              activeSubTabId: null,
+              status: "setup" as const,
+              config: null,
+            };
+          }
+
+          let nextActiveId = w.activeSubTabId;
+          if (w.activeSubTabId === subTabId) {
+            nextActiveId = updatedTabs[Math.max(0, index - 1)].id;
+          }
+
+          return {
+            ...w,
+            subTabs: updatedTabs,
+            activeSubTabId: nextActiveId,
+          };
+        }
+        return w;
+      })
+    );
+  }, [activeWorkspaceId]);
+
+  const handleSwitchSubTab = useCallback((subTabId: string) => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces((prev) =>
+      prev.map((w) =>
+        w.id === activeWorkspaceId
+          ? { ...w, activeSubTabId: subTabId }
+          : w
+      )
+    );
+  }, [activeWorkspaceId]);
+
+  const handleRenameSubTab = useCallback((subTabId: string, newName: string) => {
+    if (!activeWorkspaceId) return;
+    setWorkspaces((prev) =>
+      prev.map((w) =>
+        w.id === activeWorkspaceId
+          ? {
+              ...w,
+              subTabs: w.subTabs.map((t) =>
+                t.id === subTabId ? { ...t, name: newName } : t
+              ),
+            }
+          : w
+      )
+    );
+  }, [activeWorkspaceId]);
 
   // ── Pane operations ───────────────────────────────────────────────────────
 
@@ -447,17 +692,27 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const internalDir = direction === "vertical" ? "horizontal" : "vertical";
       setWorkspaces((prev) =>
         prev.map((w) => {
-          if (w.id === activeWorkspaceId && w.config) {
+          if (w.id === activeWorkspaceId) {
+            const activeTabId = w.activeSubTabId || (w.subTabs[0]?.id);
+            if (!activeTabId) return w;
             return {
               ...w,
-              config: {
-                ...w.config,
-                layout: splitNode(w.config.layout, paneId, internalDir),
-              },
+              subTabs: w.subTabs.map((t) => {
+                if (t.id === activeTabId && t.config) {
+                  return {
+                    ...t,
+                    config: {
+                      ...t.config,
+                      layout: splitNode(t.config.layout, paneId, internalDir),
+                    },
+                  };
+                }
+                return t;
+              }),
             };
           }
           return w;
-        }),
+        })
       );
     },
     [activeWorkspaceId],
@@ -466,31 +721,39 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const handleKillPane = useCallback(
     (paneId: string) => {
       if (!activeWorkspaceId) return;
-
-      const ws = workspaces.find((w) => w.id === activeWorkspaceId);
-      if (ws?.config) {
-        const newLayout = removeNode(ws.config.layout, paneId);
-        if (!newLayout) {
-          toast.success(APP_CONTENT.WORKSPACE_RESET, {
-            description: APP_CONTENT.WORKSPACE_RESET_DESC,
-          });
-        }
-      }
-
       setWorkspaces((prev) =>
         prev.map((w) => {
-          if (w.id === activeWorkspaceId && w.config) {
-            const newLayout = removeNode(w.config.layout, paneId);
-            if (!newLayout) {
-              return { ...w, status: "mode-select" as const, config: null };
-            }
-            return { ...w, config: { ...w.config, layout: newLayout } };
+          if (w.id === activeWorkspaceId) {
+            const activeTabId = w.activeSubTabId || (w.subTabs[0]?.id);
+            if (!activeTabId) return w;
+            return {
+              ...w,
+              subTabs: w.subTabs.map((t) => {
+                if (t.id === activeTabId && t.config) {
+                  const newLayout = removeNode(t.config.layout, paneId);
+                  if (!newLayout) {
+                    toast.success(APP_CONTENT.WORKSPACE_RESET, {
+                      description: APP_CONTENT.WORKSPACE_RESET_DESC,
+                    });
+                    return { ...t, status: "mode-select" as const, config: null };
+                  }
+                  return {
+                    ...t,
+                    config: {
+                      ...t.config,
+                      layout: newLayout,
+                    },
+                  };
+                }
+                return t;
+              }),
+            };
           }
           return w;
-        }),
+        })
       );
     },
-    [activeWorkspaceId, workspaces],
+    [activeWorkspaceId],
   );
 
   const handleRenamePane = useCallback(
@@ -498,19 +761,29 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (!activeWorkspaceId) return;
       setWorkspaces((prev) =>
         prev.map((w) => {
-          if (w.id === activeWorkspaceId && w.config) {
+          if (w.id === activeWorkspaceId) {
+            const activeTabId = w.activeSubTabId || (w.subTabs[0]?.id);
+            if (!activeTabId) return w;
             return {
               ...w,
-              config: {
-                ...w.config,
-                layout: updatePaneNode(w.config.layout, paneId, {
-                  name: newName,
-                }),
-              },
+              subTabs: w.subTabs.map((t) => {
+                if (t.id === activeTabId && t.config) {
+                  return {
+                    ...t,
+                    config: {
+                      ...t.config,
+                      layout: updatePaneNode(t.config.layout, paneId, {
+                        name: newName,
+                      }),
+                    },
+                  };
+                }
+                return t;
+              }),
             };
           }
           return w;
-        }),
+        })
       );
     },
     [activeWorkspaceId],
@@ -525,26 +798,69 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (!activeWorkspaceId) return;
       setWorkspaces((prev) =>
         prev.map((w) => {
-          if (w.id === activeWorkspaceId && w.config) {
+          if (w.id === activeWorkspaceId) {
+            const activeTabId = w.activeSubTabId || (w.subTabs[0]?.id);
+            if (!activeTabId) return w;
             return {
               ...w,
-              config: {
-                ...w.config,
-                layout: repositionNode(
-                  w.config.layout,
-                  dragId,
-                  dropId,
-                  direction,
-                ),
-              },
+              subTabs: w.subTabs.map((t) => {
+                if (t.id === activeTabId && t.config) {
+                  return {
+                    ...t,
+                    config: {
+                      ...t.config,
+                      layout: repositionNode(
+                        t.config.layout,
+                        dragId,
+                        dropId,
+                        direction,
+                      ),
+                    },
+                  };
+                }
+                return t;
+              }),
             };
           }
           return w;
-        }),
+        })
       );
       toast.success("Layout updated successfully", {
         description: "The pane position has been saved.",
       });
+    },
+    [activeWorkspaceId],
+  );
+
+  const handleUpdatePaneCommand = useCallback(
+    (paneId: string, command: string) => {
+      if (!activeWorkspaceId) return;
+      setWorkspaces((prev) =>
+        prev.map((w) => {
+          if (w.id === activeWorkspaceId) {
+            const activeTabId = w.activeSubTabId || (w.subTabs[0]?.id);
+            if (!activeTabId) return w;
+            return {
+              ...w,
+              subTabs: w.subTabs.map((t) => {
+                if (t.id === activeTabId && t.config) {
+                  return {
+                    ...t,
+                    config: {
+                      ...t.config,
+                      layout: updatePaneNode(t.config.layout, paneId, {
+                        command,
+                      }),
+                    },
+                  };
+                }
+                return t;
+              }),
+            };
+          }
+          return w;
+        })
+      );
     },
     [activeWorkspaceId],
   );
@@ -568,10 +884,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           console.warn("Failed to verify directory existence:", err);
       }
 
-      const config = {
-        rootPath: template.rootPath,
-        layout: template.layout,
-        panes: [],
+      const firstTabId = crypto.randomUUID();
+      const firstSubTab: SubTab = {
+        id: firstTabId,
+        name: "Tab 1",
+        mode: template.mode,
+        status: "active" as const,
+        config: {
+          rootPath: template.rootPath,
+          layout: template.layout,
+          panes: [],
+        },
       };
 
       if (activeWorkspace && activeWorkspace.status === "active") {
@@ -582,8 +905,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             id: newId,
             name: formatWorkspaceName(template.name),
             mode: template.mode,
-            config,
+            config: { rootPath: template.rootPath },
             status: "active" as const,
+            subTabs: [firstSubTab],
+            activeSubTabId: firstTabId,
           },
         ]);
         setActiveWorkspaceId(newId);
@@ -595,8 +920,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                   ...w,
                   name: formatWorkspaceName(template.name),
                   mode: template.mode,
-                  config,
+                  config: { rootPath: template.rootPath },
                   status: "active" as const,
+                  subTabs: [firstSubTab],
+                  activeSubTabId: firstTabId,
                 }
               : w,
           ),
@@ -618,7 +945,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const { rootPath, layout, panes } = activeWorkspace.config;
+    const activeTab = activeWorkspace.subTabs.find(t => t.id === activeWorkspace.activeSubTabId) || activeWorkspace.subTabs[0];
+    if (!activeTab || activeTab.status !== "active" || !activeTab.config) {
+      toast.error("Active tab layout cannot be captured", {
+        description: "Configure the active tab layout before capturing.",
+      });
+      return;
+    }
+
+    const { rootPath, layout, panes } = activeTab.config;
     const name = activeWorkspace.name || "UNNAMED SPACE";
 
     captureCurrent(
@@ -626,8 +961,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       rootPath,
       layout,
       panes,
-      activeWorkspace.mode,
-      `Captured from active workspace on ${new Date().toLocaleDateString()}`,
+      activeTab.mode,
+      `Captured from active sub-tab on ${new Date().toLocaleDateString()}`,
     );
   }, [activeWorkspace, captureCurrent]);
 
@@ -667,10 +1002,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       handleNewWorkspaceToRight,
       handleSelectMode,
       handleGoBack,
+      handleCreateProjectWorkspace,
+      handleUpdateWorkspace,
+      handleCreateSubTab,
+      handleCloseSubTab,
+      handleSwitchSubTab,
+      handleRenameSubTab,
       handleSplitPane,
       handleKillPane,
       handleRenamePane,
       handleMovePane,
+      handleUpdatePaneCommand,
       handleLaunchTemplate,
       handleCaptureCurrent,
     }),
@@ -707,10 +1049,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       handleNewWorkspaceToRight,
       handleSelectMode,
       handleGoBack,
+      handleCreateProjectWorkspace,
+      handleUpdateWorkspace,
+      handleCreateSubTab,
+      handleCloseSubTab,
+      handleSwitchSubTab,
+      handleRenameSubTab,
       handleSplitPane,
       handleKillPane,
       handleRenamePane,
       handleMovePane,
+      handleUpdatePaneCommand,
       handleLaunchTemplate,
       handleCaptureCurrent,
     ],

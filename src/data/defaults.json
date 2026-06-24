@@ -80,7 +80,9 @@
     "showTabs": false,
     "showStatusBar": false,
     "showPaneHeaders": true,
-    "customLayoutMode": "grid"
+    "customLayoutMode": "grid",
+    "sidebarLayout": "horizontal",
+    "sidebarCollapsed": false
   },
   "demo": {
     "showWorkspacesTab": true,

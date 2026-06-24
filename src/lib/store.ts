@@ -128,6 +128,8 @@ export interface FocusSettings {
   showStatusBar: boolean;
   showPaneHeaders: boolean;
   customLayoutMode: 'grid' | 'count';
+  sidebarLayout: 'horizontal' | 'vertical';
+  sidebarCollapsed: boolean;
 }
 
 export interface DemoSettings {

@@ -19,9 +19,10 @@ interface TerminalPaneProps {
   onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
   onKill?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
-  }
+  onUpdateCommand?: (paneId: string, command: string) => void;
+}
 
-  export const TerminalPane = React.memo(({
+export const TerminalPane = React.memo(({
   workspaceId,
   pane,
   isFocused,
@@ -37,7 +38,8 @@ interface TerminalPaneProps {
   onSplit,
   onKill,
   onRename,
-  }: TerminalPaneProps) => {
+  onUpdateCommand,
+}: TerminalPaneProps) => {
 
   const [fixedCoords, setFixedCoords] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
 
@@ -150,6 +152,7 @@ interface TerminalPaneProps {
           onSplit={onSplit}
           onKill={onKill}
           onRename={onRename}
+          onUpdateCommand={onUpdateCommand}
         />
       </div>
     </div>

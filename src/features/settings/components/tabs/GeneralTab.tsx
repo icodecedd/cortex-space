@@ -772,6 +772,41 @@ export function GeneralTab({
               onCheckedChange={(v) => setFocusSetting("showPaneHeaders", v)}
             />
           </SettingsRow>
+          <SettingsRow
+            label="Workspace Layout"
+            description="Choose between horizontal tabs or a vertical sidebar navigation."
+            htmlFor="workspace-layout-selector"
+          >
+            <Select
+              value={focusSettings.sidebarLayout || "horizontal"}
+              onValueChange={(v) => setFocusSetting("sidebarLayout", v as any)}
+              size="sm"
+            >
+              <SelectTrigger
+                id="workspace-layout-selector"
+                className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold text-left"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value="horizontal" className="cursor-pointer hover:bg-white/5 transition-all font-bold">Horizontal Tabs</SelectItem>
+                <SelectItem value="vertical" className="cursor-pointer hover:bg-white/5 transition-all font-bold">Collapsible Sidebar</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingsRow>
+          {focusSettings.sidebarLayout === "vertical" && (
+            <SettingsRow
+              label="Collapse Sidebar"
+              description="Keep the vertical sidebar collapsed by default."
+              htmlFor="sidebar-collapsed-toggle"
+            >
+              <Switch
+                id="sidebar-collapsed-toggle"
+                checked={focusSettings.sidebarCollapsed ?? false}
+                onCheckedChange={(v) => setFocusSetting("sidebarCollapsed", v)}
+              />
+            </SettingsRow>
+          )}
         </SettingsCard>
       </motion.div>
 

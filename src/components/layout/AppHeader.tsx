@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import {
   SquareTerminal,
@@ -11,22 +12,14 @@ import {
   Plus,
   Rocket,
   Edit2,
-  Pin,
-  PinOff,
-  Palette,
-  Ban,
-  Layers,
-  ArrowRight,
   RotateCcw,
+  PanelRight,
+  PanelLeft,
 } from "@/components/ui/icons";
-import { Reorder } from "framer-motion";
+import { m } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Workspace } from "@/lib";
-import {
-  InteractiveTab,
-  COLOR_MAP,
-  TabColor,
-} from "@/components/ui/interactive-tab";
+import { SubTab, Mode } from "@/lib";
+import { InteractiveTab } from "@/components/ui/interactive-tab";
 import {
   Tooltip,
   TooltipContent,
@@ -38,9 +31,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -51,62 +41,62 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { countPanes } from "@/lib/setup-utils";
-import { getWorkspacePlaceholder } from "@/lib/utils";
 import { HEADER_CONTENT } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { parseShortcutToKeys } from "@/lib/shortcut-utils";
 
 interface AppHeaderProps {
-  workspaces: Workspace[];
-  activeWorkspaceId: string | null;
+  subTabs: SubTab[];
+  activeSubTabId: string | null;
   isWindowMaximized: boolean;
-  onSwitchWorkspace: (id: string) => void;
-  onCloseWorkspace: (id: string) => void;
-  onCloseWorkspaces: (ids: string[]) => void;
-  onReorderWorkspaces: (newOrder: Workspace[]) => void;
-  onNewWorkspaceFlow: () => void;
-  onNewWorkspaceToRight: (id: string) => void;
-  onRenameWorkspace: (id: string, name: string) => void;
-  onColorWorkspace: (id: string, color: any) => void;
-  onPinWorkspace: (id: string, isPinned: boolean) => void;
+  onSwitchSubTab: (id: string) => void;
+  onCloseSubTab: (id: string) => void;
+  onCreateSubTab: (mode?: Mode) => void;
+  onRenameSubTab: (id: string, name: string) => void;
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
   onOpenTemplates: () => void;
   onMinimize: () => void;
   onMaximize: () => void;
   onClose: () => void;
-  showWorkspacesTab?: boolean;
+  showSubTabs?: boolean;
   showTemplatesButton?: boolean;
   showShortcutsButton?: boolean;
+  rightSidebarVisible?: boolean;
+  onToggleRightSidebar?: () => void;
+  leftSidebarWidth: number;
+  isLeftSidebarResizing: boolean;
+  isLeftSidebarCollapsed: boolean;
+  onToggleLeftSidebarCollapse: () => void;
 }
 
 export const AppHeader = React.memo(
   ({
-    workspaces,
-    activeWorkspaceId,
+    subTabs,
+    activeSubTabId,
     isWindowMaximized,
-    onSwitchWorkspace,
-    onCloseWorkspace,
-    onCloseWorkspaces,
-    onReorderWorkspaces,
-    onNewWorkspaceFlow,
-    onNewWorkspaceToRight,
-    onRenameWorkspace,
-    onColorWorkspace,
-    onPinWorkspace,
+    onSwitchSubTab,
+    onCloseSubTab,
+    onCreateSubTab,
+    onRenameSubTab,
     onOpenShortcuts,
     onOpenSettings,
     onOpenTemplates,
     onMinimize,
     onMaximize,
     onClose,
-    showWorkspacesTab = true,
+    showSubTabs = true,
     showTemplatesButton = true,
     showShortcutsButton = true,
+    rightSidebarVisible = false,
+    onToggleRightSidebar = () => {},
+    leftSidebarWidth,
+    isLeftSidebarResizing,
+    isLeftSidebarCollapsed,
+    onToggleLeftSidebarCollapse,
   }: AppHeaderProps) => {
     const scrollRef = React.useRef<HTMLDivElement>(null);
-    const [isDragging, setIsDragging] = React.useState(false);
     const isMac =
       typeof window !== "undefined" && navigator.userAgent.includes("Mac");
 
@@ -143,16 +133,16 @@ export const AppHeader = React.memo(
     );
 
     // Shared Context Menu & Rename Dialog State
-    const [contextWorkspaceId, setContextWorkspaceId] = React.useState<
+    const [contextSubTabId, setContextSubTabId] = React.useState<
       string | null
     >(null);
     const [isRenameDialogOpen, setIsRenameDialogOpen] = React.useState(false);
     const [tempName, setTempName] = React.useState("");
     const renameInputRef = React.useRef<HTMLInputElement>(null);
 
-    const contextWorkspace = React.useMemo(
-      () => workspaces.find((ws) => ws.id === contextWorkspaceId),
-      [workspaces, contextWorkspaceId],
+    const contextSubTab = React.useMemo(
+      () => subTabs.find((t) => t.id === contextSubTabId),
+      [subTabs, contextSubTabId],
     );
 
     // Allow horizontal scrolling with mouse wheel
@@ -173,7 +163,7 @@ export const AppHeader = React.memo(
 
     // Auto-scroll to active tab
     React.useEffect(() => {
-      if (activeWorkspaceId) {
+      if (activeSubTabId) {
         const activeEl =
           scrollRef.current?.querySelector(`[data-active="true"]`);
         if (activeEl) {
@@ -184,34 +174,11 @@ export const AppHeader = React.memo(
           });
         }
       }
-    }, [activeWorkspaceId]);
+    }, [activeSubTabId]);
 
-    const handleCloseOthers = (id: string) => {
-      const idsToClose = workspaces
-        .filter((ws) => ws.id !== id && !ws.isPinned)
-        .map((ws) => ws.id);
-      if (idsToClose.length > 0) {
-        onCloseWorkspaces(idsToClose);
-      }
-    };
-
-    const handleCloseToRight = (id: string) => {
-      const index = workspaces.findIndex((ws) => ws.id === id);
-      if (index === -1) return;
-      const toClose = workspaces.slice(index + 1);
-      const idsToClose = toClose.map((ws) => ws.id);
-      if (idsToClose.length > 0) {
-        onCloseWorkspaces(idsToClose);
-      }
-    };
-
-    const handleRenameClick = (ws: Workspace) => {
-      setContextWorkspaceId(ws.id);
-      const initialName =
-        ws.customName ||
-        ws.name ||
-        getWorkspacePlaceholder(workspaces.indexOf(ws));
-      setTempName(initialName);
+    const handleRenameClick = (t: SubTab) => {
+      setContextSubTabId(t.id);
+      setTempName(t.name);
       setIsRenameDialogOpen(true);
 
       // Use a small timeout to ensure the dialog is mounted before focusing
@@ -223,8 +190,8 @@ export const AppHeader = React.memo(
 
     const handleRenameSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      if (contextWorkspaceId) {
-        onRenameWorkspace(contextWorkspaceId, tempName.trim());
+      if (contextSubTabId) {
+        onRenameSubTab(contextSubTabId, tempName.trim());
       }
       setIsRenameDialogOpen(false);
     };
@@ -234,47 +201,74 @@ export const AppHeader = React.memo(
         data-tauri-drag-region
         className="h-10 bg-[var(--bg-color)] flex items-center justify-between border-b border-[var(--border-color)] select-none flex-shrink-0 z-50 cursor-default [-webkit-app-region:drag]"
         style={{
-          paddingLeft: "8px",
           paddingRight: "8px",
         }}
       >
-        {/* Left Area: Workspace Tabs */}
-        <div className="flex items-center gap-1 overflow-hidden flex-1 h-full mr-2">
-          {showWorkspacesTab && (
+        {/* Left Area: Logo, Title & Toggle, aligned to Left Sidebar */}
+        <m.div
+          animate={{ width: leftSidebarWidth }}
+          transition={isLeftSidebarResizing ? { duration: 0 } : { type: "spring", stiffness: 350, damping: 30 }}
+          className="h-full border-r border-[var(--border-color)]/50 flex items-center shrink-0 overflow-hidden [-webkit-app-region:no-drag] bg-[var(--surface-color)]/70 backdrop-blur-xl justify-between px-3.5"
+        >
+          <div className="flex items-center gap-2.5 font-sans font-black tracking-wider text-[var(--text-primary)] select-none">
+            <div className="w-7 h-7 flex items-center justify-center overflow-hidden">
+              <img
+                src="/cortex-new-logo.png"
+                alt="Cortex Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <span className="text-xs font-sans font-black tracking-wider text-[var(--text-primary)] select-none">
+              CORTEX SPACE
+            </span>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onToggleLeftSidebarCollapse}
+            className="w-7 h-7 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-md flex-shrink-0 flex items-center justify-center"
+          >
+            {isLeftSidebarCollapsed ? <PanelLeft size={14} className="rotate-180" /> : <PanelLeft size={14} />}
+          </Button>
+        </m.div>
+
+        {/* Middle Area: Breadcrumbs / Sub-Tabs */}
+        <div className="flex items-center gap-1 overflow-hidden flex-1 h-full mx-2 [-webkit-app-region:no-drag]">
+          {!showSubTabs && (
+            <div className="flex items-center gap-2 pl-3 text-[11px] font-bold text-[var(--text-secondary)]">
+              <span className="text-[var(--text-primary)]/40 font-medium">Spaces</span>
+              <span className="text-[var(--text-primary)]/30 font-medium">/</span>
+              <span className="text-[var(--text-primary)] font-semibold">
+                {subTabs.find((t) => t.id === activeSubTabId)?.name ||
+                  "Setup Tab"}
+              </span>
+            </div>
+          )}
+          {showSubTabs && (
             <div
               ref={scrollRef}
               className="flex items-center h-full gap-0.5 overflow-x-auto scrollbar-none flex-1 [mask-image:linear-gradient(to_right,black,95%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black,95%,transparent_100%)]"
             >
-              <Reorder.Group
-                axis="x"
-                values={workspaces}
-                onReorder={onReorderWorkspaces}
-                className="flex items-center gap-1 px-1 h-full"
-              >
-                {workspaces.map((ws, idx) => {
-                  const isActive = activeWorkspaceId === ws.id;
-                  const isDraft = ws.status !== "active";
-                  const terminalCount = ws.config?.layout
-                    ? countPanes(ws.config.layout)
+              <div className="flex items-center gap-1 px-1 h-full">
+                {subTabs.map((t, idx) => {
+                  const isActive = activeSubTabId === t.id;
+                  const isDraft = t.status !== "active";
+                  const terminalCount = t.config?.layout
+                    ? countPanes(t.config.layout)
                     : 0;
-                  const isLast = idx === workspaces.length - 1;
-                  const canCloseOthers = workspaces.some(
-                    (w) => w.id !== ws.id && !w.isPinned,
-                  );
+                  const isLast = idx === subTabs.length - 1;
 
                   return (
-                    <Reorder.Item
-                      key={ws.id}
-                      value={ws}
+                    <div
+                      key={t.id}
                       data-active={isActive}
                       className="h-full flex items-end pb-[1px]"
-                      onDragStart={() => setIsDragging(true)}
-                      onDragEnd={() => setIsDragging(false)}
                     >
                       <DropdownMenu
-                        open={contextWorkspaceId === ws.id}
+                        open={contextSubTabId === t.id}
                         onOpenChange={(open) => {
-                          if (!open) setContextWorkspaceId(null);
+                          if (!open) setContextSubTabId(null);
                         }}
                       >
                         <DropdownMenuTrigger asChild>
@@ -282,22 +276,17 @@ export const AppHeader = React.memo(
                             className="h-full flex items-end"
                             onContextMenu={(e) => {
                               e.preventDefault();
-                              setContextWorkspaceId(ws.id);
+                              setContextSubTabId(t.id);
                             }}
                           >
                             <InteractiveTab
-                              id={ws.id}
-                              name={
-                                ws.name ? ws.name : getWorkspacePlaceholder(idx)
-                              }
-                              customName={ws.customName}
+                              id={t.id}
+                              name={t.name}
                               isActive={isActive}
                               isDraft={isDraft}
-                              color={ws.color}
-                              isPinned={ws.isPinned}
                               terminalCount={terminalCount}
                               icon={
-                                ws.mode === "agents" ? (
+                                t.mode === "agents" ? (
                                   <Bot size={13} className="shrink-0" />
                                 ) : (
                                   <SquareTerminal
@@ -306,20 +295,11 @@ export const AppHeader = React.memo(
                                   />
                                 )
                               }
-                              onSelect={() => onSwitchWorkspace(ws.id)}
-                              onClose={() => onCloseWorkspace(ws.id)}
-                              onRename={() => handleRenameClick(ws)}
-                              onColorChange={(newColor) =>
-                                onColorWorkspace(ws.id, newColor)
-                              }
-                              onPin={(pinned) => onPinWorkspace(ws.id, pinned)}
-                              onNewToRight={() => onNewWorkspaceToRight(ws.id)}
-                              onCloseOthers={() => handleCloseOthers(ws.id)}
-                              onCloseToRight={() => handleCloseToRight(ws.id)}
-                              canClose={workspaces.length > 1}
-                              canCloseOthers={canCloseOthers}
+                              onSelect={() => onSwitchSubTab(t.id)}
+                              onClose={() => onCloseSubTab(t.id)}
+                              onRename={() => handleRenameClick(t)}
+                              canClose={subTabs.length > 1}
                               isLast={isLast}
-                              disableTooltip={isDragging}
                             />
                           </div>
                         </DropdownMenuTrigger>
@@ -327,10 +307,10 @@ export const AppHeader = React.memo(
                         <DropdownMenuContent
                           align="start"
                           sideOffset={2}
-                          className="w-64 bg-[var(--surface-color)]/95 backdrop-blur-xl border-[var(--border-color)] p-1 text-[var(--text-primary)] shadow-2xl rounded-lg"
+                          className="w-48 bg-[var(--surface-color)]/95 backdrop-blur-xl border-[var(--border-color)] p-1 text-[var(--text-primary)] shadow-2xl rounded-lg"
                         >
                           <DropdownMenuItem
-                            onClick={() => handleRenameClick(ws)}
+                            onClick={() => handleRenameClick(t)}
                             className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer px-3 py-2"
                           >
                             <Edit2
@@ -342,159 +322,34 @@ export const AppHeader = React.memo(
                             </span>
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem
-                            onClick={() => onPinWorkspace(ws.id, !ws.isPinned)}
-                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer px-3 py-2"
-                          >
-                            {ws.isPinned ? (
-                              <>
-                                <PinOff
-                                  size={14}
-                                  className="text-[var(--text-secondary)]"
-                                />
-                                <span className="font-bold text-xs tracking-tight">
-                                  Unpin
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <Pin
-                                  size={14}
-                                  className="text-[var(--text-secondary)]"
-                                />
-                                <span className="font-bold text-xs tracking-tight">
-                                  Pin
-                                </span>
-                              </>
-                            )}
-                          </DropdownMenuItem>
-
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer px-3 py-2">
-                              <Palette
-                                size={14}
-                                className="text-[var(--text-secondary)]"
-                              />
-                              <span className="font-bold text-xs tracking-tight">
-                                Color Label
-                              </span>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="w-48 bg-[var(--surface-color)]/95 backdrop-blur-xl border-[var(--border-color)] p-1 text-[var(--text-primary)] shadow-2xl rounded-lg">
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  onColorWorkspace(ws.id, undefined)
-                                }
-                                className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer px-3 py-2"
-                              >
-                                <Ban
-                                  size={14}
-                                  className="text-[var(--text-secondary)]"
-                                />
-                                <span className="text-xs font-bold tracking-tight">
-                                  Default Slate
-                                </span>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-[var(--text-primary)]/10 my-1" />
-                              {(Object.keys(COLOR_MAP) as TabColor[]).map(
-                                (c) => {
-                                  const item = COLOR_MAP[c];
-                                  return (
-                                    <DropdownMenuItem
-                                      key={c}
-                                      onClick={() => onColorWorkspace(ws.id, c)}
-                                      className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer px-3 py-2"
-                                    >
-                                      <div
-                                        className="w-3 h-3 rounded-full shadow-inner"
-                                        style={{ backgroundColor: item.hex }}
-                                      />
-                                      <span className="text-xs font-bold tracking-tight">
-                                        {item.label}
-                                      </span>
-                                    </DropdownMenuItem>
-                                  );
-                                },
-                              )}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-
-                          <DropdownMenuSeparator className="bg-[var(--text-primary)]/10 my-1" />
-
-                          <DropdownMenuItem
-                            onClick={() => onNewWorkspaceToRight(ws.id)}
-                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer px-3 py-2"
-                          >
-                            <Plus
-                              size={14}
-                              className="text-[var(--text-secondary)]"
-                            />
-                            <span className="font-bold text-xs tracking-tight">
-                              New Space to Right
-                            </span>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            onClick={() => handleCloseOthers(ws.id)}
-                            disabled={!canCloseOthers}
-                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer px-3 py-2"
-                          >
-                            <Layers
-                              size={14}
-                              className={cn(
-                                "text-[var(--text-secondary)]",
-                                !canCloseOthers && "opacity-50",
-                              )}
-                            />
-                            <span className="font-bold text-xs tracking-tight">
-                              Close Others
-                            </span>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            onClick={() => handleCloseToRight(ws.id)}
-                            disabled={isLast}
-                            className="flex items-center gap-2 focus:bg-[var(--text-primary)]/5 rounded-md cursor-pointer px-3 py-2"
-                          >
-                            <ArrowRight
-                              size={14}
-                              className={cn(
-                                "text-[var(--text-secondary)]",
-                                isLast && "opacity-50",
-                              )}
-                            />
-                            <span className="font-bold text-xs tracking-tight">
-                              Close to Right
-                            </span>
-                          </DropdownMenuItem>
-
                           <DropdownMenuSeparator className="bg-[var(--text-primary)]/10 my-1" />
                           <DropdownMenuItem
-                            onClick={() => onCloseWorkspace(ws.id)}
-                            disabled={workspaces.length <= 1}
+                            onClick={() => onCloseSubTab(t.id)}
+                            disabled={subTabs.length <= 1}
                             className="flex items-center justify-between gap-2 text-red-400 focus:bg-red-500/10 focus:text-red-400 rounded-md cursor-pointer px-3 py-2"
                           >
                             <div className="flex items-center gap-2">
                               <X size={14} />
                               <span className="font-bold text-xs tracking-tight">
-                                Close Space
+                                Close Tab
                               </span>
                             </div>
                             {renderShortcut("Ctrl+W")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </Reorder.Item>
+                    </div>
                   );
                 })}
 
-                {/* Inline New Workspace Button */}
+                {/* Inline New Tab Button */}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      onClick={onNewWorkspaceFlow}
-                      className="w-7 h-7 flex-shrink-0 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-md transition-all cursor-pointer [-webkit-app-region:no-drag] ml-1"
+                      onClick={() => onCreateSubTab()}
+                      className="w-7 h-7 flex-shrink-0 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-md transition-all cursor-pointer ml-1"
                     >
                       <Plus size={14} />
                     </Button>
@@ -504,16 +359,15 @@ export const AppHeader = React.memo(
                     sideOffset={4}
                     className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]"
                   >
-                    {HEADER_CONTENT.NEW_WORKSPACE}{" "}
-                    {formatShortcut(HEADER_CONTENT.NEW_WORKSPACE_SHORTCUT)}
+                    New Tab {formatShortcut("Ctrl+T")}
                   </TooltipContent>
                 </Tooltip>
-              </Reorder.Group>
+              </div>
             </div>
           )}
 
           {/* Global Separator */}
-          {showWorkspacesTab && (
+          {showSubTabs && (
             <div className="w-px h-5 bg-[var(--text-primary)]/10 mx-2" />
           )}
         </div>
@@ -568,6 +422,32 @@ export const AppHeader = React.memo(
             </Tooltip>
           )}
 
+          {/* Right Sidebar Toggle Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onToggleRightSidebar}
+                className={cn(
+                  "w-7 h-7 flex items-center justify-center rounded-md transition-all cursor-pointer",
+                  rightSidebarVisible
+                    ? "text-[var(--accent-primary)] bg-[var(--accent-primary)]/10"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
+                )}
+              >
+                {!rightSidebarVisible ? <PanelRight size={14} className="rotate-180" /> : <PanelRight size={14} />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent
+              side="bottom"
+              sideOffset={4}
+              className="text-[10px] font-bold tracking-tight uppercase bg-[var(--surface-color)] border-[var(--border-color)] text-[var(--text-secondary)]"
+            >
+              Toggle Right Sidebar
+            </TooltipContent>
+          </Tooltip>
+
           {/* Global Settings Dialog Trigger */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -596,12 +476,14 @@ export const AppHeader = React.memo(
           <div className="flex items-center gap-0.5 pr-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <Button
                   onClick={onMinimize}
+                  variant="ghost"
+                  size="icon-sm"
                   className="w-8 h-8 flex items-center justify-center hover:bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-md transition-all cursor-pointer"
                 >
                   <Minus size={14} />
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent
                 side="bottom"
@@ -614,8 +496,10 @@ export const AppHeader = React.memo(
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <Button
                   onClick={onMaximize}
+                  variant="ghost"
+                  size="icon-sm"
                   className="w-8 h-8 flex items-center justify-center hover:bg-[var(--text-primary)]/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-md transition-all cursor-pointer"
                 >
                   {isWindowMaximized ? (
@@ -623,7 +507,7 @@ export const AppHeader = React.memo(
                   ) : (
                     <Square size={12} />
                   )}
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent
                 side="bottom"
@@ -638,12 +522,14 @@ export const AppHeader = React.memo(
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <Button
                   onClick={onClose}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-red-500 hover:text-[var(--text-primary)] text-[var(--text-secondary)] rounded-md transition-all cursor-pointer"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="w-8 h-8 flex items-center justify-center hover:!bg-red-500 text-[var(--text-secondary)] hover:!text-white rounded-md transition-all cursor-pointer"
                 >
                   <X size={14} />
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent
                 side="bottom"
@@ -664,7 +550,7 @@ export const AppHeader = React.memo(
           >
             <DialogHeader>
               <DialogTitle className="text-lg font-bold tracking-tight">
-                Rename Workspace
+                Rename Tab
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleRenameSubmit}>
@@ -675,7 +561,7 @@ export const AppHeader = React.memo(
                       htmlFor="name"
                       className="text-[10px] font-bold text-[var(--text-secondary)] tracking-widest uppercase"
                     >
-                      Workspace Name
+                      Tab Name
                     </label>
                     <button
                       type="button"
@@ -692,7 +578,7 @@ export const AppHeader = React.memo(
                     value={tempName}
                     onChange={(e) => setTempName(e.target.value)}
                     className="h-10 bg-[var(--text-primary)]/5 border-[var(--border-color)] focus:border-[var(--accent-primary)]/50 rounded-lg text-sm font-bold"
-                    placeholder={contextWorkspace?.name || "New Workspace"}
+                    placeholder={contextSubTab?.name || "New Tab"}
                     autoFocus
                   />
                 </div>

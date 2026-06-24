@@ -2,15 +2,32 @@ export type AppState = 'splash' | 'first-run-onboarding' | 'running';
 export type WorkspaceStatus = 'mode-select' | 'setup' | 'active';
 export type Mode = 'normal' | 'agents';
 
+export interface SubTab {
+  id: string;
+  name: string;
+  mode: Mode;
+  status: WorkspaceStatus;
+  config: {
+    rootPath: string;
+    layout: LayoutNode;
+    panes: any[];
+  } | null;
+}
+
 export interface Workspace {
   id: string;
   name: string;
   mode: Mode;
-  config: any;
+  config: {
+    rootPath: string;
+  } | null;
   status: WorkspaceStatus;
   color?: 'slate' | 'emerald' | 'cobalt' | 'crimson' | 'amber';
   customName?: string;
+  customIconPath?: string;
   isPinned?: boolean;
+  subTabs: SubTab[];
+  activeSubTabId: string | null;
 }
 
 export type SplitDirection = 'horizontal' | 'vertical';

@@ -5,7 +5,7 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CornerDownLeft, X } from '@/components/ui/icons';
+import { CornerDownLeft, X, Zap } from '@/components/ui/icons';
 import { useTheme, ThemePalette } from '@/hooks/useTheme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { usePty } from '@/hooks/usePty';
@@ -52,6 +52,7 @@ interface XtermTerminalProps {
   onSplit?: (id: string, direction: 'horizontal' | 'vertical') => void;
   onKill?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
+  onUpdateCommand?: (paneId: string, command: string) => void;
 }
 
 export function XtermTerminal({
@@ -68,7 +69,8 @@ export function XtermTerminal({
   name,
   onSplit,
   onKill,
-  onRename
+  onRename,
+  onUpdateCommand
 }: XtermTerminalProps) {
   const workspaceId = id.substring(0, id.lastIndexOf(`-${paneId}`));
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -92,7 +94,9 @@ export function XtermTerminal({
   const [initialCommandProcessed, setInitialCommandProcessed] = useState(false);
   const promptInputRef = useRef<HTMLInputElement>(null);
   const [cursorBlinkSetting, setCursorBlinkSetting] = useState(true);
+  const [isDragOver, setIsDragOver] = useState(false);
 
+  const inputBufferRef = useRef<string>("");
   const outputBufferRef = useRef<string>("");
   const checkPortRef = useRef<(() => void) | null>(null);
   const failuresMapRef = useRef<Map<number, number>>(new Map());
@@ -597,6 +601,22 @@ export function XtermTerminal({
       });
 
       activeTerm.onData((data: string) => {
+        // Track the command input buffer to support layout command persistence
+        if (data === '\r' || data === '\n') {
+          const cmd = inputBufferRef.current.trim();
+          if (cmd && onUpdateCommand) {
+            onUpdateCommand(paneId, cmd);
+          }
+          inputBufferRef.current = "";
+        } else if (data === '\x7f' || data === '\b') {
+          inputBufferRef.current = inputBufferRef.current.slice(0, -1);
+        } else if (data.length === 1 && data.charCodeAt(0) >= 32) {
+          inputBufferRef.current += data;
+        } else if (data.length > 1 && !data.includes('\x1b')) {
+          // Paste operations or multi-character inputs
+          inputBufferRef.current += data;
+        }
+
         const delegate = terminalSessionManager.getWriteDelegate(id);
         if (delegate) delegate(data);
       });
@@ -942,6 +962,30 @@ export function XtermTerminal({
   return (
     <div
       className="group"
+      onDragOver={(e) => {
+        const isSkill = e.dataTransfer.types.includes("application/cortex-skill");
+        if (isSkill) {
+          e.preventDefault();
+          setIsDragOver(true);
+        }
+      }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={(e) => {
+        const skillData = e.dataTransfer.getData("application/cortex-skill");
+        if (skillData) {
+          e.preventDefault();
+          setIsDragOver(false);
+          try {
+            const skill = JSON.parse(skillData);
+            writeToPty(`/${skill.id}\r`);
+            toast.success(`Skill registered: ${skill.name}`, {
+              description: `Executing /${skill.id} in this terminal pane.`
+            });
+          } catch (err) {
+            console.error("Drop failed:", err);
+          }
+        }
+      }}
       style={{
         position: 'relative',
         width: '100%',
@@ -949,9 +993,21 @@ export function XtermTerminal({
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--bg-color)'
+        background: 'var(--bg-color)',
+        border: isDragOver ? '2px dashed var(--accent-primary)' : '2px solid transparent',
+        transition: 'border-color 0.2s ease',
       }}
     >
+      {isDragOver && (
+        <div className="absolute inset-0 bg-[var(--accent-primary)]/10 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 z-[999] pointer-events-none">
+          <div className="w-12 h-12 rounded-full bg-[var(--accent-primary)]/20 border border-[var(--accent-primary)]/40 flex items-center justify-center text-[var(--accent-primary)] animate-pulse">
+            <Zap size={24} />
+          </div>
+          <span className="text-xs font-bold text-[var(--text-primary)]">
+            Drop Skill to Register
+          </span>
+        </div>
+      )}
       {headerVisible && (
         <PaneElevator
           paneId={paneId}

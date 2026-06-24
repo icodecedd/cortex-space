@@ -20,7 +20,7 @@ export interface InteractiveTabProps {
   onSelect: () => void
   onClose: () => void
   onRename: () => void
-  onColorChange: (newColor: TabColor) => void
+  onColorChange?: (newColor: TabColor) => void
   onPin?: (pinned: boolean) => void
   onNewToRight?: () => void
   onCloseOthers?: () => void

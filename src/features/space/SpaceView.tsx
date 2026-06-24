@@ -49,6 +49,7 @@ interface SpaceViewProps {
   ) => void;
   onKillPane?: (paneId: string) => void;
   onRenamePane?: (paneId: string, newName: string) => void;
+  onUpdateCommandPane?: (paneId: string, command: string) => void;
 }
 
 interface DropData {
@@ -66,6 +67,7 @@ export const SpaceView = React.memo(
     onMovePane,
     onKillPane,
     onRenamePane,
+    onUpdateCommandPane,
     isCurrent,
   }: SpaceViewProps & { isCurrent: boolean }) => {
     const isMobile = useIsMobile();
@@ -230,6 +232,7 @@ export const SpaceView = React.memo(
               onSplit={onSplitPane}
               onKill={onKillPane}
               onRename={onRenamePane}
+              onUpdateCommand={onUpdateCommandPane}
             />
           </DropZone>
         );
@@ -246,6 +249,7 @@ export const SpaceView = React.memo(
         onSplitPane,
         onKillPane,
         onRenamePane,
+        onUpdateCommandPane,
       ],
     );
 

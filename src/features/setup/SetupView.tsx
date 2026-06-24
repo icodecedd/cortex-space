@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SetupViewProps {
   mode: "normal" | "agents";
+  initialCwd?: string;
   onLaunch: (config: {
     rootPath: string;
     layout: LayoutNode;
@@ -29,8 +30,8 @@ interface SetupViewProps {
 }
 
 export const SetupView = React.memo(
-  ({ mode, onLaunch, onBack }: SetupViewProps) => {
-    const [step, setStep] = useState(INITIAL_STEP);
+  ({ mode, initialCwd, onLaunch, onBack }: SetupViewProps) => {
+    const [step, setStep] = useState(() => (initialCwd ? 2 : INITIAL_STEP));
 
     const {
       rootPath,
@@ -40,6 +41,12 @@ export const SetupView = React.memo(
       handleBreadcrumbClick,
       defaultDir,
     } = useWorkspaceDirectory();
+
+    useEffect(() => {
+      if (initialCwd) {
+        setRootPath(initialCwd);
+      }
+    }, [initialCwd, setRootPath]);
 
     const { presets, addPreset, removePreset } = usePresets(
       rootPath || defaultDir,
