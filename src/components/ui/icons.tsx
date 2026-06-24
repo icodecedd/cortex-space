@@ -100,6 +100,7 @@ export const Rocket = wrapIcon(HugeIcons.RocketIcon);
 export const ChevronRightSquare = wrapIcon(HugeIcons.SquareArrowRight01Icon);
 export const Ban = wrapIcon(HugeIcons.UnavailableIcon);
 export const Edit2 = wrapIcon(HugeIcons.PencilEdit01Icon);
+export const Upload = wrapIcon(HugeIcons.Upload01Icon);
 export const ArrowRight = wrapIcon(HugeIcons.ArrowRight01Icon);
 export const Pin = wrapIcon(HugeIcons.PinIcon);
 export const PinOff = wrapIcon(HugeIcons.PinOffIcon);

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/icons";
 import { Reorder } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Workspace } from "@/types";
+import { Workspace } from "@/lib";
 import {
   InteractiveTab,
   COLOR_MAP,
@@ -117,7 +117,7 @@ export const AppHeader = React.memo(
             {parseShortcutToKeys(shortcut, isMac).map((key, idx) => (
               <Kbd
                 key={idx}
-                className="min-w-4 h-4 px-1 text-[8px] flex items-center justify-center font-mono bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20"
+                className="min-w-4 h-4 px-1 text-[8px] flex items-center justify-center bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20"
               >
                 {key}
               </Kbd>

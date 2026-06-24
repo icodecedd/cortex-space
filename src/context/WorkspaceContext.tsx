@@ -19,21 +19,21 @@ import {
   useMemo,
   useEffect,
   type ReactNode,
-} from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { toast } from 'sonner';
-import { type Workspace, type Mode, type SpaceTemplate } from '../types';
-import { useSpaceTemplates } from '../hooks/useSpaceTemplates';
-import { useSnippets } from '../hooks/useSnippets';
+} from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
+import { type Workspace, type Mode, type SpaceTemplate } from "../lib";
+import { useSpaceTemplates } from "../hooks/useSpaceTemplates";
+import { useSnippets } from "../hooks/useSnippets";
 import {
   splitNode,
   removeNode,
   updatePaneNode,
   repositionNode,
-} from '../lib/setup-utils';
-import { formatWorkspaceName } from '../lib/utils';
-import { getSetting, setSetting, type StartupBehavior } from '../lib/store';
-import { APP_CONTENT } from '../lib/content';
+} from "../lib/setup-utils";
+import { formatWorkspaceName } from "../lib/utils";
+import { getSetting, setSetting, type StartupBehavior } from "../lib/store";
+import { APP_CONTENT } from "../lib/content";
 
 // ---------------------------------------------------------------------------
 // Context shape
@@ -46,24 +46,26 @@ export interface WorkspaceContextValue {
   activeWorkspace: Workspace | undefined;
 
   // Templates
-  templates: ReturnType<typeof useSpaceTemplates>['templates'];
-  captureCurrent: ReturnType<typeof useSpaceTemplates>['captureCurrent'];
-  deleteTemplate: ReturnType<typeof useSpaceTemplates>['deleteTemplate'];
-  deleteTemplates: ReturnType<typeof useSpaceTemplates>['deleteTemplates'];
-  archiveTemplate: ReturnType<typeof useSpaceTemplates>['archiveTemplate'];
-  archiveTemplates: ReturnType<typeof useSpaceTemplates>['archiveTemplates'];
-  unarchiveTemplate: ReturnType<typeof useSpaceTemplates>['unarchiveTemplate'];
-  unarchiveTemplates: ReturnType<typeof useSpaceTemplates>['unarchiveTemplates'];
+  templates: ReturnType<typeof useSpaceTemplates>["templates"];
+  captureCurrent: ReturnType<typeof useSpaceTemplates>["captureCurrent"];
+  deleteTemplate: ReturnType<typeof useSpaceTemplates>["deleteTemplate"];
+  deleteTemplates: ReturnType<typeof useSpaceTemplates>["deleteTemplates"];
+  archiveTemplate: ReturnType<typeof useSpaceTemplates>["archiveTemplate"];
+  archiveTemplates: ReturnType<typeof useSpaceTemplates>["archiveTemplates"];
+  unarchiveTemplate: ReturnType<typeof useSpaceTemplates>["unarchiveTemplate"];
+  unarchiveTemplates: ReturnType<
+    typeof useSpaceTemplates
+  >["unarchiveTemplates"];
 
   // Snippets
-  snippets: ReturnType<typeof useSnippets>['snippets'];
-  addSnippet: ReturnType<typeof useSnippets>['addSnippet'];
-  deleteSnippet: ReturnType<typeof useSnippets>['deleteSnippet'];
-  deleteSnippets: ReturnType<typeof useSnippets>['deleteSnippets'];
-  archiveSnippet: ReturnType<typeof useSnippets>['archiveSnippet'];
-  archiveSnippets: ReturnType<typeof useSnippets>['archiveSnippets'];
-  unarchiveSnippet: ReturnType<typeof useSnippets>['unarchiveSnippet'];
-  unarchiveSnippets: ReturnType<typeof useSnippets>['unarchiveSnippets'];
+  snippets: ReturnType<typeof useSnippets>["snippets"];
+  addSnippet: ReturnType<typeof useSnippets>["addSnippet"];
+  deleteSnippet: ReturnType<typeof useSnippets>["deleteSnippet"];
+  deleteSnippets: ReturnType<typeof useSnippets>["deleteSnippets"];
+  archiveSnippet: ReturnType<typeof useSnippets>["archiveSnippet"];
+  archiveSnippets: ReturnType<typeof useSnippets>["archiveSnippets"];
+  unarchiveSnippet: ReturnType<typeof useSnippets>["unarchiveSnippet"];
+  unarchiveSnippets: ReturnType<typeof useSnippets>["unarchiveSnippets"];
 
   // Lifecycle
   initWorkspace: () => Promise<void>;
@@ -83,13 +85,16 @@ export interface WorkspaceContextValue {
   handleGoBack: (id: string) => void;
 
   // Pane operations
-  handleSplitPane: (paneId: string, direction: 'horizontal' | 'vertical') => void;
+  handleSplitPane: (
+    paneId: string,
+    direction: "horizontal" | "vertical",
+  ) => void;
   handleKillPane: (paneId: string) => void;
   handleRenamePane: (paneId: string, newName: string) => void;
   handleMovePane: (
     dragId: string,
     dropId: string,
-    direction: 'top' | 'bottom' | 'left' | 'right',
+    direction: "top" | "bottom" | "left" | "right",
   ) => void;
 
   // Template operations
@@ -97,7 +102,9 @@ export interface WorkspaceContextValue {
   handleCaptureCurrent: () => void;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
+const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(
+  undefined,
+);
 
 // ---------------------------------------------------------------------------
 // Provider
@@ -105,7 +112,9 @@ const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefi
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
+    null,
+  );
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Memoised — was recomputed inline on every render in the old App.tsx
@@ -141,52 +150,64 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // Sync workspaces to store whenever they change (and after initial load)
   useEffect(() => {
     if (isLoaded) {
-      setSetting('internal.workspaces', workspaces);
-      setSetting('internal.activeWorkspaceId', activeWorkspaceId);
+      setSetting("internal.workspaces", workspaces);
+      setSetting("internal.activeWorkspaceId", activeWorkspaceId);
     }
   }, [workspaces, activeWorkspaceId, isLoaded]);
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   const initWorkspace = useCallback(async () => {
-    const savedWorkspaces = await getSetting<Workspace[]>('internal.workspaces', []);
-    const savedActiveId = await getSetting<string | null>('internal.activeWorkspaceId', null);
+    const behavior = await getSetting<StartupBehavior>(
+      "startup.behavior",
+      "lastMode",
+    );
 
-    if (savedWorkspaces.length > 0) {
-      setWorkspaces(savedWorkspaces);
-      setActiveWorkspaceId(savedActiveId || savedWorkspaces[0].id);
-      setIsLoaded(true);
-      return;
+    if (behavior === "lastMode") {
+      const savedWorkspaces = await getSetting<Workspace[]>(
+        "internal.workspaces",
+        [],
+      );
+      const savedActiveId = await getSetting<string | null>(
+        "internal.activeWorkspaceId",
+        null,
+      );
+
+      if (savedWorkspaces.length > 0) {
+        setWorkspaces(savedWorkspaces);
+        setActiveWorkspaceId(savedActiveId || savedWorkspaces[0].id);
+        setIsLoaded(true);
+        return;
+      }
     }
 
-    const behavior = await getSetting<StartupBehavior>('startup.behavior', 'modeSelector');
-    const lastMode = await getSetting<Mode>('startup.lastMode', 'normal');
+    const lastMode = await getSetting<Mode>("startup.lastMode", "normal");
     const initialId = crypto.randomUUID();
 
-    let mode: Mode = 'normal';
-    let status: 'mode-select' | 'setup' = 'mode-select';
+    let mode: Mode = "normal";
+    let status: "mode-select" | "setup" = "mode-select";
 
     switch (behavior) {
-      case 'lastMode':
+      case "lastMode":
         mode = lastMode;
-        status = 'setup';
+        status = "setup";
         break;
-      case 'newTerminal':
-        mode = 'normal';
-        status = 'setup';
+      case "newTerminal":
+        mode = "normal";
+        status = "setup";
         break;
-      case 'newAgents':
-        mode = 'agents' as Mode;
-        status = 'setup';
+      case "newAgents":
+        mode = "agents" as Mode;
+        status = "setup";
         break;
-      case 'modeSelector':
+      case "modeSelector":
       default:
-        mode = 'normal';
-        status = 'mode-select';
+        mode = "normal";
+        status = "mode-select";
         break;
     }
 
-    setWorkspaces([{ id: initialId, name: '', mode, config: null, status }]);
+    setWorkspaces([{ id: initialId, name: "", mode, config: null, status }]);
     setActiveWorkspaceId(initialId);
     setIsLoaded(true);
   }, []);
@@ -198,28 +219,32 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       let finalPath = newConfig.rootPath;
 
       if (!finalPath) {
-        const savedDefault = await getSetting('cortex_default_path', '');
+        const savedDefault = await getSetting("cortex_default_path", "");
         if (savedDefault) {
           finalPath = savedDefault;
         } else {
           try {
-            const homeDir = await invoke<string>('get_home_dir');
+            const homeDir = await invoke<string>("get_home_dir");
             if (homeDir) finalPath = homeDir;
           } catch (err) {
-            if (import.meta.env.DEV) console.error('Failed to get home directory:', err);
+            if (import.meta.env.DEV)
+              console.error("Failed to get home directory:", err);
           }
         }
       }
 
       const rawName =
-        finalPath?.split(/[\/\\]/).filter(Boolean).pop() ||
+        finalPath
+          ?.split(/[\/\\]/)
+          .filter(Boolean)
+          .pop() ||
         finalPath ||
         APP_CONTENT.WORKSPACE_DEFAULT_NAME;
       const rootName = formatWorkspaceName(rawName);
       const updatedConfig = { ...newConfig, rootPath: finalPath };
 
       const current = workspaces.find((w) => w.id === activeWorkspaceId);
-      const activeMode = current?.mode ?? 'normal';
+      const activeMode = current?.mode ?? "normal";
 
       toast.success(APP_CONTENT.WORKSPACE_ACTIVATED(rootName), {
         description: `Workspace is now active in ${activeMode} mode.`,
@@ -228,7 +253,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setWorkspaces((prev) => {
         return prev.map((w) =>
           w.id === activeWorkspaceId
-            ? { ...w, name: rootName, config: updatedConfig, status: 'active' as const }
+            ? {
+                ...w,
+                name: rootName,
+                config: updatedConfig,
+                status: "active" as const,
+              }
             : w,
         );
       });
@@ -246,12 +276,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (!target) return;
 
       if (workspaces.length <= 1) {
-        toast.success('Workspace reset successfully', {
-          description: 'Returning to the mode selection screen.',
+        toast.success("Workspace reset successfully", {
+          description: "Returning to the mode selection screen.",
         });
       } else {
-        toast.warning('Workspace closed successfully', {
-          description: 'Process connections have been terminated.',
+        toast.warning("Workspace closed successfully", {
+          description: "Process connections have been terminated.",
         });
       }
 
@@ -263,7 +293,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           const newId = crypto.randomUUID();
           setActiveWorkspaceId(newId);
           return [
-            { id: newId, name: '', mode: 'normal' as Mode, config: null, status: 'mode-select' as const },
+            {
+              id: newId,
+              name: "",
+              mode: "normal" as Mode,
+              config: null,
+              status: "mode-select" as const,
+            },
           ];
         }
 
@@ -282,7 +318,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     (ids: string[]) => {
       if (ids.length === 0) return;
 
-      toast.warning('Workspaces closed successfully', {
+      toast.warning("Workspaces closed successfully", {
         description: `${ids.length} workspaces have been terminated.`,
       });
 
@@ -293,14 +329,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           if (updated.length > 0) {
             const firstIdx = prev.findIndex((w) => ids.includes(w.id));
             const next =
-              updated[Math.max(0, Math.min(firstIdx - 1, updated.length - 1))] ||
-              updated[updated.length - 1];
+              updated[
+                Math.max(0, Math.min(firstIdx - 1, updated.length - 1))
+              ] || updated[updated.length - 1];
             setActiveWorkspaceId(next.id);
           } else {
             const newId = crypto.randomUUID();
             setActiveWorkspaceId(newId);
             return [
-              { id: newId, name: '', mode: 'normal' as Mode, config: null, status: 'mode-select' as const },
+              {
+                id: newId,
+                name: "",
+                mode: "normal" as Mode,
+                config: null,
+                status: "mode-select" as const,
+              },
             ];
           }
         }
@@ -312,11 +355,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
 
   const handleRenameWorkspace = useCallback((id: string, newName: string) => {
-    setWorkspaces((prev) => prev.map((w) => (w.id === id ? { ...w, customName: newName } : w)));
+    setWorkspaces((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, customName: newName } : w)),
+    );
   }, []);
 
   const handleColorWorkspace = useCallback((id: string, color: any) => {
-    setWorkspaces((prev) => prev.map((w) => (w.id === id ? { ...w, color } : w)));
+    setWorkspaces((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, color } : w)),
+    );
   }, []);
 
   const handleReorderWorkspaces = useCallback((newOrder: Workspace[]) => {
@@ -340,7 +387,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const newId = crypto.randomUUID();
     setWorkspaces((prev) => [
       ...prev,
-      { id: newId, name: '', mode: 'normal' as Mode, config: null, status: 'mode-select' as const },
+      {
+        id: newId,
+        name: "",
+        mode: "normal" as Mode,
+        config: null,
+        status: "mode-select" as const,
+      },
     ]);
     setActiveWorkspaceId(newId);
   }, []);
@@ -349,10 +402,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const newId = crypto.randomUUID();
     const newWs: Workspace = {
       id: newId,
-      name: '',
-      mode: 'normal',
+      name: "",
+      mode: "normal",
       config: null,
-      status: 'mode-select',
+      status: "mode-select",
     };
     setWorkspaces((prev) => {
       const index = prev.findIndex((w) => w.id === targetId);
@@ -366,9 +419,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const handleSelectMode = useCallback(
     (mode: Mode) => {
+      setSetting("startup.lastMode", mode);
       setWorkspaces((prev) =>
         prev.map((w) =>
-          w.id === activeWorkspaceId ? { ...w, mode, status: 'setup' as const } : w,
+          w.id === activeWorkspaceId
+            ? { ...w, mode, status: "setup" as const }
+            : w,
         ),
       );
     },
@@ -377,22 +433,27 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const handleGoBack = useCallback((id: string) => {
     setWorkspaces((prev) =>
-      prev.map((w) => (w.id === id ? { ...w, status: 'mode-select' as const } : w)),
+      prev.map((w) =>
+        w.id === id ? { ...w, status: "mode-select" as const } : w,
+      ),
     );
   }, []);
 
   // ── Pane operations ───────────────────────────────────────────────────────
 
   const handleSplitPane = useCallback(
-    (paneId: string, direction: 'horizontal' | 'vertical') => {
+    (paneId: string, direction: "horizontal" | "vertical") => {
       if (!activeWorkspaceId) return;
-      const internalDir = direction === 'vertical' ? 'horizontal' : 'vertical';
+      const internalDir = direction === "vertical" ? "horizontal" : "vertical";
       setWorkspaces((prev) =>
         prev.map((w) => {
           if (w.id === activeWorkspaceId && w.config) {
             return {
               ...w,
-              config: { ...w.config, layout: splitNode(w.config.layout, paneId, internalDir) },
+              config: {
+                ...w.config,
+                layout: splitNode(w.config.layout, paneId, internalDir),
+              },
             };
           }
           return w;
@@ -421,7 +482,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           if (w.id === activeWorkspaceId && w.config) {
             const newLayout = removeNode(w.config.layout, paneId);
             if (!newLayout) {
-              return { ...w, status: 'mode-select' as const, config: null };
+              return { ...w, status: "mode-select" as const, config: null };
             }
             return { ...w, config: { ...w.config, layout: newLayout } };
           }
@@ -442,7 +503,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
               ...w,
               config: {
                 ...w.config,
-                layout: updatePaneNode(w.config.layout, paneId, { name: newName }),
+                layout: updatePaneNode(w.config.layout, paneId, {
+                  name: newName,
+                }),
               },
             };
           }
@@ -454,7 +517,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
 
   const handleMovePane = useCallback(
-    (dragId: string, dropId: string, direction: 'top' | 'bottom' | 'left' | 'right') => {
+    (
+      dragId: string,
+      dropId: string,
+      direction: "top" | "bottom" | "left" | "right",
+    ) => {
       if (!activeWorkspaceId) return;
       setWorkspaces((prev) =>
         prev.map((w) => {
@@ -463,15 +530,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
               ...w,
               config: {
                 ...w.config,
-                layout: repositionNode(w.config.layout, dragId, dropId, direction),
+                layout: repositionNode(
+                  w.config.layout,
+                  dragId,
+                  dropId,
+                  direction,
+                ),
               },
             };
           }
           return w;
         }),
       );
-      toast.success('Layout updated successfully', {
-        description: 'The pane position has been saved.',
+      toast.success("Layout updated successfully", {
+        description: "The pane position has been saved.",
       });
     },
     [activeWorkspaceId],
@@ -482,20 +554,27 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const handleLaunchTemplate = useCallback(
     async (template: SpaceTemplate) => {
       try {
-        const exists = await invoke<boolean>('validate_directory', { path: template.rootPath });
+        const exists = await invoke<boolean>("validate_directory", {
+          path: template.rootPath,
+        });
         if (!exists) {
-          toast.error('Failed to find directory', {
-            description: 'The template path no longer exists.',
+          toast.error("Failed to find directory", {
+            description: "The template path no longer exists.",
           });
           return;
         }
       } catch (err) {
-        if (import.meta.env.DEV) console.warn('Failed to verify directory existence:', err);
+        if (import.meta.env.DEV)
+          console.warn("Failed to verify directory existence:", err);
       }
 
-      const config = { rootPath: template.rootPath, layout: template.layout, panes: [] };
+      const config = {
+        rootPath: template.rootPath,
+        layout: template.layout,
+        panes: [],
+      };
 
-      if (activeWorkspace && activeWorkspace.status === 'active') {
+      if (activeWorkspace && activeWorkspace.status === "active") {
         const newId = crypto.randomUUID();
         setWorkspaces((prev) => [
           ...prev,
@@ -504,7 +583,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             name: formatWorkspaceName(template.name),
             mode: template.mode,
             config,
-            status: 'active' as const,
+            status: "active" as const,
           },
         ]);
         setActiveWorkspaceId(newId);
@@ -517,7 +596,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                   name: formatWorkspaceName(template.name),
                   mode: template.mode,
                   config,
-                  status: 'active' as const,
+                  status: "active" as const,
                 }
               : w,
           ),
@@ -525,22 +604,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
 
       toast.success(`${template.name} launched successfully`, {
-        description: 'The template was loaded from the library.',
+        description: "The template was loaded from the library.",
       });
     },
     [activeWorkspace, activeWorkspaceId],
   );
 
   const handleCaptureCurrent = useCallback(() => {
-    if (!activeWorkspace || activeWorkspace.status !== 'active') {
-      toast.error('Workspace cannot be captured', {
-        description: 'Select an active workspace before capturing.',
+    if (!activeWorkspace || activeWorkspace.status !== "active") {
+      toast.error("Workspace cannot be captured", {
+        description: "Select an active workspace before capturing.",
       });
       return;
     }
 
     const { rootPath, layout, panes } = activeWorkspace.config;
-    const name = activeWorkspace.name || 'UNNAMED SPACE';
+    const name = activeWorkspace.name || "UNNAMED SPACE";
 
     captureCurrent(
       formatWorkspaceName(name),
@@ -596,23 +675,52 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       handleCaptureCurrent,
     }),
     [
-      workspaces, activeWorkspaceId, activeWorkspace,
-      templates, captureCurrent, deleteTemplate, deleteTemplates,
-      archiveTemplate, archiveTemplates, unarchiveTemplate, unarchiveTemplates,
-      snippets, addSnippet, deleteSnippet, deleteSnippets,
-      archiveSnippet, archiveSnippets, unarchiveSnippet, unarchiveSnippets,
-      initWorkspace, handleLaunch, handleSwitchWorkspace,
-      handleCloseWorkspace, handleCloseWorkspaces,
-      handleRenameWorkspace, handleColorWorkspace,
-      handleReorderWorkspaces, handlePinWorkspace,
-      handleNewWorkspaceFlow, handleNewWorkspaceToRight,
-      handleSelectMode, handleGoBack,
-      handleSplitPane, handleKillPane, handleRenamePane, handleMovePane,
-      handleLaunchTemplate, handleCaptureCurrent,
+      workspaces,
+      activeWorkspaceId,
+      activeWorkspace,
+      templates,
+      captureCurrent,
+      deleteTemplate,
+      deleteTemplates,
+      archiveTemplate,
+      archiveTemplates,
+      unarchiveTemplate,
+      unarchiveTemplates,
+      snippets,
+      addSnippet,
+      deleteSnippet,
+      deleteSnippets,
+      archiveSnippet,
+      archiveSnippets,
+      unarchiveSnippet,
+      unarchiveSnippets,
+      initWorkspace,
+      handleLaunch,
+      handleSwitchWorkspace,
+      handleCloseWorkspace,
+      handleCloseWorkspaces,
+      handleRenameWorkspace,
+      handleColorWorkspace,
+      handleReorderWorkspaces,
+      handlePinWorkspace,
+      handleNewWorkspaceFlow,
+      handleNewWorkspaceToRight,
+      handleSelectMode,
+      handleGoBack,
+      handleSplitPane,
+      handleKillPane,
+      handleRenamePane,
+      handleMovePane,
+      handleLaunchTemplate,
+      handleCaptureCurrent,
     ],
   );
 
-  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
+  return (
+    <WorkspaceContext.Provider value={value}>
+      {children}
+    </WorkspaceContext.Provider>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -621,6 +729,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
 export function useWorkspace() {
   const ctx = useContext(WorkspaceContext);
-  if (!ctx) throw new Error('useWorkspace must be used within a WorkspaceProvider');
+  if (!ctx)
+    throw new Error("useWorkspace must be used within a WorkspaceProvider");
   return ctx;
 }

@@ -43,7 +43,7 @@ export const INITIAL_BOOT_CHECKS: SysCheck[] = [
 // ── Starter Profile Data ──────────────────────────────────────────────────────
 
 export interface Profile {
-  id: 'zen' | 'intelligence' | 'pro';
+  id: 'zen' | 'intelligence' | 'pro' | 'creator' | 'hacker';
   name: string;
   badge: string;
   themeId: string;
@@ -62,14 +62,14 @@ export const PROFILES: Profile[] = [
     id: 'zen',
     name: 'The Zen Den',
     badge: 'MINIMALIST',
-    themeId: 'cortex',
-    themeName: 'Cortex Default',
+    themeId: 'rose-pine',
+    themeName: 'Rosé Pine',
     layoutName: 'Flex Layout',
     shellLabel: 'Default Shell',
     description: 'A focused, distraction-free environment. Standard color palettes with no extra agent processes.',
     includedAgentIds: [],
     includedAgentLabels: [],
-    color: '#00F2FE',
+    color: '#c4a7e7',
   },
   {
     id: 'intelligence',
@@ -88,14 +88,40 @@ export const PROFILES: Profile[] = [
     id: 'pro',
     name: 'The Terminal Pro',
     badge: 'POWER USER',
-    themeId: 'nord',
-    themeName: 'Nord Theme',
+    themeId: 'tokyo-night',
+    themeName: 'Tokyo Night',
     layoutName: '1x3 Grid',
     shellLabel: 'Custom Shell',
     shellValue: 'powershell.exe',
     description: 'Designed for terminal veterans. Custom Nord visual scheme with support for custom shell executables.',
-    includedAgentIds: ['agent-opencode', 'agent-codex'],
-    includedAgentLabels: ['OPENCODE', 'CODEX'],
-    color: '#88C0D0',
+    includedAgentIds: ['agent-claude', 'agent-codex'],
+    includedAgentLabels: ['CLAUDE', 'CODEX'],
+    color: '#c0caf5',
+  },
+  {
+    id: 'creator',
+    name: "The Creator's Crucible",
+    badge: 'CREATOR',
+    themeId: 'kanagawa-dragon',
+    themeName: 'Kanagawa Dragon',
+    layoutName: 'Flex Layout',
+    shellLabel: 'Default Shell',
+    description: 'A comprehensive sandbox playground. Deploys all 5 default AI agents in a clean 2x2 grid.',
+    includedAgentIds: ['agent-gemini', 'agent-claude', 'agent-antigravity', 'agent-opencode', 'agent-codex'],
+    includedAgentLabels: ['GEMINI', 'CLAUDE', 'ANTIGRAVITY', 'OPENCODE', 'CODEX'],
+    color: '#8ba4b0',
+  },
+  {
+    id: 'hacker',
+    name: 'The Night Owl Hacker',
+    badge: 'NOCTURNAL',
+    themeId: 'gruvbox',
+    themeName: 'Gruvbox',
+    layoutName: '1x3 Grid',
+    shellLabel: 'Default Shell',
+    description: 'Warm retro vibes with a focus on code execution. Pairs Opencode with Antigravity for seamless building.',
+    includedAgentIds: ['agent-opencode', 'agent-antigravity'],
+    includedAgentLabels: ['OPENCODE', 'ANTIGRAVITY'],
+    color: '#fabd2f',
   },
 ];

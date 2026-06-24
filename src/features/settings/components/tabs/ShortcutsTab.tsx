@@ -93,29 +93,12 @@ export function ShortcutsTab({
         onConfirm={onResetShortcuts}
       />
 
-      <div className="flex items-center justify-between px-2 mb-8">
-        <div>
-          <h3 className="text-[14px] font-bold text-[var(--text-primary)] flex items-center gap-2.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_10px_var(--accent-primary)]" />
-            Keyboard Shortcuts
-          </h3>
-          <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 font-medium">Reconfigure the shortcuts for your workspace.</p>
-        </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => setIsConfirmOpen(true)}
-          className="h-8 px-3 text-[10px] font-bold text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all border border-[var(--accent-primary)]/20"
-        >
-          <RotateCcw size={12} className="mr-2" /> Reset All
-        </Button>
-      </div>
-
       <motion.div variants={itemVariants}>
         <SettingsCard 
           title="Workspace & Navigation" 
           icon={<Monitor size={16} />}
           description="Manage workspace lifecycles and navigation flow."
+          onReset={() => setIsConfirmOpen(true)}
         >
           <ShortcutItem label="Quick Switcher" shortcutKey="quickSwitcher" currentValue={shortcuts.quickSwitcher} defaultValue={SHORTCUT_DEFAULTS.quickSwitcher} onChange={onShortcutChange} allShortcuts={shortcuts} />
           <ShortcutItem label="New Workspace Flow" shortcutKey="newWorkspace" currentValue={shortcuts.newWorkspace} defaultValue={SHORTCUT_DEFAULTS.newWorkspace} onChange={onShortcutChange} allShortcuts={shortcuts} />
@@ -185,7 +168,7 @@ function StaticShortcutItem({ label, value }: { label: string; value: string }) 
       <span className="text-[12px] font-bold text-[var(--text-secondary)]">{label}</span>
       <KbdGroup className="gap-1 flex items-center justify-end">
         {parseShortcutToKeys(value, isMac).map((key, idx) => (
-          <Kbd key={idx} className="min-w-5 h-5 px-1.5 text-[10px] flex items-center justify-center font-mono bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20 text-[var(--text-secondary)] opacity-60 font-sans italic">
+          <Kbd key={idx} className="min-w-5 h-5 px-1.5 text-[10px] flex items-center justify-center bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20 text-[var(--text-secondary)] opacity-60 font-sans italic">
             {key}
           </Kbd>
         ))}
@@ -308,7 +291,7 @@ function ShortcutItem({ label, shortcutKey, currentValue, defaultValue, onChange
             onKeyDown={handleKeyDown}
             onBlur={stopRecording}
             className={cn(
-              "min-w-[110px] h-7 px-2.5 rounded-md border text-[10px] font-mono flex items-center justify-end gap-2 transition-all outline-none",
+              "min-w-[110px] h-7 px-2.5 rounded-md border text-[10px] flex items-center justify-end gap-2 transition-all outline-none",
               isRecording
                 ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.2)]"
                 : hasConflict
@@ -330,7 +313,7 @@ function ShortcutItem({ label, shortcutKey, currentValue, defaultValue, onChange
                       <Kbd
                         key={idx}
                         className={cn(
-                          "min-w-5 h-5 px-1.5 text-[10px] flex items-center justify-center font-mono bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20 text-[var(--text-primary)] transition-colors",
+                          "min-w-5 h-5 px-1.5 text-[10px] flex items-center justify-center bg-[var(--text-primary)]/[0.04] border border-[var(--border-color)]/20 text-[var(--text-primary)] transition-colors",
                           critical && "text-ansi-red border-red-500/20 bg-red-500/5 font-sans"
                         )}
                       >
@@ -397,7 +380,7 @@ function ShortcutItem({ label, shortcutKey, currentValue, defaultValue, onChange
                 <span className="text-[10px] text-amber-300/90 font-medium leading-tight flex items-center gap-1.5 flex-wrap">
                   <KbdGroup className="gap-1 flex items-center">
                     {parseShortcutToKeys(pendingValue, isMac).map((key, idx) => (
-                      <Kbd key={idx} className="bg-amber-500/20 border-amber-500/30 text-amber-200 px-1 py-0.5 h-4.5 text-[9px] font-mono font-bold leading-none flex items-center justify-center">
+                      <Kbd key={idx} className="bg-amber-500/20 border-amber-500/30 text-amber-200 px-1 py-0.5 h-4.5 text-[9px] font-bold leading-none flex items-center justify-center">
                         {key}
                       </Kbd>
                     ))}

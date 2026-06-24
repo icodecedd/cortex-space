@@ -1,10 +1,29 @@
 import { useMemo } from "react";
-import { Clock, ExternalLink, Folder, Trash2, Rocket, Plus, Archive, RotateCcw } from "@/components/ui/icons";
+import {
+  Clock,
+  ExternalLink,
+  Folder,
+  Trash2,
+  Rocket,
+  Plus,
+  Archive,
+  RotateCcw,
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Card, CardHeader, CardTitle, CardFooter, CardContent } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+  CardContent,
+} from "@/components/ui/card";
 import { LayoutPreviewIcon } from "@/components/ui/layout-preview-icon";
-import { SpaceTemplate } from "@/types";
+import { SpaceTemplate } from "@/lib";
 import { EmptyState } from "@/components/ui/empty-state";
 import { truncatePath } from "@/lib/utils";
 import { ViewMode } from "@/components/ui/view-toggle";
@@ -60,33 +79,41 @@ export function WorkspacesTab({
   onRestore,
   onCapture,
   activeSubTab,
-  onSubTabChange
+  onSubTabChange,
 }: WorkspacesTabProps) {
   // State lifted to CortexLibraryDialog to persist across sidebar navigation
 
-  const activeTemplates = useMemo(() =>
-    templates.filter(t => !t.isArchived),
-  [templates]);
+  const activeTemplates = useMemo(
+    () => templates.filter((t) => !t.isArchived),
+    [templates],
+  );
 
-  const archivedTemplates = useMemo(() =>
-    templates.filter(t => t.isArchived),
-  [templates]);
+  const archivedTemplates = useMemo(
+    () => templates.filter((t) => t.isArchived),
+    [templates],
+  );
 
-  const filtered = useMemo(() =>
-    activeTemplates.filter(t =>
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.rootPath.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-  [activeTemplates, searchQuery]);
+  const filtered = useMemo(
+    () =>
+      activeTemplates.filter(
+        (t) =>
+          t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.rootPath.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    [activeTemplates, searchQuery],
+  );
 
-  const archivedFiltered = useMemo(() =>
-    archivedTemplates.filter(t =>
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.rootPath.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-  [archivedTemplates, searchQuery]);
+  const archivedFiltered = useMemo(
+    () =>
+      archivedTemplates.filter(
+        (t) =>
+          t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.rootPath.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    [archivedTemplates, searchQuery],
+  );
 
   // Active view: no delete button
   const renderActiveContent = () => {
@@ -94,10 +121,13 @@ export function WorkspacesTab({
       return (
         <EmptyState
           icon={Rocket}
-          title={searchQuery ? "No Active Workspaces Found" : "No Active Workspaces"}
-          description={searchQuery
-            ? `No active templates matching "${searchQuery}" were found.`
-            : "Capture your workspace configurations or archive items from here."
+          title={
+            searchQuery ? "No Active Workspaces Found" : "No Active Workspaces"
+          }
+          description={
+            searchQuery
+              ? `No active templates matching "${searchQuery}" were found.`
+              : "Capture your workspace configurations or archive items from here."
           }
           iconColor="text-purple-500/30"
           compact
@@ -105,7 +135,7 @@ export function WorkspacesTab({
       );
     }
 
-    if (viewMode === 'card') {
+    if (viewMode === "card") {
       return (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           {filtered.map((template) => (
@@ -127,9 +157,15 @@ export function WorkspacesTab({
         <TableHeader>
           <TableRow>
             <TableHead className="w-10" />
-            <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">Name</TableHead>
-            <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">Path</TableHead>
-            <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">Created</TableHead>
+            <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">
+              Name
+            </TableHead>
+            <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">
+              Path
+            </TableHead>
+            <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">
+              Created
+            </TableHead>
             <TableHead className="w-20 text-right" />
           </TableRow>
         </TableHeader>
@@ -147,7 +183,7 @@ export function WorkspacesTab({
                     "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                     selectedIds.has(template.id)
                       ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                      : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
+                      : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50",
                   )}
                 >
                   {selectedIds.has(template.id) && (
@@ -174,20 +210,28 @@ export function WorkspacesTab({
                 </div>
               </TableCell>
               <TableCell>
-                <span className="text-[11px] font-mono text-[var(--text-secondary)]/70">
+                <span className="text-[11px] text-[var(--text-secondary)]/70">
                   {truncatePath(template.rootPath, 25)}
                 </span>
               </TableCell>
               <TableCell>
-                <span className="text-[10px] text-[var(--text-secondary)]/60 font-mono">
+                <span className="text-[10px] text-[var(--text-secondary)]/60">
                   {formatTimeAgo(template.createdAt)}
                 </span>
               </TableCell>
-              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+              <TableCell
+                className="text-right"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {onArchive && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon-xs" className="text-[var(--text-secondary)]/50 hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5" onClick={() => onArchive(template.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-[var(--text-secondary)]/50 hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5"
+                        onClick={() => onArchive(template.id)}
+                      >
                         <Archive size={12} />
                       </Button>
                     </TooltipTrigger>
@@ -216,9 +260,10 @@ export function WorkspacesTab({
         <EmptyState
           icon={Archive}
           title="No Archived Templates"
-          description={searchQuery
-            ? `No archived templates matching "${searchQuery}" were found.`
-            : "Archived workspaces will appear here."
+          description={
+            searchQuery
+              ? `No archived templates matching "${searchQuery}" were found.`
+              : "Archived workspaces will appear here."
           }
           iconColor="text-[var(--text-secondary)]/30"
           compact
@@ -228,7 +273,7 @@ export function WorkspacesTab({
 
     return (
       <>
-        {viewMode === 'card' ? (
+        {viewMode === "card" ? (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             {archivedFiltered.map((template) => (
               <TemplateCard
@@ -248,20 +293,31 @@ export function WorkspacesTab({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10" />
-                <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">Name</TableHead>
-                <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">Path</TableHead>
-                <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">Created</TableHead>
-                <TableHead className="w-24 text-right text-[10px] font-semibold text-[var(--text-secondary)]/50">Actions</TableHead>
+                <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">
+                  Name
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">
+                  Path
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold text-[var(--text-secondary)]/50">
+                  Created
+                </TableHead>
+                <TableHead className="w-24 text-right text-[10px] font-semibold text-[var(--text-secondary)]/50">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {archivedFiltered.map((template) => (
-                <TableRow key={template.id} className={cn(
-                  "transition-all cursor-default",
-                  archivedSelectedIds.has(template.id)
-                    ? "bg-[var(--accent-primary)]/[0.03] hover:bg-[var(--accent-primary)]/[0.05]"
-                    : "text-[var(--text-secondary)]/70 hover:bg-[var(--text-primary)]/[0.02]"
-                )}>
+                <TableRow
+                  key={template.id}
+                  className={cn(
+                    "transition-all cursor-default",
+                    archivedSelectedIds.has(template.id)
+                      ? "bg-[var(--accent-primary)]/[0.03] hover:bg-[var(--accent-primary)]/[0.05]"
+                      : "text-[var(--text-secondary)]/70 hover:bg-[var(--text-primary)]/[0.02]",
+                  )}
+                >
                   <TableCell>
                     <div
                       onClick={() => toggleArchivedSelection(template.id)}
@@ -269,7 +325,7 @@ export function WorkspacesTab({
                         "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer",
                         archivedSelectedIds.has(template.id)
                           ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
-                          : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
+                          : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50",
                       )}
                     >
                       {archivedSelectedIds.has(template.id) && (
@@ -291,16 +347,25 @@ export function WorkspacesTab({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[11px] font-mono">{truncatePath(template.rootPath, 25)}</span>
+                    <span className="text-[11px]">
+                      {truncatePath(template.rootPath, 25)}
+                    </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-[10px] font-mono">{formatTimeAgo(template.createdAt)}</span>
+                    <span className="text-[10px]">
+                      {formatTimeAgo(template.createdAt)}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon-xs" className="text-[var(--text-secondary)]/50 hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5" onClick={() => onRestore && onRestore(template.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="text-[var(--text-secondary)]/50 hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5"
+                            onClick={() => onRestore && onRestore(template.id)}
+                          >
                             <RotateCcw size={12} />
                           </Button>
                         </TooltipTrigger>
@@ -308,7 +373,12 @@ export function WorkspacesTab({
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon-xs" className="text-[var(--text-secondary)]/50 hover:text-red-400 hover:bg-red-500/10" onClick={() => onDelete(template.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="text-[var(--text-secondary)]/50 hover:text-red-400 hover:bg-red-500/10"
+                            onClick={() => onDelete(template.id)}
+                          >
                             <Trash2 size={12} />
                           </Button>
                         </TooltipTrigger>
@@ -327,13 +397,23 @@ export function WorkspacesTab({
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeSubTab} onValueChange={onSubTabChange} className="space-y-6">
+      <Tabs
+        value={activeSubTab}
+        onValueChange={onSubTabChange}
+        className="space-y-6"
+      >
         <div className="flex items-center justify-between mb-2">
           <TabsList className="bg-[var(--text-primary)]/[0.03]">
-            <TabsTrigger value="active" className="text-[11px] font-bold tracking-wider">
+            <TabsTrigger
+              value="active"
+              className="text-[11px] font-bold tracking-wider"
+            >
               Active ({activeTemplates.length})
             </TabsTrigger>
-            <TabsTrigger value="archived" className="text-[11px] font-bold tracking-wider">
+            <TabsTrigger
+              value="archived"
+              className="text-[11px] font-bold tracking-wider"
+            >
               Archived ({archivedTemplates.length})
             </TabsTrigger>
           </TabsList>
@@ -348,19 +428,23 @@ export function WorkspacesTab({
           )}
         </div>
 
-        <TabsContent value="active">
-          {renderActiveContent()}
-        </TabsContent>
+        <TabsContent value="active">{renderActiveContent()}</TabsContent>
 
-        <TabsContent value="archived">
-          {renderArchivedContent()}
-        </TabsContent>
+        <TabsContent value="archived">{renderArchivedContent()}</TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function TemplateCard({ template, isSelected, onToggleSelection, onLaunch, onArchive, onRestore, onDelete }: {
+function TemplateCard({
+  template,
+  isSelected,
+  onToggleSelection,
+  onLaunch,
+  onArchive,
+  onRestore,
+  onDelete,
+}: {
   template: SpaceTemplate;
   isSelected: boolean;
   onToggleSelection: () => void;
@@ -373,31 +457,45 @@ function TemplateCard({ template, isSelected, onToggleSelection, onLaunch, onArc
     <Card
       className={cn(
         "group relative flex flex-col p-0 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.04] transition-all duration-300 overflow-hidden border border-[var(--border-color)]",
-        onLaunch ? "cursor-pointer" : "cursor-default"
+        onLaunch ? "cursor-pointer" : "cursor-default",
       )}
-      onClick={() => { if (onLaunch) onLaunch(); }}
+      onClick={() => {
+        if (onLaunch) onLaunch();
+      }}
     >
       <CardHeader className="p-4 pb-2 border-none group/header">
         <div className="flex items-start gap-3 min-w-0">
-          <LayoutPreviewIcon layout={template.layout} className="w-10 h-8 border bg-[var(--bg-color)] shrink-0 rounded-sm border-[var(--border-color)] mt-0.5" />
+          <LayoutPreviewIcon
+            layout={template.layout}
+            className="w-10 h-8 border bg-[var(--bg-color)] shrink-0 rounded-sm border-[var(--border-color)] mt-0.5"
+          />
           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
               <div
-                onClick={(e) => { e.stopPropagation(); onToggleSelection(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSelection();
+                }}
                 className={cn(
                   "w-4 h-4 rounded border transition-all flex items-center justify-center cursor-pointer shrink-0",
-                  isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]" : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50"
+                  isSelected
+                    ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]"
+                    : "border-[var(--border-color)] hover:border-[var(--accent-primary)]/50",
                 )}
               >
-                {isSelected && <Plus size={10} className="text-black rotate-45" />}
+                {isSelected && (
+                  <Plus size={10} className="text-black rotate-45" />
+                )}
               </div>
               <CardTitle className="text-[13px] font-bold truncate text-[var(--text-primary)] group-hover/header:text-[var(--accent-primary)] transition-colors leading-tight">
                 {template.name}
               </CardTitle>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] font-mono min-w-0">
+            <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] min-w-0">
               <Folder size={10} className="shrink-0 opacity-80" />
-              <span className="block flex-1 truncate whitespace-nowrap">{truncatePath(template.rootPath, 35)}</span>
+              <span className="block flex-1 truncate whitespace-nowrap">
+                {truncatePath(template.rootPath, 35)}
+              </span>
             </div>
           </div>
         </div>
@@ -416,55 +514,77 @@ function TemplateCard({ template, isSelected, onToggleSelection, onLaunch, onArc
       </CardContent>
 
       <CardFooter className="px-4 py-2 border-t border-[var(--border-color)] bg-[var(--bg-color)]/20 flex items-center justify-between group/footer">
-         <span className="text-[9px] text-[var(--text-secondary)] font-medium flex items-center gap-1 leading-none"><Clock size={10} /> {formatTimeAgo(template.createdAt)}</span>
-         <div className="flex items-center gap-2.5">
-            {onArchive && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent-primary)]/5 hover:text-[var(--accent-primary)] active:scale-95"
-                    onClick={(e) => { e.stopPropagation(); onArchive(); }}
-                  >
-                    <Archive size={13} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-[10px]">Archive</TooltipContent>
-              </Tooltip>
-            )}
-            {onRestore && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent-primary)]/5 hover:text-[var(--accent-primary)] active:scale-95"
-                    onClick={(e) => { e.stopPropagation(); onRestore(); }}
-                  >
-                    <RotateCcw size={13} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-[10px]">Restore</TooltipContent>
-              </Tooltip>
-            )}
-            {onDelete && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:text-red-400 hover:bg-red-500/10 active:scale-95"
-                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                  >
-                    <Trash2 size={13} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-[10px]">Delete Permanently</TooltipContent>
-              </Tooltip>
-            )}
-            {onLaunch && <ExternalLink size={11} className="text-[var(--text-secondary)]/60 group-hover/footer:text-[var(--accent-primary)] transition-colors" />}
-         </div>
+        <span className="text-[9px] text-[var(--text-secondary)] font-medium flex items-center gap-1 leading-none">
+          <Clock size={10} /> {formatTimeAgo(template.createdAt)}
+        </span>
+        <div className="flex items-center gap-2.5">
+          {onArchive && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent-primary)]/5 hover:text-[var(--accent-primary)] active:scale-95"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive();
+                  }}
+                >
+                  <Archive size={13} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">
+                Archive
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {onRestore && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent-primary)]/5 hover:text-[var(--accent-primary)] active:scale-95"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRestore();
+                  }}
+                >
+                  <RotateCcw size={13} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">
+                Restore
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {onDelete && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-[var(--text-secondary)]/60 opacity-0 group-hover:opacity-100 transition-all hover:text-red-400 hover:bg-red-500/10 active:scale-95"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                >
+                  <Trash2 size={13} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">
+                Delete Permanently
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {onLaunch && (
+            <ExternalLink
+              size={11}
+              className="text-[var(--text-secondary)]/60 group-hover/footer:text-[var(--accent-primary)] transition-colors"
+            />
+          )}
+        </div>
       </CardFooter>
     </Card>
   );

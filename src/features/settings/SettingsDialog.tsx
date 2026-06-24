@@ -11,10 +11,8 @@ import {
   Settings2,
   Keyboard,
   Terminal,
-  Palette,
   FlaskConical,
-  Info,
-  Cpu
+  Info
 } from "@/components/ui/icons";
 import { open } from "@tauri-apps/plugin-dialog";
 
@@ -34,7 +32,7 @@ import {
 
 import { useTerminalSettings } from "@/hooks/useTerminalSettings";
 import { ThemeName, ThemeDefinition } from "@/hooks/useTheme";
-import { useColorScheme } from "@/hooks/useColorScheme";
+
 import { toast } from "sonner";
 
 
@@ -42,8 +40,7 @@ import { toast } from "sonner";
 import { GeneralTab } from "./components/tabs/GeneralTab";
 import { ShortcutsTab } from "./components/tabs/ShortcutsTab";
 import { TerminalTab } from "./components/tabs/TerminalTab";
-import { ThemesTab } from "./components/tabs/ThemesTab";
-import { AgentsTab } from "./components/tabs/AgentsTab";
+
 import { DemoTab } from "./components/tabs/DemoTab";
 import { AboutTab } from "./components/tabs/AboutTab";
 
@@ -57,10 +54,6 @@ interface SettingsDialogProps {
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
   allThemes: ThemeDefinition[];
-  addCustomTheme: (theme: ThemeDefinition) => Promise<void>;
-  removeCustomTheme: (id: string) => Promise<void>;
-  previewTheme: (config: ThemeDefinition) => void;
-  cancelPreview: () => void;
   colorScheme: ColorScheme;
   setColorScheme: (scheme: ColorScheme) => void;
   uiFontScale: number;
@@ -69,6 +62,10 @@ interface SettingsDialogProps {
   setZenPadding: (padding: number) => void;
   reducedMotion: boolean;
   setReducedMotion: (reduced: boolean) => void;
+  shimmerPreset: string;
+  setShimmerPreset: (preset: string) => void;
+  shimmerDuration: number;
+  setShimmerDuration: (v: number) => void;
   onResetAppearance: () => void;
   focusSettings: FocusSettings;
   setFocusSetting: <K extends keyof FocusSettings>(key: K, value: FocusSettings[K]) => Promise<void>;
@@ -85,10 +82,6 @@ export function SettingsDialog({
   theme,
   setTheme,
   allThemes,
-  addCustomTheme,
-  removeCustomTheme,
-  previewTheme,
-  cancelPreview,
   colorScheme,
   setColorScheme,
   uiFontScale,
@@ -97,6 +90,10 @@ export function SettingsDialog({
   setZenPadding,
   reducedMotion,
   setReducedMotion,
+  shimmerPreset,
+  setShimmerPreset,
+  shimmerDuration,
+  setShimmerDuration,
   onResetAppearance,
   focusSettings,
   setFocusSetting,
@@ -105,7 +102,7 @@ export function SettingsDialog({
   setDemoSetting,
   resetDemo,
 }: SettingsDialogProps) {
-  const { resolvedScheme } = useColorScheme();
+
   const [defaultPath, setDefaultPath] = useState<string>("");
   const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -118,7 +115,7 @@ export function SettingsDialog({
 
   // Startup settings (local state, persisted on change)
   const [showSplash, setShowSplash] = useState(true);
-  const [startupBehavior, setStartupBehavior] = useState<StartupBehavior>("modeSelector");
+  const [startupBehavior, setStartupBehavior] = useState<StartupBehavior>("lastMode");
   const [checkUpdates, setCheckUpdates] = useState(true);
   const [confirmModeChange, setConfirmModeChange] = useState(true);
   const [defaultShell, setDefaultShell] = useState("");
@@ -130,8 +127,6 @@ export function SettingsDialog({
     settings: ts,
     isLoaded,
     updateSetting,
-    updateSettingLive,
-    commitSettings,
     resetToDefaults: resetTerminal,
   } = useTerminalSettings();
 
@@ -154,7 +149,7 @@ export function SettingsDialog({
         ] = await Promise.all([
           getSetting("cortex_default_path", ""),
           getSetting("startup.showSplashAnimation", true),
-          getSetting<StartupBehavior>("startup.behavior", "modeSelector"),
+          getSetting<StartupBehavior>("startup.behavior", "lastMode"),
           getSetting("startup.checkForUpdatesOnStartup", true),
           getSetting("startup.confirmModeChange", true),
           getSetting("startup.defaultShell", ""),
@@ -203,13 +198,13 @@ export function SettingsDialog({
 
   const handleResetStartup = async () => {
     setShowSplash(true);
-    setStartupBehavior("modeSelector");
+    setStartupBehavior("lastMode");
     setCheckUpdates(true);
     setConfirmModeChange(true);
     setDefaultShell("");
     await Promise.all([
       setSetting("startup.showSplashAnimation", true),
-      setSetting("startup.behavior", "modeSelector"),
+      setSetting("startup.behavior", "lastMode"),
       setSetting("startup.checkForUpdatesOnStartup", true),
       setSetting("startup.confirmModeChange", true),
       setSetting("startup.defaultShell", ""),
@@ -278,7 +273,7 @@ export function SettingsDialog({
           onValueChange={setActiveTab}
           className="w-full flex-1 flex flex-col overflow-hidden mt-4"
         >
-          <TabsList className={`w-full grid shrink-0 ${import.meta.env.DEV ? 'grid-cols-7' : 'grid-cols-6'}`}>
+          <TabsList className={`w-full grid shrink-0 ${import.meta.env.DEV ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="general" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Settings2 size={13} /> General
             </TabsTrigger>
@@ -287,12 +282,6 @@ export function SettingsDialog({
             </TabsTrigger>
             <TabsTrigger value="terminal" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
               <Terminal size={13} /> Terminal
-            </TabsTrigger>
-            <TabsTrigger value="themes" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
-              <Palette size={13} /> Themes
-            </TabsTrigger>
-            <TabsTrigger value="agents" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
-              <Cpu size={13} /> Agents
             </TabsTrigger>
             {import.meta.env.DEV && (
               <TabsTrigger value="demo" className="gap-1.5 text-[11px] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:bg-[var(--accent-primary)]/10">
@@ -314,6 +303,10 @@ export function SettingsDialog({
               setZenPadding={setZenPadding}
               reducedMotion={reducedMotion}
               setReducedMotion={setReducedMotion}
+              shimmerPreset={shimmerPreset}
+              setShimmerPreset={setShimmerPreset}
+              shimmerDuration={shimmerDuration}
+              setShimmerDuration={setShimmerDuration}
               onResetAppearance={onResetAppearance}
               showSplash={showSplash}
               setShowSplash={(v) => handleStartupToggle("startup.showSplashAnimation", setShowSplash, v)}
@@ -326,21 +319,15 @@ export function SettingsDialog({
               setCheckUpdates={(v) => handleStartupToggle("startup.checkForUpdatesOnStartup", setCheckUpdates, v)}
               confirmModeChange={confirmModeChange}
               setConfirmModeChange={(v) => handleStartupToggle("startup.confirmModeChange", setConfirmModeChange, v)}
-              defaultShell={defaultShell}
-              setDefaultShell={async (v) => {
-                setDefaultShell(v);
-                await setSetting("startup.defaultShell", v);
-                window.dispatchEvent(new CustomEvent('cortex-settings-changed', {
-                  detail: { startup: { defaultShell: v } }
-                }));
-              }}
-              defaultPath={defaultPath}
-              onSetPath={handleSetPath}
+
               onResetStartup={handleResetStartup}
               focusSettings={focusSettings}
               setFocusSetting={setFocusSetting}
               onResetFocus={resetFocus}
               onFactoryReset={handleFactoryReset}
+              theme={theme}
+              setTheme={setTheme}
+              allThemes={allThemes}
             />
           </TabsContent>
 
@@ -358,29 +345,22 @@ export function SettingsDialog({
               demo={demoSettings}
               isLoaded={isLoaded}
               updateSetting={updateSetting}
-              updateSettingLive={updateSettingLive}
-              commitSettings={commitSettings}
               onResetTerminal={resetTerminal}
               setDemoSetting={setDemoSetting}
+              defaultShell={defaultShell}
+              setDefaultShell={async (v) => {
+                setDefaultShell(v);
+                await setSetting("startup.defaultShell", v);
+                window.dispatchEvent(new CustomEvent('cortex-settings-changed', {
+                  detail: { startup: { defaultShell: v } }
+                }));
+              }}
+              defaultPath={defaultPath}
+              onSetPath={handleSetPath}
             />
           </TabsContent>
 
-          <TabsContent value="themes" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>
-            <ThemesTab
-              theme={theme}
-              allThemes={allThemes}
-              resolvedScheme={resolvedScheme}
-              setTheme={setTheme}
-              addCustomTheme={addCustomTheme}
-              removeCustomTheme={removeCustomTheme}
-              previewTheme={previewTheme}
-              cancelPreview={cancelPreview}
-            />
-          </TabsContent>
 
-          <TabsContent value="agents" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>
-            <AgentsTab />
-          </TabsContent>
 
            {import.meta.env.DEV && (
             <TabsContent value="demo" className="flex-1 overflow-y-auto mt-4 mb-2 scrollbar-none" style={{ paddingRight: "0.25rem" }}>

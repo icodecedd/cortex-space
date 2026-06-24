@@ -6,7 +6,7 @@ import { SpaceView } from "./features/space/SpaceView";
 import { useTheme, ThemeName } from "./hooks/useTheme";
 import { useColorScheme } from "./hooks/useColorScheme";
 import { Toaster } from "@/components/ui/sonner";
-import { AppState } from "./types";
+import { AppState } from "./lib";
 import { useWindowControls } from "./hooks/useWindowControls";
 import { useAppShortcuts } from "./hooks/useAppShortcuts";
 import { AppHeader } from "./components/layout/AppHeader";
@@ -26,22 +26,22 @@ import { WorkspaceProvider, useWorkspace } from "./context/WorkspaceContext";
 const KeyboardShortcutsDialog = lazy(() =>
   import("./components/dialogs/KeyboardShortcutsDialog").then((m) => ({
     default: m.KeyboardShortcutsDialog,
-  }))
+  })),
 );
 const SettingsDialog = lazy(() =>
   import("./features/settings/SettingsDialog").then((m) => ({
     default: m.SettingsDialog,
-  }))
+  })),
 );
 const CortexLibraryDialog = lazy(() =>
   import("./features/cortex-library/CortexLibraryDialog").then((m) => ({
     default: m.CortexLibraryDialog,
-  }))
+  })),
 );
 const WorkspaceSwitcherDialog = lazy(() =>
   import("./components/dialogs/WorkspaceSwitcherDialog").then((m) => ({
     default: m.WorkspaceSwitcherDialog,
-  }))
+  })),
 );
 
 declare global {
@@ -126,6 +126,8 @@ function AppInner() {
     setUiFontScale,
     setZenPadding,
     setReducedMotion,
+    setShimmerPreset,
+    setShimmerDuration,
     resetToDefaults: resetAppearance,
   } = useColorScheme();
   const {
@@ -141,10 +143,18 @@ function AppInner() {
     settings: focusSettings,
     setFocusSetting,
     toggleZenMode,
-    resetToDefaults: resetFocus,
+    resetToDefaults: originalResetFocus,
   } = useFocusSettings();
-  const { settings: demoSettings, setDemoSetting, resetToDefaults: resetDemo } =
-    useDemoSettings();
+
+  const resetFocus = useCallback(async () => {
+    await originalResetFocus();
+    await setZenPadding(32);
+  }, [originalResetFocus, setZenPadding]);
+  const {
+    settings: demoSettings,
+    setDemoSetting,
+    resetToDefaults: resetDemo,
+  } = useDemoSettings();
 
   // ── Global event listeners ───────────────────────────────────────────────
   useEffect(() => {
@@ -166,7 +176,7 @@ function AppInner() {
     return () => {
       window.removeEventListener(
         "cortex:modal-depth-changed",
-        handleDepthChange
+        handleDepthChange,
       );
       window.removeEventListener("keydown", handleGlobalKeyDown);
     };
@@ -272,12 +282,12 @@ function AppInner() {
             command: snippet.command,
             execute,
           },
-        })
+        }),
       );
       setTemplatesOpen(false);
       setSwitcherOpen(false);
     },
-    [activeWorkspaceId]
+    [activeWorkspaceId],
   );
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -422,7 +432,9 @@ function AppInner() {
                         isZenMode={focusSettings.isZenMode}
                         setIsZenMode={(v) => setFocusSetting("isZenMode", v)}
                         zenPadding={colorSchemeSettings.zenPadding}
-                        showPaneHeaders={focusSettings.showPaneHeaders as boolean}
+                        showPaneHeaders={
+                          focusSettings.showPaneHeaders as boolean
+                        }
                         onSplitPane={handleSplitPane}
                         onMovePane={handleMovePane}
                         onKillPane={handleKillPane}
@@ -462,10 +474,6 @@ function AppInner() {
           theme={theme}
           setTheme={setTheme}
           allThemes={allThemes}
-          addCustomTheme={addCustomTheme}
-          removeCustomTheme={removeCustomTheme}
-          previewTheme={previewTheme}
-          cancelPreview={cancelPreview}
           colorScheme={colorSchemeSettings.colorScheme}
           setColorScheme={setColorScheme}
           uiFontScale={colorSchemeSettings.uiFontScale}
@@ -474,6 +482,10 @@ function AppInner() {
           setZenPadding={setZenPadding}
           reducedMotion={colorSchemeSettings.reducedMotion}
           setReducedMotion={setReducedMotion}
+          shimmerPreset={colorSchemeSettings.shimmerPreset}
+          setShimmerPreset={setShimmerPreset}
+          shimmerDuration={colorSchemeSettings.shimmerDuration}
+          setShimmerDuration={setShimmerDuration}
           onResetAppearance={resetAppearance}
           focusSettings={focusSettings}
           setFocusSetting={setFocusSetting}
@@ -503,6 +515,14 @@ function AppInner() {
           onArchiveTemplates={archiveTemplates}
           onUnarchiveTemplate={unarchiveTemplate}
           onUnarchiveTemplates={unarchiveTemplates}
+          theme={theme}
+          allThemes={allThemes}
+          resolvedScheme={resolvedScheme}
+          setTheme={setTheme}
+          addCustomTheme={addCustomTheme}
+          removeCustomTheme={removeCustomTheme}
+          previewTheme={previewTheme}
+          cancelPreview={cancelPreview}
         />
         <WorkspaceSwitcherDialog
           isOpen={switcherOpen}

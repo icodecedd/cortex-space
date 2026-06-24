@@ -6,7 +6,7 @@ import { getSetting, setSetting } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { useAgents } from '@/hooks/useAgents';
 import { useTheme } from '@/hooks/useTheme';
-import type { Agent } from '@/types';
+import type { Agent } from '@/lib';
 import { Loader2, ArrowRight } from '@/components/ui/icons';
 
 import type {
@@ -15,8 +15,8 @@ import type {
   InstallableTool,
   PathValidationState,
   WorkspacePathValidation,
-} from '@/types/onboarding';
-import { INITIAL_BOOT_CHECKS, PROFILES } from '@/types/onboarding';
+} from '@/lib/onboarding';
+import { INITIAL_BOOT_CHECKS, PROFILES } from '@/lib/onboarding';
 
 import { StepFoundation } from './onboarding/StepFoundation';
 import { StepChoice } from './onboarding/StepChoice';
@@ -62,7 +62,7 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
   ]);
 
   // Option A configuration states
-  const [selectedProfile, setSelectedProfile] = useState<'zen' | 'intelligence' | 'pro' | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<'zen' | 'intelligence' | 'pro' | 'creator' | 'hacker' | null>(null);
   const [proShellPreference, setProShellPreference] = useState('powershell.exe');
 
   // Option B configuration states
@@ -71,6 +71,8 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
   const [customFontSize, setCustomFontSize] = useState(12);
   const [customFontFamily, setCustomFontFamily] = useState('JetBrains Mono');
   const [customLayout, setCustomLayout] = useState<'grid' | 'count'>('grid');
+  const [customShowFloatingHeader, setCustomShowFloatingHeader] = useState(true);
+  const [customHeaderVisibility, setCustomHeaderVisibility] = useState<'hover' | 'always'>('hover');
 
   // Theme & Agent bindings
   const { setTheme, allThemes } = useTheme();
@@ -409,9 +411,11 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
         themeName = customTheme;
         layout = customLayout;
         shell = customShell;
-        
+
         await setSetting('terminal.fontSize', customFontSize);
         await setSetting('terminal.fontFamily', customFontFamily);
+        await setSetting('demo.showFloatingTerminalHeader', customShowFloatingHeader);
+        await setSetting('demo.terminalHeaderVisibility', customHeaderVisibility);
       }
 
       await Promise.all([
@@ -583,7 +587,7 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
         <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] uppercase">
           Command Center Setup
         </span>
-        <span className="text-[10px] font-mono text-[var(--text-secondary)] opacity-60">
+        <span className="text-[10px] text-[var(--text-secondary)] opacity-60">
           Step {stepIndex + 1} of {steps.length}
         </span>
       </div>
@@ -599,8 +603,8 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
       </div>
 
       {/* ── Main content area ───────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-10 overflow-y-auto z-10">
-        <div className="w-full max-w-2xl flex flex-col items-center">
+      <div className="flex-1 overflow-y-auto z-10 flex flex-col items-center p-6 md:p-10">
+        <div className="w-full max-w-2xl flex flex-col items-center my-auto">
           <AnimatePresence mode="wait" custom={direction}>
             <m.div
               key={currentStep}
@@ -662,6 +666,10 @@ export const FirstRunOnboardingScreen = memo(function FirstRunOnboardingScreen({
                   setCustomFontFamily={setCustomFontFamily}
                   customLayout={customLayout}
                   setCustomLayout={setCustomLayout}
+                  customShowFloatingHeader={customShowFloatingHeader}
+                  setCustomShowFloatingHeader={setCustomShowFloatingHeader}
+                  customHeaderVisibility={customHeaderVisibility}
+                  setCustomHeaderVisibility={setCustomHeaderVisibility}
                 />
               )}
 

@@ -57,11 +57,12 @@
     "cursorStyle": "block",
     "cursorBlink": true,
     "lineHeight": 1.2,
-    "letterSpacing": 0
+    "letterSpacing": 0,
+    "fontWeight": "400"
   },
   "startup": {
     "showSplashAnimation": true,
-    "behavior": "modeSelector",
+    "behavior": "lastMode",
     "checkForUpdatesOnStartup": true,
     "confirmModeChange": true,
     "defaultShell": ""
@@ -70,12 +71,15 @@
     "colorScheme": "dark",
     "uiFontScale": 100,
     "zenPadding": 32,
-    "reducedMotion": false
+    "reducedMotion": false,
+    "shimmerPreset": "tonic",
+    "shimmerDuration": 1.45
   },
   "focus": {
     "isZenMode": false,
     "showTabs": false,
     "showStatusBar": false,
+    "showPaneHeaders": true,
     "customLayoutMode": "grid"
   },
   "demo": {

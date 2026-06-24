@@ -6,7 +6,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CornerDownLeft, X } from '@/components/ui/icons';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme, ThemePalette } from '@/hooks/useTheme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { usePty } from '@/hooks/usePty';
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ interface XtermTerminalProps {
   command?: string;
   cwd?: string;
   isZenMode?: boolean;
+  showPaneHeaders?: boolean;
   isMaximized?: boolean;
   onMaximize?: () => void;
   name?: string;
@@ -61,6 +62,7 @@ export function XtermTerminal({
   command,
   cwd,
   isZenMode = false,
+  showPaneHeaders,
   isMaximized = false,
   onMaximize,
   name,
@@ -82,6 +84,7 @@ export function XtermTerminal({
   const [shortcuts, setShortcuts] = useState<ShortcutSettings>(SHORTCUT_DEFAULTS);
   const [showFloatingHeader, setShowFloatingHeader] = useState(true);
   const [headerVisibility, setHeaderVisibility] = useState<'hover' | 'always'>('hover');
+  const headerVisible = showPaneHeaders !== undefined ? showPaneHeaders : showFloatingHeader;
   const [detectedPorts, setDetectedPorts] = useState<DetectedPort[]>([]);
 
   const [pendingSnippet, setPendingSnippet] = useState<PendingSnippet | null>(null);
@@ -134,39 +137,49 @@ export function XtermTerminal({
     loadSettings();
   }, []);
 
-  const getThemePalette = useCallback((themeName: string, scheme: 'light' | 'dark') => {
+  const getThemePalette = useCallback((themeName: string, scheme: 'light' | 'dark'): ThemePalette => {
     const themeDef = allThemes.find(t => t.id === themeName) || allThemes.find(t => t.id === 'cortex');
+    const defaultPalette: ThemePalette = {
+      bg: scheme === 'dark' ? '#09090b' : '#ffffff',
+      headerBg: scheme === 'dark' ? '#0f0f11' : '#f5f5f7',
+      footerBg: scheme === 'dark' ? '#09090b' : '#ffffff',
+      surface: scheme === 'dark' ? '#0f0f11' : '#ffffff',
+      border: scheme === 'dark' ? '#1d1d20' : '#d1d1d1',
+      textPrimary: scheme === 'dark' ? '#ffffff' : '#000000',
+      textSecondary: scheme === 'dark' ? '#A3A3A3' : '#525252',
+      accent: '#ffffff',
+      ansi: {}
+    };
+
     if (!themeDef) {
-      return {
-        bg: scheme === 'dark' ? '#09090b' : '#ffffff',
-        headerBg: scheme === 'dark' ? '#0f0f11' : '#f5f5f7',
-        footerBg: scheme === 'dark' ? '#09090b' : '#ffffff',
-        surface: scheme === 'dark' ? '#0f0f11' : '#ffffff',
-        border: scheme === 'dark' ? '#1d1d20' : '#d1d1d1',
-        textPrimary: scheme === 'dark' ? '#ffffff' : '#000000',
-        textSecondary: scheme === 'dark' ? '#A3A3A3' : '#525252',
-        accent: '#ffffff',
-        ansi: {}
-      };
+      return defaultPalette;
     }
-    if (scheme === 'light') {
-      return themeDef.light || {
-        bg: "#FAFAFA",
-        headerBg: "#FFFFFF",
-        footerBg: "#F0F0F0",
-        surface: "#FFFFFF",
-        border: "#E5E7EB",
-        textPrimary: "#111827",
-        textSecondary: "#4B5563",
-        accent: themeDef.dark.accent,
-        ansi: {
-          ...themeDef.dark.ansi,
-          black: '#111827',
-          white: '#FFFFFF'
-        }
-      };
+
+    if (themeDef.light && themeDef.dark) {
+      return scheme === 'light' ? themeDef.light : themeDef.dark;
+    } else if (themeDef.light) {
+      return themeDef.light;
+    } else if (themeDef.dark) {
+      if (scheme === 'light' && themeDef.isLegacy) {
+        return {
+          bg: "#FAFAFA",
+          headerBg: "#FFFFFF",
+          footerBg: "#F0F0F0",
+          surface: "#FFFFFF",
+          border: "#E5E7EB",
+          textPrimary: "#111827",
+          textSecondary: "#4B5563",
+          accent: themeDef.dark.accent,
+          ansi: {
+            ...themeDef.dark.ansi,
+            black: '#111827',
+            white: '#FFFFFF'
+          }
+        };
+      }
+      return themeDef.dark;
     }
-    return themeDef.dark;
+    return defaultPalette;
   }, [allThemes]);
 
   const getActiveAnsiColors = useCallback((themeName: string, scheme: 'light' | 'dark') => {
@@ -493,6 +506,7 @@ export function XtermTerminal({
       const initialFontFamily = getComputedStyle(root).getPropertyValue('--terminal-font-family').trim() || TERMINAL_DEFAULTS.fontFamily;
       const initialLineHeight = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-line-height').trim()) || TERMINAL_DEFAULTS.lineHeight;
       const initialLetterSpacing = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-letter-spacing').trim()) || TERMINAL_DEFAULTS.letterSpacing;
+      const initialFontWeight = getComputedStyle(root).getPropertyValue('--terminal-font-weight').trim() || TERMINAL_DEFAULTS.fontWeight || '400';
 
       let initialSettings = { ...TERMINAL_DEFAULTS };
       getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS).then((saved) => {
@@ -505,6 +519,7 @@ export function XtermTerminal({
         cursorStyle: initialSettings.cursorStyle,
         fontSize: initialFontSize,
         fontFamily: initialFontFamily,
+        fontWeight: initialFontWeight as any,
         lineHeight: initialLineHeight,
         letterSpacing: initialLetterSpacing,
         theme: {
@@ -734,6 +749,7 @@ export function XtermTerminal({
       if (ts) {
         xtermRef.current.options.fontSize = ts.fontSize;
         xtermRef.current.options.fontFamily = `"${ts.fontFamily}", monospace`;
+        xtermRef.current.options.fontWeight = ts.fontWeight as any;
         xtermRef.current.options.cursorBlink = false;
         xtermRef.current.options.cursorStyle = ts.cursorStyle as 'block' | 'underline' | 'bar';
         xtermRef.current.options.lineHeight = ts.lineHeight;
@@ -831,7 +847,7 @@ export function XtermTerminal({
       el.removeEventListener('transitionend', onTransitionEnd);
       clearTimeout(fallbackTimer);
     };
-  }, [isMaximized, isZenMode, showFloatingHeader, headerVisibility]);
+  }, [isMaximized, isZenMode, headerVisible, headerVisibility]);
 
   useEffect(() => {
     const handleFocus = () => { if (xtermRef.current && isFocused && isReady) xtermRef.current.focus(); };
@@ -919,7 +935,7 @@ export function XtermTerminal({
   };
 
   const getTerminalPaddingTop = () => {
-    if (isZenMode || !showFloatingHeader) return '0px';
+    if (isZenMode || !headerVisible) return '0px';
     return headerVisibility === 'always' ? '40px' : '0px';
   };
 
@@ -936,7 +952,7 @@ export function XtermTerminal({
         background: 'var(--bg-color)'
       }}
     >
-      {showFloatingHeader && (
+      {headerVisible && (
         <PaneElevator
           paneId={paneId}
           name={name}

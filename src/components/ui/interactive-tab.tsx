@@ -160,7 +160,7 @@ export function InteractiveTab({
               <span className="truncate tracking-tight">{displayName}</span>
               {terminalCount !== undefined && terminalCount > 0 && (
                 <span className={cn(
-                  "text-[9px] px-1 py-0 rounded flex items-center justify-center font-mono opacity-40 bg-[var(--text-primary)]/10 min-w-[14px]",
+                  "text-[9px] px-1 py-0 rounded flex items-center justify-center opacity-40 bg-[var(--text-primary)]/10 min-w-[14px]",
                   isActive && "opacity-80"
                 )}>
                   {terminalCount}
