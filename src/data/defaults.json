@@ -57,11 +57,12 @@
     "cursorStyle": "block",
     "cursorBlink": true,
     "lineHeight": 1.2,
-    "letterSpacing": 0
+    "letterSpacing": 0,
+    "fontWeight": "400"
   },
   "startup": {
     "showSplashAnimation": true,
-    "behavior": "modeSelector",
+    "behavior": "lastMode",
     "checkForUpdatesOnStartup": true,
     "confirmModeChange": true,
     "defaultShell": ""

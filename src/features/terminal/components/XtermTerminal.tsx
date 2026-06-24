@@ -506,6 +506,7 @@ export function XtermTerminal({
       const initialFontFamily = getComputedStyle(root).getPropertyValue('--terminal-font-family').trim() || TERMINAL_DEFAULTS.fontFamily;
       const initialLineHeight = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-line-height').trim()) || TERMINAL_DEFAULTS.lineHeight;
       const initialLetterSpacing = parseFloat(getComputedStyle(root).getPropertyValue('--terminal-letter-spacing').trim()) || TERMINAL_DEFAULTS.letterSpacing;
+      const initialFontWeight = getComputedStyle(root).getPropertyValue('--terminal-font-weight').trim() || TERMINAL_DEFAULTS.fontWeight || '400';
 
       let initialSettings = { ...TERMINAL_DEFAULTS };
       getSettingsGroup<TerminalSettings>('terminal', TERMINAL_DEFAULTS).then((saved) => {
@@ -518,6 +519,7 @@ export function XtermTerminal({
         cursorStyle: initialSettings.cursorStyle,
         fontSize: initialFontSize,
         fontFamily: initialFontFamily,
+        fontWeight: initialFontWeight as any,
         lineHeight: initialLineHeight,
         letterSpacing: initialLetterSpacing,
         theme: {
@@ -747,6 +749,7 @@ export function XtermTerminal({
       if (ts) {
         xtermRef.current.options.fontSize = ts.fontSize;
         xtermRef.current.options.fontFamily = `"${ts.fontFamily}", monospace`;
+        xtermRef.current.options.fontWeight = ts.fontWeight as any;
         xtermRef.current.options.cursorBlink = false;
         xtermRef.current.options.cursorStyle = ts.cursorStyle as 'block' | 'underline' | 'bar';
         xtermRef.current.options.lineHeight = ts.lineHeight;

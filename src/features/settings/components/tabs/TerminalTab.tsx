@@ -1,11 +1,12 @@
+import { useState, useEffect } from "react";
 import { 
   SettingsCard, 
   SettingsRow, 
   SegmentedControl 
 } from "../shared/SettingsUI";
-import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { 
   Select, 
   SelectContent, 
@@ -14,9 +15,10 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { TerminalSettings, DemoSettings } from "@/lib/store";
-import { Layout, Type, MousePointer2, History } from "@/components/ui/icons";
+import { Layout, Type, MousePointer2, History, FolderOpen, Monitor } from "@/components/ui/icons";
 import { motion, Variants } from "framer-motion";
 import { Label } from "@/components/ui/label";
+import { invoke } from "@tauri-apps/api/core";
 
 function HeaderMockup({ type }: { type: "hover" | "always" }) {
   const isHover = type === "hover";
@@ -129,10 +131,12 @@ interface TerminalTabProps {
   demo: DemoSettings;
   isLoaded: boolean;
   updateSetting: (key: keyof TerminalSettings, value: any) => void;
-  updateSettingLive: (key: keyof TerminalSettings, value: any) => void;
-  commitSettings: (values: Partial<TerminalSettings>) => Promise<void>;
   onResetTerminal: () => void;
   setDemoSetting: <K extends keyof DemoSettings>(key: K, value: DemoSettings[K]) => Promise<void>;
+  defaultShell: string;
+  setDefaultShell: (v: string) => void;
+  defaultPath: string;
+  onSetPath: () => void;
 }
 
 const fontFamilies = [
@@ -157,11 +161,21 @@ export function TerminalTab({
   demo,
   isLoaded,
   updateSetting,
-  updateSettingLive,
-  commitSettings,
   onResetTerminal,
   setDemoSetting,
+  defaultShell,
+  setDefaultShell,
+  defaultPath,
+  onSetPath,
 }: TerminalTabProps) {
+  const [systemShell, setSystemShell] = useState<string>("detecting...");
+
+  useEffect(() => {
+    invoke<string>("get_default_shell")
+      .then(setSystemShell)
+      .catch(() => setSystemShell("unknown"));
+  }, []);
+
   if (!isLoaded) return null;
 
   const containerVariants: Variants = {
@@ -278,76 +292,127 @@ export function TerminalTab({
 
           <SettingsRow
             label="Font Size"
-            description="Terminal character size in pixels (10–32px)."
-            htmlFor="font-size-slider"
+            description="Terminal character size in pixels."
+            htmlFor="font-size-select"
           >
-            <div className="flex items-center gap-3 w-[180px]">
-              <Slider
-                id="font-size-slider"
-                min={10}
-                max={32}
-                step={1}
-                value={[ts.fontSize]}
-                onValueChange={([v]) => updateSettingLive("fontSize", v)}
-                onValueCommit={([v]) => commitSettings({ fontSize: v })}
-                className="flex-1"
-              />
-              <span className="text-[11px] w-[32px] text-right text-[var(--text-secondary)]">
-                {ts.fontSize}px
-              </span>
-            </div>
+            <Select
+              value={String(ts.fontSize)}
+              onValueChange={(v) => {
+                const num = parseInt(v, 10);
+                updateSetting("fontSize", num);
+              }}
+              size="sm"
+            >
+              <SelectTrigger
+                id="font-size-select"
+                className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {(() => {
+                  const standardSizes = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 26, 28, 30, 32];
+                  const fontSizes = standardSizes.includes(ts.fontSize) 
+                    ? standardSizes 
+                    : [...standardSizes, ts.fontSize].sort((a, b) => a - b);
+                  return fontSizes.map((size) => (
+                    <SelectItem key={size} value={String(size)} className="cursor-pointer hover:bg-white/5 transition-all">
+                      {size}px
+                    </SelectItem>
+                  ));
+                })()}
+              </SelectContent>
+            </Select>
+          </SettingsRow>
+
+          <SettingsRow
+            label="Font Weight"
+            description="Terminal character font thickness."
+            htmlFor="font-weight-select"
+          >
+            <Select
+              value={String(ts.fontWeight || "400")}
+              onValueChange={(v) => updateSetting("fontWeight", v)}
+              size="sm"
+            >
+              <SelectTrigger
+                id="font-weight-select"
+                className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value="300" className="cursor-pointer hover:bg-white/5 transition-all">Light (300)</SelectItem>
+                <SelectItem value="400" className="cursor-pointer hover:bg-white/5 transition-all">Regular (400)</SelectItem>
+                <SelectItem value="500" className="cursor-pointer hover:bg-white/5 transition-all">Medium (500)</SelectItem>
+                <SelectItem value="600" className="cursor-pointer hover:bg-white/5 transition-all">Semibold (600)</SelectItem>
+                <SelectItem value="700" className="cursor-pointer hover:bg-white/5 transition-all">Bold (700)</SelectItem>
+              </SelectContent>
+            </Select>
           </SettingsRow>
 
           <SettingsRow
             label="Line Height"
-            description="Vertical spacing between terminal lines (1.0–2.0)."
-            htmlFor="line-height-slider"
+            description="Vertical spacing between terminal lines."
+            htmlFor="line-height-select"
           >
-            <div className="flex items-center gap-3 w-[180px]">
-              <Slider
-                id="line-height-slider"
-                min={1.0}
-                max={2.0}
-                step={0.1}
-                value={[ts.lineHeight]}
-                onValueChange={([v]) =>
-                  updateSettingLive("lineHeight", Math.round(v * 10) / 10)
-                }
-                onValueCommit={([v]) =>
-                  commitSettings({ lineHeight: Math.round(v * 10) / 10 })
-                }
-                className="flex-1"
-              />
-              <span className="text-[11px] w-[32px] text-right text-[var(--text-secondary)]">
-                {ts.lineHeight.toFixed(1)}
-              </span>
-            </div>
+            <Select
+              value={String(ts.lineHeight)}
+              onValueChange={(v) => updateSetting("lineHeight", parseFloat(v))}
+              size="sm"
+            >
+              <SelectTrigger
+                id="line-height-select"
+                className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {(() => {
+                  const standardLineHeights = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0];
+                  const lineHeights = standardLineHeights.includes(ts.lineHeight) 
+                    ? standardLineHeights 
+                    : [...standardLineHeights, ts.lineHeight].sort((a, b) => a - b);
+                  return lineHeights.map((lh) => (
+                    <SelectItem key={lh} value={String(lh)} className="cursor-pointer hover:bg-white/5 transition-all">
+                      {lh.toFixed(1)}
+                    </SelectItem>
+                  ));
+                })()}
+              </SelectContent>
+            </Select>
           </SettingsRow>
 
           <SettingsRow
             label="Letter Spacing"
-            description="Extra spacing between characters (0–5px)."
-            htmlFor="letter-spacing-slider"
+            description="Extra spacing between characters."
+            htmlFor="letter-spacing-select"
           >
-            <div className="flex items-center gap-3 w-[180px]">
-              <Slider
-                id="letter-spacing-slider"
-                min={0}
-                max={5}
-                step={0.5}
-                value={[ts.letterSpacing]}
-                onValueChange={([v]) =>
-                  updateSettingLive("letterSpacing", v)
-                }
-                onValueCommit={([v]) =>
-                  commitSettings({ letterSpacing: v })
-                }
-                className="flex-1"
-              />
-              <span className="text-[11px] w-[32px] text-right text-[var(--text-secondary)]">
-                {ts.letterSpacing}px
-              </span>
-            </div>
+            <Select
+              value={String(ts.letterSpacing)}
+              onValueChange={(v) => updateSetting("letterSpacing", parseFloat(v))}
+              size="sm"
+            >
+              <SelectTrigger
+                id="letter-spacing-select"
+                className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                {(() => {
+                  const standardSpacings = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0];
+                  const letterSpacings = standardSpacings.includes(ts.letterSpacing) 
+                    ? standardSpacings 
+                    : [...standardSpacings, ts.letterSpacing].sort((a, b) => a - b);
+                  return letterSpacings.map((ls) => (
+                    <SelectItem key={ls} value={String(ls)} className="cursor-pointer hover:bg-white/5 transition-all">
+                      {ls >= 0 ? `+${ls.toFixed(1)}` : `${ls.toFixed(1)}`}px
+                    </SelectItem>
+                  ));
+                })()}
+              </SelectContent>
+            </Select>
           </SettingsRow>
         </SettingsCard>
       </motion.div>
@@ -414,6 +479,69 @@ export function TerminalTab({
               className="w-[110px] h-8 text-[11px] text-right bg-[var(--bg-color)]/50 border-[var(--border-color)]/20"
             />
           </SettingsRow>
+        </SettingsCard>
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <SettingsCard 
+          title="Environment" 
+          icon={<Monitor size={16} />}
+          description="System-level paths and shell configurations."
+        >
+          <SettingsRow
+            label="Default Shell"
+            description="Override the system's default shell executable."
+            htmlFor="default-shell-select"
+          >
+            <div className="flex flex-col items-end gap-2">
+              <Select
+                value={defaultShell === "" ? "auto" : defaultShell}
+                onValueChange={(v) => {
+                  if (v === "auto") {
+                    setDefaultShell("");
+                  } else {
+                    setDefaultShell(v);
+                  }
+                }}
+                size="sm"
+              >
+                <SelectTrigger
+                  id="default-shell-select"
+                  className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold text-left font-sans"
+                >
+                  <SelectValue placeholder="Select shell" />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value="auto" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">Auto ({systemShell})</SelectItem>
+                  <SelectItem value="powershell" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">PowerShell</SelectItem>
+                  <SelectItem value="powershell.exe" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">Windows PowerShell</SelectItem>
+                  <SelectItem value="cmd" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">Command Prompt</SelectItem>
+                  <SelectItem value="bash" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">Git Bash</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </SettingsRow>
+          
+          <div className="px-2 py-3 mt-2 border-t border-[var(--border-color)]/10">
+            <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)]/60 mb-3 block">
+              Default Workspace Path
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={defaultPath || "System Default (Home Dir)"}
+                className="text-[11px] bg-[var(--bg-color)]/30 text-[var(--text-secondary)] border-[var(--border-color)]/20 flex-1 h-8"
+              />
+              <Button
+                variant="default"
+                onClick={onSetPath}
+                className="shrink-0 h-8 px-4 text-[10px] font-bold tracking-wider transition-all"
+              >
+                <FolderOpen size={12} className="mr-1.5" />
+                Browse
+              </Button>
+            </div>
+          </div>
         </SettingsCard>
       </motion.div>
     </motion.div>

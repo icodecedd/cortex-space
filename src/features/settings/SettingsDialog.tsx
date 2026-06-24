@@ -115,7 +115,7 @@ export function SettingsDialog({
 
   // Startup settings (local state, persisted on change)
   const [showSplash, setShowSplash] = useState(true);
-  const [startupBehavior, setStartupBehavior] = useState<StartupBehavior>("modeSelector");
+  const [startupBehavior, setStartupBehavior] = useState<StartupBehavior>("lastMode");
   const [checkUpdates, setCheckUpdates] = useState(true);
   const [confirmModeChange, setConfirmModeChange] = useState(true);
   const [defaultShell, setDefaultShell] = useState("");
@@ -127,8 +127,6 @@ export function SettingsDialog({
     settings: ts,
     isLoaded,
     updateSetting,
-    updateSettingLive,
-    commitSettings,
     resetToDefaults: resetTerminal,
   } = useTerminalSettings();
 
@@ -151,7 +149,7 @@ export function SettingsDialog({
         ] = await Promise.all([
           getSetting("cortex_default_path", ""),
           getSetting("startup.showSplashAnimation", true),
-          getSetting<StartupBehavior>("startup.behavior", "modeSelector"),
+          getSetting<StartupBehavior>("startup.behavior", "lastMode"),
           getSetting("startup.checkForUpdatesOnStartup", true),
           getSetting("startup.confirmModeChange", true),
           getSetting("startup.defaultShell", ""),
@@ -200,13 +198,13 @@ export function SettingsDialog({
 
   const handleResetStartup = async () => {
     setShowSplash(true);
-    setStartupBehavior("modeSelector");
+    setStartupBehavior("lastMode");
     setCheckUpdates(true);
     setConfirmModeChange(true);
     setDefaultShell("");
     await Promise.all([
       setSetting("startup.showSplashAnimation", true),
-      setSetting("startup.behavior", "modeSelector"),
+      setSetting("startup.behavior", "lastMode"),
       setSetting("startup.checkForUpdatesOnStartup", true),
       setSetting("startup.confirmModeChange", true),
       setSetting("startup.defaultShell", ""),
@@ -321,16 +319,7 @@ export function SettingsDialog({
               setCheckUpdates={(v) => handleStartupToggle("startup.checkForUpdatesOnStartup", setCheckUpdates, v)}
               confirmModeChange={confirmModeChange}
               setConfirmModeChange={(v) => handleStartupToggle("startup.confirmModeChange", setConfirmModeChange, v)}
-              defaultShell={defaultShell}
-              setDefaultShell={async (v) => {
-                setDefaultShell(v);
-                await setSetting("startup.defaultShell", v);
-                window.dispatchEvent(new CustomEvent('cortex-settings-changed', {
-                  detail: { startup: { defaultShell: v } }
-                }));
-              }}
-              defaultPath={defaultPath}
-              onSetPath={handleSetPath}
+
               onResetStartup={handleResetStartup}
               focusSettings={focusSettings}
               setFocusSetting={setFocusSetting}
@@ -356,10 +345,18 @@ export function SettingsDialog({
               demo={demoSettings}
               isLoaded={isLoaded}
               updateSetting={updateSetting}
-              updateSettingLive={updateSettingLive}
-              commitSettings={commitSettings}
               onResetTerminal={resetTerminal}
               setDemoSetting={setDemoSetting}
+              defaultShell={defaultShell}
+              setDefaultShell={async (v) => {
+                setDefaultShell(v);
+                await setSetting("startup.defaultShell", v);
+                window.dispatchEvent(new CustomEvent('cortex-settings-changed', {
+                  detail: { startup: { defaultShell: v } }
+                }));
+              }}
+              defaultPath={defaultPath}
+              onSetPath={handleSetPath}
             />
           </TabsContent>
 

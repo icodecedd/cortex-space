@@ -5,14 +5,11 @@ import {
 } from "../shared/SettingsUI";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { 
-  FolderOpen, 
   Palette, 
   Rocket, 
   Target, 
-  Monitor,
   AlertTriangle
 } from "@/components/ui/icons";
 import { 
@@ -25,7 +22,6 @@ import {
 import { ColorScheme, StartupBehavior, FocusSettings } from "@/lib/store";
 import { motion, Variants } from "framer-motion";
 import { ConfirmActionDialog } from "@/components/dialogs/ConfirmActionDialog";
-import { invoke } from "@tauri-apps/api/core";
 import { Label } from "@/components/ui/label";
 
 function DashboardMockup({ theme }: { theme: "light" | "dark" }) {
@@ -337,11 +333,6 @@ interface GeneralTabProps {
   setFocusSetting: <K extends keyof FocusSettings>(key: K, value: FocusSettings[K]) => Promise<void>;
   onResetFocus: () => Promise<void>;
 
-  // Environment
-  defaultShell: string;
-  setDefaultShell: (v: string) => void;
-  defaultPath: string;
-  onSetPath: () => void;
   onFactoryReset: () => Promise<void>;
 }
 
@@ -374,23 +365,12 @@ export function GeneralTab({
   focusSettings,
   setFocusSetting,
   onResetFocus,
-  defaultShell,
-  setDefaultShell,
-  defaultPath,
-  onSetPath,
   onFactoryReset,
 }: GeneralTabProps) {
   const [isAppearanceResetOpen, setIsAppearanceResetOpen] = useState(false);
   const [isStartupResetOpen, setIsStartupResetOpen] = useState(false);
   const [isFocusResetOpen, setIsFocusResetOpen] = useState(false);
   const [isFactoryResetOpen, setIsFactoryResetOpen] = useState(false);
-  const [systemShell, setSystemShell] = useState<string>("detecting...");
-
-  useEffect(() => {
-    invoke<string>("get_default_shell")
-      .then(setSystemShell)
-      .catch(() => setSystemShell("unknown"));
-  }, []);
 
   const activeThemeDef = allThemes?.find((t) => t.id === theme);
   const hasLightMode = activeThemeDef ? (!!activeThemeDef.light || !!activeThemeDef.isLegacy) : true;
@@ -795,69 +775,7 @@ export function GeneralTab({
         </SettingsCard>
       </motion.div>
 
-      {/* 4. Environment & Shell */}
-      <motion.div variants={itemVariants}>
-        <SettingsCard 
-          title="Environment" 
-          icon={<Monitor size={16} />}
-          description="System-level paths and shell configurations."
-        >
-          <SettingsRow
-            label="Default Shell"
-            description="Override the system's default shell executable."
-            htmlFor="default-shell-select"
-          >
-            <div className="flex flex-col items-end gap-2">
-              <Select
-                value={defaultShell === "" ? "auto" : defaultShell}
-                onValueChange={(v) => {
-                  if (v === "auto") {
-                    setDefaultShell("");
-                  } else {
-                    setDefaultShell(v);
-                  }
-                }}
-                size="sm"
-              >
-                <SelectTrigger
-                  id="default-shell-select"
-                  className="h-9 w-[180px] bg-white/[0.02] border-[var(--border-color)]/25 hover:border-[var(--accent-primary)]/30 focus:bg-[var(--bg-color)] focus:border-[var(--accent-primary)]/40 transition-all duration-500 rounded-lg shadow-none pr-2 pl-2.5 font-bold text-left font-sans"
-                >
-                  <SelectValue placeholder="Select shell" />
-                </SelectTrigger>
-                <SelectContent position="popper">
-                  <SelectItem value="auto" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">Auto ({systemShell})</SelectItem>
-                  <SelectItem value="powershell" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">PowerShell</SelectItem>
-                  <SelectItem value="powershell.exe" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">Windows PowerShell</SelectItem>
-                  <SelectItem value="cmd" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">Command Prompt</SelectItem>
-                  <SelectItem value="bash" className="cursor-pointer hover:bg-white/5 transition-all font-bold font-sans">Git Bash</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </SettingsRow>
-          
-          <div className="px-2 py-3 mt-2 border-t border-[var(--border-color)]/10">
-            <label className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)]/60 mb-3 block">
-              Default Workspace Path
-            </label>
-            <div className="flex items-center gap-2">
-              <Input
-                readOnly
-                value={defaultPath || "System Default (Home Dir)"}
-                className="text-[11px] bg-[var(--bg-color)]/30 text-[var(--text-secondary)] border-[var(--border-color)]/20 flex-1 h-8"
-              />
-              <Button
-                variant="default"
-                onClick={onSetPath}
-                className="shrink-0 h-8 px-4 text-[10px] font-bold tracking-wider transition-all"
-              >
-                <FolderOpen size={12} className="mr-1.5" />
-                Browse
-              </Button>
-            </div>
-          </div>
-        </SettingsCard>
-      </motion.div>
+
 
       {/* 5. Maintenance / Reset */}
       <motion.div variants={itemVariants}>

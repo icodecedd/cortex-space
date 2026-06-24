@@ -22,6 +22,7 @@ function applyTerminalCSSVars(settings: TerminalSettings) {
   root.style.setProperty('--terminal-font-family', cssFontFamily);
   root.style.setProperty('--terminal-line-height', String(settings.lineHeight));
   root.style.setProperty('--terminal-letter-spacing', `${settings.letterSpacing}px`);
+  root.style.setProperty('--terminal-font-weight', String(settings.fontWeight || '400'));
 }
 
 function dispatchSettingsEvent(settings: TerminalSettings) {

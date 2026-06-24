@@ -158,26 +158,29 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   const initWorkspace = useCallback(async () => {
-    const savedWorkspaces = await getSetting<Workspace[]>(
-      "internal.workspaces",
-      [],
-    );
-    const savedActiveId = await getSetting<string | null>(
-      "internal.activeWorkspaceId",
-      null,
-    );
-
-    if (savedWorkspaces.length > 0) {
-      setWorkspaces(savedWorkspaces);
-      setActiveWorkspaceId(savedActiveId || savedWorkspaces[0].id);
-      setIsLoaded(true);
-      return;
-    }
-
     const behavior = await getSetting<StartupBehavior>(
       "startup.behavior",
-      "modeSelector",
+      "lastMode",
     );
+
+    if (behavior === "lastMode") {
+      const savedWorkspaces = await getSetting<Workspace[]>(
+        "internal.workspaces",
+        [],
+      );
+      const savedActiveId = await getSetting<string | null>(
+        "internal.activeWorkspaceId",
+        null,
+      );
+
+      if (savedWorkspaces.length > 0) {
+        setWorkspaces(savedWorkspaces);
+        setActiveWorkspaceId(savedActiveId || savedWorkspaces[0].id);
+        setIsLoaded(true);
+        return;
+      }
+    }
+
     const lastMode = await getSetting<Mode>("startup.lastMode", "normal");
     const initialId = crypto.randomUUID();
 
@@ -416,6 +419,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const handleSelectMode = useCallback(
     (mode: Mode) => {
+      setSetting("startup.lastMode", mode);
       setWorkspaces((prev) =>
         prev.map((w) =>
           w.id === activeWorkspaceId

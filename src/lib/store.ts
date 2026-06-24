@@ -80,6 +80,7 @@ export interface TerminalSettings {
   cursorBlink: boolean;
   lineHeight: number;
   letterSpacing: number;
+  fontWeight: string;
 }
 
 export interface StartupSettings {
