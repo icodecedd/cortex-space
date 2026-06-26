@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="public/cortex-new-logo.png" alt="Cortex Space Logo" width="120">
+</p>
+
 <h1 align="center">Cortex Space</h1>
-<p align="center"><em>High-Performance Developer Workspace & Terminal Manager</em></p>
-<p align="center"><strong>Instant Terminals. Dynamic Layouts. Keyboard-Driven Workflow.</strong></p>
+<p align="center"><em>Local-First Multi-Pane Terminal Manager for Developers</em></p>
+<p align="center"><strong>Native performance. Dynamic layouts. Keyboard-driven workflows.</strong></p>
 
 ---
 
@@ -24,125 +28,120 @@
 
 ---
 
-## 📊 Project Status  
-
-<div align="center">
-  <!-- Status Badge -->
-  <img src="https://img.shields.io/badge/Status-Active%20Development-brightgreen?style=for-the-badge" alt="Active Development">
-  <!-- Version Badge -->
-  <img src="https://img.shields.io/badge/Version-0.1.0-blue?style=for-the-badge" alt="Version 0.1.0">
-</div>
-
-**Under Development** — Cortex Space is a **local-first, high-fidelity developer workspace and terminal manager** designed to replace outdated static terminal configurations with an intuitive, keyboard-driven layout.
-
-
----
-
-## 📖 Overview  
-**Cortex Space** is built for developers to unify their terminal instances, environments, and custom AI agent tools into a fast, fluid, and cohesive workspace.  
-
-### Key Benefits  
-- **🖥️ Advanced Multi-Pane Terminal** – Split, resize, and manage infinite terminal panels powered by Xterm.js and Tauri PTY.
-- **⚡ Keyboard-Driven Command Palette** – Trigger settings, switch layouts, and search commands with `Ctrl/Cmd + K`.
-- **🔄 Drag-and-Drop Organization** – Rearrange and re-partition terminal trees on the fly using quadrants and ghost previews.
-- **📦 Command Snippets & Placeholders** – Save, run, and resolve dynamic parameters in your custom scripts before execution.
-- **🔌 Local Agent Registry** – Discover, install, and run AI developer agents directly within custom terminal environments.
-- **🌊 Spring-Physics UI** – Fluid animations and spatial cues (Z-axis scale, focus pushback) make window navigation feel extremely premium.
-
----
-
-## ✨ Features by Subsystem
-
-| 🛠️ Terminal & Workspace Navigation | ⚡ Automation & Agent Workflows |
-|-------------------------------------|---------------------------------|
-| Split terminals horizontally/vertically in recursive layouts | Create, organize, and reuse multi-step Command Snippets |
-| Drag-and-drop terminal headers (`UX Elevator`) with live quadrant previews | Dynamic `{{VAR}}` prompt resolver for customizable variables |
-| Directional keyboard shortcuts (`Cmd/Ctrl + Opt + Arrows`) for fast navigation | Real-time Local Port Detection with automatic TCP-liveness checking |
-| Persistent state restoration across app launches (Workspaces, paths, layouts) | Environment-Aware Onboarding to scan and configure global CLI agent tools |
-| Settings system for themes, fonts, font-size, and global UI scaling | Integration of local and custom AI agents directly in workspace environments |
-
-> **💡 UX Design Note:**  
-> Cortex Space is built around keyboard-first, lightning-fast workflows. The entire interface supports directional hotkeys and features tactile micro-interactions (spring physics, Z-axis scaling, and focus pushback) to keep developers in their flow state without losing contextual focus.
-
----
-
-## 🛠 Tech Stack  
-
-<div align="center">
-  <!-- General descriptive badge -->
-  <img src="https://img.shields.io/badge/Tech-Stack%20Overview-blue?style=for-the-badge" alt="Tech Stack Overview">
-  <img src="https://img.shields.io/badge/Includes-Tauri%2FReact%2FTypeScript%2FLocal--Store-green?style=for-the-badge" alt="Includes Tauri/React/TypeScript/Local-Store">
-</div>
-
-<br>
-<!-- Tech Stack Table -->
-<div align="center">
-
-| Layer       | Technology                     | Description |
-|:------------:|:------------:|:------------:|
-| **Desktop Core** | Tauri v2, Rust | Binds terminal backend execution with OS native APIs and isolates PTY instances. |
-| **Frontend** | React, TypeScript, Vite        | Drives the interactive GUI, layout rendering, and component lifecycle. |
-| **Terminal Engine** | Xterm.js                     | Renders low-latency, high-performance terminal views with addon support. |
-| **Styling & UI** | Tailwind CSS, Radix UI, Base UI | Powers a fluid, unified design system with robust focus states and styling. |
-| **Animation** | Framer Motion                  | Animates transitions, drag gestures, and physics-based spatial interactions. |
-| **Storage** | Tauri Store Plugin             | Persists user preferences, layouts, snippets, and app states locally. |
-
-</div>
-
----
-
-## 🚀 Features  
-
-### ✅ Completed  
-- **Multi-Pane Terminal Engine** – High-performance integration of Xterm.js with Tauri-based PTY processes
-- **Dynamic Resizable Layouts** – Flexible split-pane engine (horizontal/vertical) with recursive nesting and ratio-based resizing
-- **Global Command Palette (`Ctrl/Cmd + K`)** – Lightning-fast "Omni-search" for switching workspaces, templates, or executing UI actions
-- **Command Snippet Repository** – Store, reuse, and bulk-manage commands to execute instantly in focused terminals
-- **Snippet Variable Placeholders** – Dynamic `{{VAR}}` placeholders with glassmorphic prompt resolution before execution
-- **Automatic Port Detection** – Live terminal output parsing for localhost links with TCP-liveness checks
-- **Pane Drag-and-Drop (UX Elevator)** – Quadrant-based layout re-partitioning with animated ghost overlays
-- **Global Settings & Onboarding** – Persistent configuration for typography/themes, plus onboarding tool scan for developer agents
-
-### 🔄 In Progress  
-- **State Restoration (Deep Persistence)** – Auto-serialize and restore all active workspaces, pane trees, and directory paths upon restart
-- **Shell Environment Optimization** – Auto-detection of default shells (Zsh, Bash, PowerShell) with PATH inheritance
-- **Contextual Pane Actions** – Hover and shortcut menus to rename, split, or restart terminal instances
-- **Resource Sparklines** – Integrated CPU/Memory monitors inside pane headers for real-time tracking
-- **Hybrid Agent Architecture (Tauri Sidecars)** – Bundle default AI agent CLIs as local Tauri sidecars for 100% offline access
-
----
-
-## 🤝 Contributing  
-
 <p align="center">
-  <img src="https://img.shields.io/badge/We%20Welcome-Contributions-brightgreen?style=for-the-badge" alt="We Welcome Contributions">
+  <img src="public/cortex-terminal-mockup.webp" alt="Cortex Space Terminal Mockup" width="800">
 </p>
 
-We love collaboration! Here’s how you can contribute:  
-
-1. **Fork** the repository  
-2. **Create** a feature branch (`git checkout -b feature-name`)  
-3. **Commit** your changes (`git commit -m 'Add new feature'`)  
-4. **Push** to your branch (`git push origin feature-name`)  
-5. **Open** a Pull Request  
+<p align="center">
+  <a href="https://cortex-space.vercel.app">
+    <img src="https://img.shields.io/badge/Website-cortex--space.vercel.app-8B5CF6?style=for-the-badge&logo=vercel&logoColor=white" alt="Website">
+  </a>
+  &nbsp;
+  <a href="https://github.com/icodecedd/cortex-website">
+    <img src="https://img.shields.io/badge/Source%20Code-cortex--website-181717?style=for-the-badge&logo=github&logoColor=white" alt="Source Code">
+  </a>
+</p>
 
 ---
 
+## Project Status
+
 <div align="center">
-  <h3>📢 Support the project and help improve developer productivity! 📢</h3>
-  
-  <p>
-    <img src="https://img.shields.io/badge/Built for-Developer%20Velocity-blue?style=for-the-badge" alt="Built for Developer Velocity">
-  </p>
-  
-  <p>
-    <a href="https://github.com/icodecedd/cortex-space/stargazers">
-      <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/icodecedd/cortex-space?style=social">
-    </a>
-    <a href="https://github.com/icodecedd/cortex-space/network/members">
-      <img alt="GitHub forks" src="https://img.shields.io/github/forks/icodecedd/cortex-space?style=social">
-    </a>
-  </p>
-  
-  <sub>© 2026 Cortex Space - Built for Next-Generation Workspaces</sub>
+  <img src="https://img.shields.io/badge/Status-Active%20Development-brightgreen?style=for-the-badge" alt="Active Development">
+  <a href="https://github.com/icodecedd/cortex-space/releases"><img src="https://img.shields.io/badge/Version-0.1.3-blue?style=for-the-badge" alt="Version 0.1.3"></a>
 </div>
+
+**Under Development** -- Cortex Space is a native desktop terminal manager that replaces static terminal configurations with a dynamic, keyboard-driven multi-pane workspace. Built with Tauri and React, it provides a high-performance terminal experience with recursive split layouts, session persistence, and a plugin-free tool registry.
+
+---
+
+## Overview
+
+Cortex Space unifies terminal instances, workspaces, and developer tooling into a single cohesive desktop application.
+
+### Key Features
+- **Multi-Pane Terminal Engine** -- Split, resize, and manage terminal panels powered by Xterm.js and Tauri-based PTY processes with full shell support (PowerShell, Bash, Zsh)
+- **Dynamic Recursive Layouts** -- Horizontal and vertical splits with ratio-based resizing, drag-and-drop pane reordering, and quadrant-based repartitioning
+- **Global Command Palette** -- Triggered via `Ctrl/Cmd + K` for switching workspaces, executing commands, and launching templates
+- **Command Snippets** -- Save, organize, and execute reusable shell commands with dynamic `{{VAR}}` placeholder resolution
+- **Workspace & Tab Management** -- Multiple isolated workspaces, each containing sub-tabs with independent terminal layouts
+- **CLI Tool Registry** -- Discover and verify installation status of developer CLI tools (AI agents, language servers, build tools) with one-click install commands
+- **Automatic Port Detection** -- Live parsing of terminal output for localhost URLs with TCP-liveness checking
+- **Zen Mode** -- Full-screen focused terminal view, hiding all chrome
+- **Theme System** -- 14 bundled themes (Catppuccin, Dracula, Nord, Tokyo Night, Gruvbox, and more) with dark/light/system scheme support and custom theme creation
+
+---
+
+## Tech Stack
+
+<br>
+<div align="center">
+
+| Layer | Technology | Purpose |
+|:-----:|:----------:|:--------:|
+| **Desktop Core** | Tauri v2, Rust | Native window management, PTY process isolation, OS integration |
+| **Frontend** | React 19, TypeScript, Vite | Interactive GUI, layout rendering, component lifecycle |
+| **Terminal Engine** | Xterm.js | Low-latency terminal rendering with fit and weblinks addons |
+| **PTY Backend** | portable-pty (Rust) | Shell process spawning and I/O management |
+| **Styling & UI** | Tailwind CSS, Radix UI, Base UI | Unified design system with accessible controls |
+| **Animation** | Framer Motion | Spring-physics transitions, Z-axis scaling, drag gestures |
+| **Drag & Drop** | dnd-kit | Pane header drag reordering with live quadrant previews |
+| **Persistence** | Tauri Store Plugin | Local JSON-based storage for settings, workspaces, snippets |
+
+</div>
+
+---
+
+## Features
+
+### Completed
+- Multi-pane terminal with real PTY shell sessions
+- Dynamic recursive split layouts (horizontal/vertical) with resize handles
+- Pane drag-and-drop repartitioning with animated ghost overlays
+- Global command palette for workspace switching and template launching
+- Command snippet repository with `{{VAR}}` placeholder resolution
+- Multiple workspace support with sidebar, pinning, and renaming
+- Sub-tab system for multiple layouts per workspace
+- CLI tool agent registry with install-status detection
+- Automatic localhost port detection and TCP-liveness checking
+- 14 bundled themes with dark/light/system scheme support
+- Custom theme creation and management
+- Zen Mode for distraction-free terminal work
+- Settings persistence for terminal font, size, shortcuts, and appearance
+- Onboarding flow with profile selection and tool scanning
+- Pane keyboard navigation (`Alt+Arrows`, `Ctrl+1-9`)
+- State restoration across app launches
+- Custom titlebar with minimize/maximize/close controls
+- Self-updater via GitHub Releases
+
+### In Progress
+- Sidebar style tabbing
+- Project-based workspaces
+- Drag and drop skills to AI agents
+- Auto-PR (automated pull request workflows)
+- Session management
+- Enhanced command snippets with advanced variable resolution
+
+---
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=icodecedd%2Fcortex-space&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=icodecedd/cortex-space&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=icodecedd/cortex-space&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=icodecedd/cortex-space&type=date&legend=top-left" />
+ </picture>
+</a>
+
+---
+
+## Contributing
+
+We welcome contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, development workflow, and pull request guidelines.
+
+---
+
+<p align="center">
+  <img src="public/footer.png" alt="Cortex Space Footer" width="800">
+</p>
